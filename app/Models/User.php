@@ -4,6 +4,8 @@ namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Database\Factories\UserFactory;
+use Filament\Models\Contracts\FilamentUser;
+use Filament\Panel;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -24,7 +26,7 @@ use Illuminate\Support\Str;
  */
 #[Fillable(['name', 'email', 'password'])]
 #[Hidden(['password', 'remember_token'])]
-class User extends Authenticatable
+class User extends Authenticatable implements FilamentUser
 {
     /** @use HasFactory<UserFactory> */
     use HasFactory, Notifiable;
@@ -40,6 +42,21 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
         ];
+    }
+
+    /**
+     * Ouvre l'accès au back-office aux seules adresses déclarées dans la
+     * configuration. Sans ce contrôle, Filament refuse l'accès dès que
+     * l'application n'est plus en environnement local.
+     */
+    public function canAccessPanel(Panel $panel): bool
+    {
+        $allowed = array_map(
+            'strtolower',
+            config('site.admin.allowed_emails', [])
+        );
+
+        return in_array(strtolower($this->email), $allowed, true);
     }
 
     /**

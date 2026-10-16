@@ -10,7 +10,10 @@ export default defineConfig({
             refresh: true,
             fonts: [
                 bunny('Instrument Sans', {
-                    weights: [400, 500, 600],
+                    weights: [400, 500, 600, 700],
+                }),
+                bunny('Archivo', {
+                    weights: [500, 600, 700, 800, 900],
                 }),
             ],
         }),

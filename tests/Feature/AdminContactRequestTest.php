@@ -1,0 +1,66 @@
+<?php
+
+use App\Models\ContactRequest;
+use App\Models\User;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+
+uses(RefreshDatabase::class);
+
+function seedContactRequest(array $overrides = []): ContactRequest
+{
+    return ContactRequest::create(array_merge([
+        'name' => 'Jean Dupont',
+        'company' => 'Charpentes Dupont',
+        'email' => 'jean@dupont.fr',
+        'phone' => '06 12 34 56 78',
+        'request_type' => ContactRequest::requestTypes()[0],
+        'message' => 'Demande de devis pour 40 pièces découpées.',
+    ], $overrides));
+}
+
+/**
+ * Crée un compte disposant d'un accès au back-office.
+ */
+function adminUser(): User
+{
+    return User::factory()->create([
+        'email' => config('site.admin.allowed_emails')[0],
+    ]);
+}
+
+test('un utilisateur hors liste ne peut pas atteindre le back-office', function (): void {
+    $this->actingAs(User::factory()->create())
+        ->get('/admin/contact-requests')
+        ->assertForbidden();
+});
+
+test('un administrateur consulte la liste des demandes', function (): void {
+    seedContactRequest();
+
+    $this->actingAs(adminUser())
+        ->get('/admin/contact-requests')
+        ->assertOk()
+        ->assertSee('Jean Dupont')
+        ->assertSee('Charpentes Dupont');
+});
+
+test('les demandes non traitées remontent un badge de navigation', function (): void {
+    $this->actingAs(adminUser())
+        ->get('/admin')
+        ->assertOk()
+        ->assertSee('1', false);
+});
+
+test('un visiteur est redirigé vers la connexion', function (): void {
+    $this->get('/admin/contact-requests')->assertRedirect();
+});
+
+test('une demande peut être ouverte pour modification', function (): void {
+    $contact = seedContactRequest();
+
+    $this->actingAs(adminUser())
+        ->get("/admin/contact-requests/{$contact->id}/edit")
+        ->assertOk()
+        ->assertSee('Demandeur')
+        ->assertSee('jean@dupont.fr');
+});

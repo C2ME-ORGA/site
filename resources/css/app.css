@@ -5,4 +5,65 @@
 
 @theme {
     --font-sans: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
+    --font-display: 'Archivo', 'Instrument Sans', ui-sans-serif, system-ui, sans-serif;
+
+    /* Teal — couleur principale, alignée sur le logo C2ME (#0FA1A1) */
+    --color-brand-50: #e7f7f7;
+    --color-brand-100: #c4ecec;
+    --color-brand-200: #90dcdc;
+    --color-brand-300: #58c8c8;
+    --color-brand-400: #29b2b2;
+    --color-brand-500: #0fa1a1;
+    --color-brand-600: #0d8888;
+    --color-brand-700: #0b6d6d;
+    --color-brand-800: #0a5757;
+    --color-brand-900: #084242;
+
+    /* Marine foncé — textes forts & fonds */
+    --color-ink-700: #16323a;
+    --color-ink-800: #102a31;
+    --color-ink-900: #0d2b33;
+    --color-ink-950: #081c21;
+
+    /* Vert lime — accent, aligné sur le logo C2ME (#BDE950) */
+    --color-volt-300: #e0f8a8;
+    --color-volt-400: #d0f380;
+    --color-volt-500: #bde950;
+    --color-volt-600: #a2cf35;
+    --color-volt-700: #7fa521;
+
+    /* Gris neutres clairs */
+    --color-mist-50: #f8faf9;
+    --color-mist-100: #f4f6f6;
+    --color-mist-200: #e6ebeb;
+    --color-mist-300: #d3dbdb;
+}
+
+@layer base {
+    [x-cloak] {
+        display: none !important;
+    }
+
+    html {
+        scroll-behavior: smooth;
+    }
+
+    body {
+        @apply bg-white text-ink-900 antialiased;
+    }
+
+    /* Décalage des ancres sous le header collant */
+    :target {
+        scroll-margin-top: 6rem;
+    }
+}
+
+@layer components {
+    .container-site {
+        @apply mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8;
+    }
+
+    .eyebrow {
+        @apply text-xs font-bold uppercase tracking-[0.18em] text-brand-600;
+    }
 }
