@@ -61,12 +61,8 @@ Route::view('/devis/batiment-charpente', 'pages.quote-building', [
         .'enveloppe et calendrier. Notre bureau d’études établit une proposition sur mesure.',
 ])->name('quote.building');
 
-Route::view('/mentions-legales', 'pages.placeholder', [
-    'title' => 'Mentions légales',
-    'heading' => 'Mentions légales',
-])->name('legal.mentions');
+Route::view('/mentions-legales', 'pages.legal.mentions-legales')
+    ->name('legal.mentions');
 
-Route::view('/confidentialite', 'pages.placeholder', [
-    'title' => 'Politique de confidentialité',
-    'heading' => 'Politique de confidentialité',
-])->name('legal.privacy');
+Route::view('/confidentialite', 'pages.legal.confidentialite')
+    ->name('legal.privacy');

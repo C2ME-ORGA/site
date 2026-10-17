@@ -105,6 +105,51 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Mentions légales
+    |--------------------------------------------------------------------------
+    |
+    | Données d'identification portées sur la page de mentions légales. Elles
+    | sont regroupées ici et non écrites dans la vue : la moindre correction
+    | se fait à un seul endroit, et la page reste vérifiable d'un coup d'œil.
+    |
+    | Les durées de conservation affichées dans la politique de
+    | confidentialité sont lues dans 'quote' et 'contact' : elles ne sont
+    | jamais saisies à la main, pour qu'un changement de rétention ne puisse
+    | pas rendre la page fausse.
+    |
+    */
+
+    'legal' => [
+        'editor' => [
+            'legal_name' => 'C2ME',
+            'legal_form' => 'SARL',
+            'capital' => '95 000 €',
+            'siren' => '951 577 253',
+            'siret' => '951 577 253 00010',
+            'vat' => 'FR43 951 577 253',
+            'ape' => '41.20B',
+            'ape_label' => 'Construction d’autres bâtiments',
+            'rcs' => 'La Roche-sur-Yon',
+            'created_on' => '16 mars 2023',
+            'address' => 'La Guyonnière La Bézochère, 85600 Montaigu-Vendée',
+            'phone' => '02 51 38 16 76',
+            'email' => 'contact@c2me.fr',
+            'director' => 'Corentin Doizy',
+
+            // En minuscule : la phrase de la page l'introduit par
+            // « en sa qualité de », et ne doit pas capitaliser.
+            'director_role' => 'gérant',
+        ],
+
+        'host' => [
+            'name' => 'OVH SAS',
+            'address' => '2 Rue Kellermann, 59100 Roubaix, France',
+            'phone' => '+33 9 72 10 10 07',
+        ],
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Accès au back-office
     |--------------------------------------------------------------------------
     |
@@ -299,6 +344,21 @@ return [
                 ['label' => 'Particulier', 'value' => 'particulier'],
             ],
         ],
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Demandes de contact
+    |--------------------------------------------------------------------------
+    |
+    | Contrairement aux devis, ces demandes ne comportent aucun fichier joint :
+    | leur purge se limite à la suppression de l'enregistrement. La durée est
+    | plus longue que celle des plans, qui sont éphémères par nature.
+    |
+    */
+
+    'contact' => [
+        'retention_months' => 12,
     ],
 
     /*

@@ -22,3 +22,18 @@ Schedule::command('quotes:purge')
     ->dailyAt('03:00')
     ->withoutOverlapping()
     ->onOneServer();
+
+/*
+|--------------------------------------------------------------------------
+| Purge des demandes de contact
+|--------------------------------------------------------------------------
+|
+| Décalée après la purge des devis pour ne pas faire concourir les deux
+| suppressions au même moment.
+|
+*/
+
+Schedule::command('contacts:purge')
+    ->dailyAt('03:15')
+    ->withoutOverlapping()
+    ->onOneServer();

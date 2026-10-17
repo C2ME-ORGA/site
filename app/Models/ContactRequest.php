@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 
@@ -50,6 +51,14 @@ class ContactRequest extends Model
     public function scopeUnread(Builder $query): Builder
     {
         return $query->whereNull('read_at');
+    }
+
+    /**
+     * Demandes déposées avant la date limite de conservation.
+     */
+    public function scopeExpired(Builder $query, CarbonInterface $before): Builder
+    {
+        return $query->where('created_at', '<', $before);
     }
 
     public function markAsRead(): void
