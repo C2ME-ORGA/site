@@ -163,6 +163,13 @@ return [
         'allowed_emails' => [
             env('ADMIN_EMAIL', 'admin@c2me.fr'),
         ],
+
+        // env() n'est lisible qu'à l'intérieur d'un fichier de configuration :
+        // appelé ailleurs il renvoie null dès que la configuration est mise en
+        // cache, ce qui arriverait forcément en production. Le seeder lit donc
+        // cette clé, et non l'environnement. Aucune valeur par défaut : sans
+        // ADMIN_PASSWORD, aucun compte n'est créé.
+        'password' => env('ADMIN_PASSWORD'),
     ],
 
     /*

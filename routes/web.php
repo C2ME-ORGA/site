@@ -1,6 +1,8 @@
 <?php
 
+use Illuminate\Routing\Route as RouteInstance;
 use Illuminate\Support\Facades\Route;
+use Symfony\Component\HttpFoundation\Response;
 
 /*
 |--------------------------------------------------------------------------
@@ -66,3 +68,36 @@ Route::view('/mentions-legales', 'pages.legal.mentions-legales')
 
 Route::view('/confidentialite', 'pages.legal.confidentialite')
     ->name('legal.privacy');
+
+/*
+|--------------------------------------------------------------------------
+| Plan de site
+|--------------------------------------------------------------------------
+|
+| Construit depuis la table des routes plutôt qu'entretenu à la main : toute
+| page ajoutée apparaît automatiquement, et un fichier ne peut pas devenir
+| périmé. Les routes du back-office et celles du runtime Livewire sont
+| écartées par leur préfixe, et celles qui attendent un paramètre sont
+| ignorées faute d'être des pages autonomes.
+|
+*/
+
+Route::get('/sitemap.xml', function (): Response {
+    $urls = collect(Route::getRoutes())
+        ->filter(fn (RouteInstance $route): bool => in_array('GET', $route->methods(), true))
+        ->filter(fn (RouteInstance $route): bool => filled($route->getName()))
+        ->filter(fn (RouteInstance $route): bool => $route->parameterNames() === [])
+        ->reject(fn (RouteInstance $route): bool => str_starts_with($route->uri(), 'admin')
+            || str_starts_with($route->uri(), 'livewire')
+            || str_starts_with((string) $route->getName(), 'filament.'))
+        ->map(fn (RouteInstance $route): string => e(url($route->uri())))
+        ->sort()
+        ->values();
+
+    $body = '<?xml version="1.0" encoding="UTF-8"?>'."\n"
+        .'<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">'."\n"
+        .$urls->map(fn (string $url): string => "    <url><loc>{$url}</loc></url>\n")->join('')
+        .'</urlset>';
+
+    return response($body, 200, ['Content-Type' => 'application/xml; charset=UTF-8']);
+})->name('sitemap');
