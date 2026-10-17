@@ -1,22 +1,28 @@
 @php
     $site = config('site');
     $company = $site['company'];
+    $locations = $company['locations'];
 
-    // Carte centrée sur l'adresse exacte, avec un zoom à l'échelle du hameau
-    $lat = $company['address']['coordinates']['lat'];
-    $lng = $company['address']['coordinates']['lng'];
-    $delta = 0.008; // ~900 m en latitude
+    // L'embed OpenStreetMap n'accepte qu'un seul marqueur : on génère une
+    // carte par implantation plutôt que d'en afficher une seule trompeuse.
+    $maps = collect($locations)->map(function (array $location): array {
+        $lat = $location['coordinates']['lat'];
+        $lng = $location['coordinates']['lng'];
+        $delta = 0.008; // ~900 m en latitude, à l'échelle du hameau
 
-    $mapEmbed = 'https://www.openstreetmap.org/export/embed.html?'
-        .'bbox='.implode(',', [
-            round($lng - $delta * 1.6, 6),
-            round($lat - $delta, 6),
-            round($lng + $delta * 1.6, 6),
-            round($lat + $delta, 6),
-        ]).'&layer=mapnik&marker='.$lat.','.$lng;
-
-    $mapLink = 'https://www.openstreetmap.org/?mlat='.$lat.'&mlon='.$lng
-        .'#map=16/'.$lat.'/'.$lng;
+        return [
+            'label' => $location['label'],
+            'embed' => 'https://www.openstreetmap.org/export/embed.html?'
+                .'bbox='.implode(',', [
+                    round($lng - $delta * 1.6, 6),
+                    round($lat - $delta, 6),
+                    round($lng + $delta * 1.6, 6),
+                    round($lat + $delta, 6),
+                ]).'&layer=mapnik&marker='.$lat.','.$lng,
+            'link' => 'https://www.openstreetmap.org/?mlat='.$lat.'&mlon='.$lng
+                .'#map=16/'.$lat.'/'.$lng,
+        ];
+    })->all();
 @endphp
 
 <x-layouts.app title="Contact" description="Contactez C2ME à Montaigu-Vendée : 02 51 38 16 76, 06 77 95 39 88. Découpe laser, bureau d'études et charpente métallique.">
@@ -35,13 +41,23 @@
             {{-- Coordonnées --}}
             <div class="flex flex-col gap-4">
                 <div class="rounded-2xl border border-mist-200 bg-white p-6">
-                    <p class="text-xs font-bold uppercase tracking-[0.16em] text-brand-600">Adresse</p>
-                    <address class="mt-3 text-sm not-italic leading-relaxed text-ink-800">
-                        C2ME<br>
-                        {{ $company['address']['line1'] }}<br>
-                        {{ $company['address']['postal_code'] }} {{ $company['address']['city'] }}<br>
-                        {{ $company['address']['region'] }}
-                    </address>
+                    <p class="text-xs font-bold uppercase tracking-[0.16em] text-brand-600">Implantations</p>
+
+                    <div class="mt-4 space-y-5">
+                        @foreach ($locations as $location)
+                            <div>
+                                <p class="text-[11px] font-bold uppercase tracking-[0.14em] text-ink-700/50">
+                                    {{ $location['label'] }}
+                                </p>
+                                <address class="mt-1.5 text-sm not-italic leading-relaxed text-ink-800">
+                                    {{ $company['name'] }} — {{ $location['line1'] }}<br>
+                                    {{ $location['line2'] }}<br>
+                                    {{ $location['postal_code'] }} {{ $location['city'] }}<br>
+                                    {{ $location['region'] }}
+                                </address>
+                            </div>
+                        @endforeach
+                    </div>
                 </div>
 
                 <div class="rounded-2xl border border-mist-200 bg-white p-6">
@@ -73,30 +89,40 @@
                 </div>
             </div>
 
-            {{-- Carte --}}
+            {{-- Cartes --}}
             <div class="lg:col-span-2">
-                <div class="overflow-hidden rounded-2xl border border-mist-200 bg-white">
-                    <iframe
-                        src="{{ $mapEmbed }}"
-                        class="h-[420px] w-full border-0"
-                        loading="lazy"
-                        title="Carte — {{ $company['address']['city'] }}"
-                        referrerpolicy="no-referrer-when-downgrade"
-                    ></iframe>
-                </div>
+                <div class="grid gap-6 sm:grid-cols-2">
+                    @foreach ($maps as $map)
+                        <div>
+                            <p class="mb-2 text-xs font-bold uppercase tracking-[0.14em] text-ink-700/50">
+                                {{ $map['label'] }}
+                            </p>
 
-                <a
-                    href="{{ $mapLink }}"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    class="mt-3 inline-flex items-center gap-2 text-sm font-semibold text-brand-600 transition hover:text-brand-700"
-                >
-                    Ouvrir l'itinéraire dans OpenStreetMap
-                    <svg class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
-                        <path fill-rule="evenodd" d="M5.22 14.28a1 1 0 0 1 0-1.42l4.5-4.5a1 1 0 0 1 1.42 0l4.5 4.5a1 1 0 1 1-1.42 1.42L10 11.41l-3.79 3.87a1 1 0 0 1-1.42 0Z" clip-rule="evenodd" />
-                        <path fill-rule="evenodd" d="M5.22 8.28a1 1 0 0 1 0-1.42l4.5-4.5a1 1 0 0 1 1.42 0l4.5 4.5a1 1 0 1 1-1.42 1.42L10 5.41 6.21 9.28a1 1 0 0 1-1.42 0Z" clip-rule="evenodd" />
-                    </svg>
-                </a>
+                            <div class="overflow-hidden rounded-2xl border border-mist-200 bg-white">
+                                <iframe
+                                    src="{{ $map['embed'] }}"
+                                    class="h-[260px] w-full border-0"
+                                    loading="lazy"
+                                    title="Carte — {{ $map['label'] }}"
+                                    referrerpolicy="no-referrer-when-downgrade"
+                                ></iframe>
+                            </div>
+
+                            <a
+                                href="{{ $map['link'] }}"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                class="mt-2 inline-flex items-center gap-2 text-sm font-semibold text-brand-600 transition hover:text-brand-700"
+                            >
+                                Ouvrir l'itinéraire
+                                <svg class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fill-rule="evenodd" d="M5.22 14.28a1 1 0 0 1 0-1.42l4.5-4.5a1 1 0 0 1 1.42 0l4.5 4.5a1 1 0 1 1-1.42 1.42L10 11.41l-3.79 3.87a1 1 0 0 1-1.42 0Z" clip-rule="evenodd" />
+                                    <path fill-rule="evenodd" d="M5.22 8.28a1 1 0 0 1 0-1.42l4.5-4.5a1 1 0 0 1 1.42 0l4.5 4.5a1 1 0 1 1-1.42 1.42L10 5.41 6.21 9.28a1 1 0 0 1-1.42 0Z" clip-rule="evenodd" />
+                                </svg>
+                            </a>
+                        </div>
+                    @endforeach
+                </div>
 
                 <div class="mt-6 flex flex-wrap items-center justify-between gap-4 rounded-2xl bg-ink-900 p-6 text-white">
                     <div>

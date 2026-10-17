@@ -34,8 +34,18 @@
                 </p>
 
                 <dl class="mt-8 divide-y divide-mist-200 border-y border-mist-200">
+                    @foreach ($company['locations'] as $location)
+                        <div class="flex items-baseline justify-between gap-6 py-3.5">
+                            <dt class="shrink-0 text-sm font-bold uppercase tracking-[0.1em] text-ink-700/60">
+                                {{ $location['label'] }}
+                            </dt>
+                            <dd class="text-right text-sm font-semibold text-ink-900">
+                                {{ $location['line1'] }}, {{ $location['line2'] }}<br>
+                                {{ $location['postal_code'] }} {{ $location['city'] }}
+                            </dd>
+                        </div>
+                    @endforeach
                     @foreach ([
-                        ['label' => 'Adresse', 'value' => $company['address']['line1'].' — '.$company['address']['postal_code'].' '.$company['address']['city']],
                         ['label' => 'Téléphone', 'value' => $company['phone']],
                         ['label' => 'Mobile', 'value' => $company['mobile']],
                         ['label' => 'E-mail', 'value' => $company['email']],

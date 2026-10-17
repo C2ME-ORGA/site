@@ -47,12 +47,20 @@
         {{-- Contact --}}
         <div>
             <h2 class="text-xs font-bold uppercase tracking-[0.16em] text-volt-400">Contact</h2>
-            <address class="mt-5 space-y-3 text-sm not-italic">
-                <p class="leading-relaxed text-mist-300/80">
-                    {{ $company['address']['line1'] }}<br>
-                    {{ $company['address']['postal_code'] }} {{ $company['address']['city'] }}<br>
-                    {{ $company['address']['region'] }}
-                </p>
+            <address class="mt-5 space-y-4 text-sm not-italic">
+                @foreach ($company['locations'] as $location)
+                    <p class="leading-relaxed">
+                        <span class="block text-xs font-bold uppercase tracking-[0.16em] text-volt-400">
+                            {{ $location['label'] }}
+                        </span>
+                        <span class="mt-1 block text-mist-300/80">
+                            {{ $location['line1'] }}<br>
+                            {{ $location['line2'] }}<br>
+                            {{ $location['postal_code'] }} {{ $location['city'] }}<br>
+                            {{ $location['region'] }}
+                        </span>
+                    </p>
+                @endforeach
                 <p>
                     <a href="tel:{{ $company['phone_link'] }}" class="block transition hover:text-white">{{ $company['phone'] }}</a>
                     <a href="tel:{{ $company['mobile_link'] }}" class="block transition hover:text-white">{{ $company['mobile'] }}</a>

@@ -13,7 +13,7 @@
         <div class="container-site flex h-10 items-center justify-between text-xs">
             <p class="flex items-center gap-2 text-mist-300">
                 <span class="inline-block h-1.5 w-1.5 rounded-full bg-volt-500"></span>
-                {{ $company['zone'] }} · {{ $company['address']['city'] }} — {{ $company['address']['region'] }}
+                {{ $company['zone'] }} · {{ $company['locations'][0]['city'] }} — {{ $company['locations'][0]['region'] }}
             </p>
             <div class="flex items-center gap-6">
                 <a href="tel:{{ $company['phone_link'] }}" class="flex items-center gap-2 transition hover:text-volt-400">

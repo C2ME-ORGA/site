@@ -12,8 +12,8 @@
         :specs="$service['specs']"
     >
         <x-slot:actions>
-            <x-ui.button :href="route('quote')" variant="volt" size="lg">
-                Demander un devis
+            <x-ui.button :href="route('quote.building')" variant="volt" size="lg">
+                Décrire mon projet
             </x-ui.button>
             <x-ui.button :href="route('contact')" variant="ghost-light" size="lg">
                 Nous contacter
@@ -65,6 +65,11 @@
         </div>
     </section>
 
-    <x-ui.page-cta :title="$service['cta']['title']" :text="$service['cta']['text']" />
+    <x-ui.page-cta
+        :title="$service['cta']['title']"
+        :text="$service['cta']['text']"
+        primaryLabel="Décrire mon bâtiment"
+        :primaryHref="route('quote.building')"
+    />
 
 </x-layouts.app>

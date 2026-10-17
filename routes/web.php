@@ -43,12 +43,23 @@ Route::view('/contact', 'pages.contact')->name('contact');
 |--------------------------------------------------------------------------
 */
 
-Route::view('/devis', 'pages.quote', [
-    'title' => 'Demander un devis',
-    'eyebrow' => 'Devis',
-    'heading' => 'Demander un devis',
-    'message' => 'Le formulaire de demande de devis avec envoi de plans (PDF, DXF, DWG) sera disponible prochainement.',
-])->name('quote');
+Route::view('/devis', 'pages.quote')->name('quote');
+
+Route::view('/devis/decoupe-laser', 'pages.quote-laser', [
+    'title' => 'Devis découpe laser',
+    'eyebrow' => 'Devis — Découpe laser',
+    'heading' => 'Votre projet de découpe laser',
+    'message' => 'Décrivez votre besoin en quatre étapes et joignez vos plans : '
+        .'nous vous répondons par un devis, de la pièce unitaire à la série.',
+])->name('quote.laser');
+
+Route::view('/devis/batiment-charpente', 'pages.quote-building', [
+    'title' => 'Devis bâtiment & charpente',
+    'eyebrow' => 'Devis — Bâtiment & charpente',
+    'heading' => 'Votre projet de bâtiment',
+    'message' => 'Décrivez votre chantier en six étapes : nature du bâtiment, implantation, '
+        .'enveloppe et calendrier. Notre bureau d’études établit une proposition sur mesure.',
+])->name('quote.building');
 
 Route::view('/mentions-legales', 'pages.placeholder', [
     'title' => 'Mentions légales',

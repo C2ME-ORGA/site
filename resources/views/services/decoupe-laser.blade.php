@@ -12,8 +12,8 @@
         :specs="$service['specs']"
     >
         <x-slot:actions>
-            <x-ui.button :href="route('quote')" variant="volt" size="lg">
-                Demander un devis
+            <x-ui.button :href="route('quote.laser')" variant="volt" size="lg">
+                Demander un devis laser
             </x-ui.button>
             <x-ui.button :href="route('contact')" variant="ghost-light" size="lg">
                 Nous contacter
@@ -112,6 +112,11 @@
         </div>
     </section>
 
-    <x-ui.page-cta :title="$service['cta']['title']" :text="$service['cta']['text']" />
+    <x-ui.page-cta
+        :title="$service['cta']['title']"
+        :text="$service['cta']['text']"
+        primaryLabel="Décrire mes pièces"
+        :primaryHref="route('quote.laser')"
+    />
 
 </x-layouts.app>

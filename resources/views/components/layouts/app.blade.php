@@ -28,6 +28,8 @@
         <link rel="icon" href="{{ asset('images/logo-mark.png') }}" type="image/png">
         <link rel="apple-touch-icon" href="{{ asset('images/logo-mark.png') }}">
 
+        <x-site.structured-data :site="$site" />
+
         @fonts
 
         @vite(['resources/css/app.css', 'resources/js/app.js'])

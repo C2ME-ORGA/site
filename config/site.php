@@ -26,23 +26,80 @@ return [
         'mobile' => '06 77 95 39 88',
         'mobile_link' => '+33677953988',
         'email' => 'contact@c2me.fr',
-        'address' => [
-            'line1' => 'La Guyonnière — La Bézochère',
-            'postal_code' => '85600',
-            'city' => 'Montaigu-Vendée',
-            'region' => 'Vendée (85)',
-            'country' => 'France',
-            'map_query' => 'La Guyonnière, 85600 La Guyonnière',
-            'coordinates' => [
-                'lat' => 46.966389,
-                'lng' => -1.248611,
+
+        /*
+        |----------------------------------------------------------------------
+        | Implantations
+        |----------------------------------------------------------------------
+        |
+        | Deux sites distincts : le siège social, où le courrier est adressé,
+        | et l'atelier, où les chantiers sont fabriqués et où l'on passe
+        | retirer les pièces. Les coordonnées alimentent la carte de contact.
+        |
+        */
+
+        'locations' => [
+            [
+                'key' => 'siege',
+                'label' => 'Siège social',
+                'line1' => 'La Bézochère',
+                'line2' => 'La Guyonnière',
+                'postal_code' => '85600',
+                'city' => 'Montaigu-Vendée',
+                'region' => 'Vendée (85)',
+                'country_code' => 'FR',
+                'coordinates' => [
+                    'lat' => 46.9909699,
+                    'lng' => -1.2576644,
+                ],
+            ],
+
+            [
+                'key' => 'atelier',
+                'label' => 'Atelier',
+                'line1' => '2 Rue du Vieux Château',
+                'line2' => 'Boufféré',
+                'postal_code' => '85600',
+                'city' => 'Montaigu-Vendée',
+                'region' => 'Vendée (85)',
+                'country_code' => 'FR',
+                'coordinates' => [
+                    'lat' => 46.9654730,
+                    'lng' => -1.3354270,
+                ],
             ],
         ],
+
         'zone' => 'France et pays limitrophes',
         'hours' => [
             ['label' => 'Lundi — Vendredi', 'value' => '8 h 00 — 17 h 00'],
             ['label' => 'Samedi', 'value' => 'Sur rendez-vous'],
             ['label' => 'Dimanche', 'value' => 'Fermé'],
+        ],
+
+        /*
+        |----------------------------------------------------------------------
+        | Données structurées
+        |----------------------------------------------------------------------
+        |
+        | Alimente le bloc JSON-LD inséré dans le <head>. Ces valeurs sont lues
+        | par les moteurs de recherche et non par les visiteurs : elles doivent
+        | rester exactes et être synchronisées avec les horaires ci-dessus.
+        |
+        | Seuls les créneaux réellement ouverts sans rendez-vous sont déclarés,
+        | schema.org n'ayant pas d'équivalent pour « sur rendez-vous ».
+        |
+        */
+
+        'schema' => [
+            'area_served' => 'France',
+            'opening_hours' => [
+                [
+                    'day_of_week' => ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'],
+                    'opens' => '08:00',
+                    'closes' => '17:00',
+                ],
+            ],
         ],
     ],
 
@@ -60,6 +117,187 @@ return [
     'admin' => [
         'allowed_emails' => [
             env('ADMIN_EMAIL', 'admin@c2me.fr'),
+        ],
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Demandes de devis
+    |--------------------------------------------------------------------------
+    |
+    | Les plans déposés peuvent contenir des données clients : le stockage
+    | reste privé et les fichiers sont automatiquement purgés au-delà de la
+    | durée de conservation. Les limites de dépôt doivent rester cohérentes
+    | avec upload_max_filesize et post_max_size de PHP.
+    |
+    */
+
+    'quote' => [
+        'storage_disk' => 'local',
+        'storage_directory' => 'quote-requests',
+
+        'files' => [
+            'max_count' => 5,
+            'max_size_kb' => 25 * 1024,
+            'extensions' => ['pdf', 'dxf', 'dwg'],
+        ],
+
+        'retention_months' => 3,
+
+        'rate_limit' => 3,
+
+        /*
+        |----------------------------------------------------------------------
+        | Parcours « découpe laser »
+        |----------------------------------------------------------------------
+        |
+        | Les plages proposées reprennent les capacités de la machine et la
+        | grille tarifaire. Le parcours produit une demande structurée, jamais
+        | un prix instantané : la cotation reste humaine.
+        |
+        */
+
+        'laser' => [
+            'materials' => [
+                [
+                    'label' => 'Acier',
+                    'value' => 'acier',
+                    'hint' => "Tous types d'acier, notamment S235 et S355.",
+                    'max_thickness' => 30,
+                    'thicknesses' => [1, 2, 3, 4, 5, 6, 8, 10, 12, 15, 20, 25, 30],
+                ],
+                [
+                    'label' => 'Inox',
+                    'value' => 'inox',
+                    'hint' => 'Aciers inoxydables.',
+                    'max_thickness' => 20,
+                    'thicknesses' => [1, 1.5, 2, 3, 4, 5, 6, 8, 10, 12, 15, 20],
+                ],
+                [
+                    'label' => 'Aluminium',
+                    'value' => 'aluminium',
+                    'hint' => 'Aluminium, découpe à plat.',
+                    'max_thickness' => 10,
+                    'thicknesses' => [1, 2, 3, 4, 5, 6, 8, 10],
+                ],
+            ],
+
+            'quantities' => [
+                ['label' => 'Pièce unitaire', 'value' => 'unitaire'],
+                ['label' => 'Série inférieure à 1 tonne', 'value' => 'moins-1t'],
+                ['label' => 'De 1 à moins de 2 tonnes', 'value' => '1-2t'],
+                ['label' => 'De 2 à moins de 5 tonnes', 'value' => '2-5t'],
+                ['label' => 'De 5 à moins de 10 tonnes', 'value' => '5-10t'],
+                ['label' => 'À partir de 10 tonnes', 'value' => 'plus-10t'],
+            ],
+
+            'complexities' => [
+                ['label' => 'Pièces simples', 'value' => 'simple', 'hint' => 'Contours et découpe standard.'],
+                ['label' => 'Pièces complexes', 'value' => 'complexe', 'hint' => 'Formes, ajourages ou percages nombreux.'],
+                ['label' => 'Je ne sais pas encore', 'value' => 'inconnu', 'hint' => 'Nous qualifierons ensemble.'],
+            ],
+
+            'delays' => [
+                ['label' => 'Standard', 'value' => 'standard', 'hint' => 'Délai habituel de fabrication.'],
+                ['label' => 'Urgent', 'value' => 'urgent', 'hint' => 'Supplément possible, selon disponibilités.'],
+            ],
+
+            'delivery' => [
+                ['label' => 'Retrait sur site', 'value' => 'retrait'],
+                ['label' => 'Livraison souhaitée', 'value' => 'livraison'],
+            ],
+
+            'sheet' => [
+                'length' => 4000,
+                'width' => 2000,
+            ],
+        ],
+
+        /*
+        |----------------------------------------------------------------------
+        | Parcours « bâtiment & charpente »
+        |----------------------------------------------------------------------
+        |
+        | Brief structuré en six étapes. Il ne produit pas de chiffrage
+        | instantané : il qualifie le projet pour que le bureau d'études
+        | établisse une proposition sur mesure.
+        |
+        */
+
+        'building' => [
+            'types' => [
+                [
+                    'label' => 'Bâtiment industriel',
+                    'value' => 'industriel',
+                    'hint' => 'Atelier, entrepôt, unité de production.',
+                ],
+                [
+                    'label' => 'Hangar agricole',
+                    'value' => 'agricole',
+                    'hint' => 'Matériel, récolte, bétail.',
+                ],
+                [
+                    'label' => 'Bâtiment commercial',
+                    'value' => 'commercial',
+                    'hint' => 'Showroom, magasin, local d\'activité.',
+                ],
+                [
+                    'label' => 'Charpente & ossature',
+                    'value' => 'charpente',
+                    'hint' => 'Structure existante à reprendre ou à prolonger.',
+                ],
+                [
+                    'label' => 'Autre projet',
+                    'value' => 'autre',
+                    'hint' => 'Décrivez votre besoin dans le message.',
+                ],
+            ],
+
+            'usages' => [
+                ['label' => 'Production / atelier', 'value' => 'production'],
+                ['label' => 'Stockage', 'value' => 'stockage'],
+                ['label' => 'Accueil / ventes', 'value' => 'ventes'],
+                ['label' => 'Agriculture', 'value' => 'agriculture'],
+                ['label' => 'Multi-usages', 'value' => 'multi'],
+                ['label' => 'À définir', 'value' => 'inconnu'],
+            ],
+
+            'enveloppes' => [
+                ['label' => 'Structure seule', 'value' => 'structure', 'hint' => 'Charpente livrée nue, sans bardage.'],
+                ['label' => 'Structure + bardage', 'value' => 'bardage', 'hint' => 'Murs habillés, couverture comprise.'],
+                ['label' => 'Bâtiment livré clé en main', 'value' => 'cle-en-main', 'hint' => 'Enveloppe complète, hors second œuvre.'],
+                ['label' => 'Je ne sais pas encore', 'value' => 'inconnu', 'hint' => 'Nous vous orienterons.'],
+            ],
+
+            'prestations' => [
+                ['label' => 'Dessin & ingénierie', 'value' => 'etude', 'hint' => 'Relevé, plans d\'exécution, plans de montage.'],
+                ['label' => 'Fabrication', 'value' => 'fabrication', 'hint' => 'Découpe, soudure, traitement anticorrosion.'],
+                ['label' => 'Montage sur site', 'value' => 'montage', 'hint' => 'Levage et pose par nos équipes.'],
+                ['label' => 'Fondations & dallage', 'value' => 'fondations', 'hint' => 'Coordination avec le lot gros œuvre.'],
+                ['label' => 'Livraison', 'value' => 'livraison', 'hint' => 'Transport jusqu\'au chantier.'],
+            ],
+
+            'delays' => [
+                ['label' => 'À étudier ensemble', 'value' => 'inconnu', 'hint' => 'Aucune contrainte particulière.'],
+                ['label' => 'Sous 3 mois', 'value' => 'moins-3m'],
+                ['label' => 'Sous 6 mois', 'value' => 'moins-6m'],
+                ['label' => 'À l\'année prochaine', 'value' => 'plus-6m'],
+            ],
+
+            'budgets' => [
+                ['label' => 'À définir', 'value' => 'inconnu'],
+                ['label' => 'Moins de 50 000 €', 'value' => 'moins-50k'],
+                ['label' => 'De 50 000 à 150 000 €', 'value' => '50-150k'],
+                ['label' => 'De 150 000 à 400 000 €', 'value' => '150-400k'],
+                ['label' => 'Plus de 400 000 €', 'value' => 'plus-400k'],
+            ],
+
+            'levels' => [
+                ['label' => 'Maîtrise d\'ouvrage', 'value' => 'moa', 'hint' => 'Vous portez le projet en direct.'],
+                ['label' => 'Architecte / bureau d\'études', 'value' => 'bureau', 'hint' => 'Un tiers pilote la conception.'],
+                ['label' => 'Entreprise générale', 'value' => 'entreprise', 'hint' => 'Vous coordonnez les lots.'],
+                ['label' => 'Particulier', 'value' => 'particulier'],
+            ],
         ],
     ],
 
