@@ -65,5 +65,4 @@ Schedule::command('quotes:expire')
 
 Schedule::command('mailboxes:sync')
     ->everyFiveMinutes()
-    ->withoutOverlapping()
-    ->onOneServer();
+    ->withoutOverlapping();
