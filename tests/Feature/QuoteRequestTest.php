@@ -152,8 +152,8 @@ test('un visiteur est redirigé vers la connexion', function (): void {
     $this->get('/admin/quote-requests')->assertRedirect();
 });
 
-test('un utilisateur hors liste ne peut pas atteindre le back-office', function (): void {
-    $this->actingAs(User::factory()->create())
+test('un compte désactivé ne peut pas atteindre le back-office', function (): void {
+    $this->actingAs(User::factory()->create(['is_active' => false]))
         ->get('/admin/quote-requests')
         ->assertForbidden();
 });

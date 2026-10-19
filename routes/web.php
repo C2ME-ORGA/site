@@ -83,7 +83,7 @@ Route::view('/confidentialite', 'pages.legal.confidentialite')
 */
 
 Route::get('/sitemap.xml', function (): Response {
-    $urls = collect(Route::getRoutes())
+    $urls = collect(Route::getRoutes()->getRoutes())
         ->filter(fn (RouteInstance $route): bool => in_array('GET', $route->methods(), true))
         ->filter(fn (RouteInstance $route): bool => filled($route->getName()))
         ->filter(fn (RouteInstance $route): bool => $route->parameterNames() === [])

@@ -1,0 +1,130 @@
+<?php
+
+namespace App\Filament\Resources\Accounts\RelationManagers;
+
+use App\Models\CrmContact;
+use Filament\Actions\BulkActionGroup;
+use Filament\Actions\CreateAction;
+use Filament\Actions\DeleteAction;
+use Filament\Actions\DeleteBulkAction;
+use Filament\Actions\EditAction;
+use Filament\Forms\Components\Select;
+use Filament\Forms\Components\Textarea;
+use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\Toggle;
+use Filament\Resources\RelationManagers\RelationManager;
+use Filament\Schemas\Schema;
+use Filament\Tables\Columns\IconColumn;
+use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Table;
+
+class ContactsRelationManager extends RelationManager
+{
+    protected static string $relationship = 'contacts';
+
+    protected static ?string $title = 'Contacts';
+
+    protected static bool $isLazy = false;
+
+    public function form(Schema $schema): Schema
+    {
+        return $schema
+            ->components([
+                Select::make('civility')
+                    ->label('Civilité')
+                    ->options(['M.' => 'M.', 'Mme' => 'Mme', 'Dr' => 'Dr'])
+                    ->native(false),
+
+                TextInput::make('first_name')
+                    ->label('Prénom')
+                    ->required()
+                    ->maxLength(255),
+
+                TextInput::make('last_name')
+                    ->label('Nom')
+                    ->required()
+                    ->maxLength(255),
+
+                TextInput::make('job_title')
+                    ->label('Fonction')
+                    ->maxLength(255),
+
+                TextInput::make('email')
+                    ->label('E-mail')
+                    ->email()
+                    ->maxLength(255),
+
+                TextInput::make('phone')
+                    ->label('Téléphone')
+                    ->tel()
+                    ->maxLength(32),
+
+                TextInput::make('mobile')
+                    ->label('Mobile')
+                    ->tel()
+                    ->maxLength(32),
+
+                Toggle::make('is_primary')
+                    ->label('Contact principal'),
+
+                Toggle::make('decision_maker')
+                    ->label('Décideur'),
+
+                Toggle::make('do_not_contact')
+                    ->label('Ne pas démarcher'),
+
+                Textarea::make('notes')
+                    ->label('Notes')
+                    ->rows(3)
+                    ->columnSpanFull(),
+            ])
+            ->columns(2);
+    }
+
+    public function table(Table $table): Table
+    {
+        return $table
+            ->defaultSort('last_name')
+            ->columns([
+                TextColumn::make('last_name')
+                    ->label('Nom')
+                    ->description(fn (CrmContact $record): string => $record->first_name)
+                    ->searchable(['last_name', 'first_name', 'email'])
+                    ->weight('bold')
+                    ->sortable(),
+
+                TextColumn::make('job_title')
+                    ->label('Fonction')
+                    ->placeholder('—'),
+
+                TextColumn::make('email')
+                    ->label('E-mail')
+                    ->copyable()
+                    ->placeholder('—'),
+
+                TextColumn::make('phone')
+                    ->label('Téléphone')
+                    ->placeholder('—'),
+
+                IconColumn::make('is_primary')
+                    ->label('Principal')
+                    ->boolean(),
+
+                IconColumn::make('decision_maker')
+                    ->label('Décideur')
+                    ->boolean(),
+            ])
+            ->headerActions([
+                CreateAction::make(),
+            ])
+            ->recordActions([
+                EditAction::make(),
+                DeleteAction::make(),
+            ])
+            ->toolbarActions([
+                BulkActionGroup::make([
+                    DeleteBulkAction::make(),
+                ]),
+            ]);
+    }
+}

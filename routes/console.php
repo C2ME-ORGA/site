@@ -37,3 +37,33 @@ Schedule::command('contacts:purge')
     ->dailyAt('03:15')
     ->withoutOverlapping()
     ->onOneServer();
+
+/*
+|--------------------------------------------------------------------------
+| Expiration des devis
+|--------------------------------------------------------------------------
+|
+| Un devis envoyé dont la date de validité est dépassée bascule en
+| "Expiré" : l'affaire suit et les administrateurs sont notifiés.
+|
+*/
+
+Schedule::command('quotes:expire')
+    ->dailyAt('03:30')
+    ->withoutOverlapping()
+    ->onOneServer();
+
+/*
+|--------------------------------------------------------------------------
+| Synchronisation des boîtes e-mail
+|--------------------------------------------------------------------------
+|
+| Relève les messages entrants (IMAP) des boîtes actives et les rattache
+| aux comptes et contacts du CRM.
+|
+*/
+
+Schedule::command('mailboxes:sync')
+    ->everyFiveMinutes()
+    ->withoutOverlapping()
+    ->onOneServer();

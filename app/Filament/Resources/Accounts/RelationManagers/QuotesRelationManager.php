@@ -1,0 +1,136 @@
+<?php
+
+namespace App\Filament\Resources\Accounts\RelationManagers;
+
+use App\Enums\QuoteDocumentStatus;
+use App\Models\Quote;
+use App\Services\QuotePdf;
+use Filament\Actions\Action;
+use Filament\Actions\BulkActionGroup;
+use Filament\Actions\CreateAction;
+use Filament\Actions\DeleteAction;
+use Filament\Actions\DeleteBulkAction;
+use Filament\Actions\EditAction;
+use Filament\Forms\Components\DatePicker;
+use Filament\Forms\Components\Select;
+use Filament\Forms\Components\Textarea;
+use Filament\Forms\Components\TextInput;
+use Filament\Resources\RelationManagers\RelationManager;
+use Filament\Schemas\Schema;
+use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Table;
+use Illuminate\Support\Facades\Storage;
+
+class QuotesRelationManager extends RelationManager
+{
+    protected static string $relationship = 'quotes';
+
+    protected static ?string $title = 'Devis';
+
+    protected static bool $isLazy = false;
+
+    public function form(Schema $schema): Schema
+    {
+        return $schema
+            ->components([
+                Select::make('status')
+                    ->label('Statut')
+                    ->options(QuoteDocumentStatus::options())
+                    ->default(QuoteDocumentStatus::Draft->value)
+                    ->required()
+                    ->native(false),
+
+                TextInput::make('subject')
+                    ->label('Objet')
+                    ->maxLength(255),
+
+                DatePicker::make('issued_at')
+                    ->label('Date d’émission')
+                    ->native(false)
+                    ->default(now()),
+
+                DatePicker::make('valid_until')
+                    ->label('Valable jusqu’au')
+                    ->native(false),
+
+                TextInput::make('vat_rate')
+                    ->label('TVA (%)')
+                    ->numeric()
+                    ->default((float) config('crm.quotes.default_vat_rate', 0)),
+
+                Select::make('owner_id')
+                    ->label('Commercial')
+                    ->relationship('owner', 'name')
+                    ->searchable()
+                    ->preload(),
+
+                Textarea::make('notes')
+                    ->label('Notes')
+                    ->rows(3)
+                    ->columnSpanFull(),
+            ])
+            ->columns(2);
+    }
+
+    public function table(Table $table): Table
+    {
+        return $table
+            ->defaultSort('created_at', 'desc')
+            ->columns([
+                TextColumn::make('reference')
+                    ->label('Référence')
+                    ->searchable()
+                    ->copyable()
+                    ->weight('bold'),
+
+                TextColumn::make('status')
+                    ->label('Statut')
+                    ->badge(),
+
+                TextColumn::make('subject')
+                    ->label('Objet')
+                    ->limit(40)
+                    ->searchable(),
+
+                TextColumn::make('amount_ht')
+                    ->label('Total HT')
+                    ->money('EUR')
+                    ->sortable(),
+
+                TextColumn::make('amount_ttc')
+                    ->label('Total TTC')
+                    ->money('EUR')
+                    ->sortable(),
+
+                TextColumn::make('valid_until')
+                    ->label('Validité')
+                    ->date('d/m/Y')
+                    ->color(fn (Quote $record): string => $record->isExpired() ? 'danger' : 'gray')
+                    ->placeholder('—')
+                    ->sortable(),
+            ])
+            ->headerActions([
+                CreateAction::make(),
+            ])
+            ->recordActions([
+                Action::make('pdf')
+                    ->label('PDF')
+                    ->icon('heroicon-o-document-arrow-down')
+                    ->color('gray')
+                    ->action(function (Quote $record): mixed {
+                        app(QuotePdf::class)->generate($record);
+
+                        return Storage::disk((string) config('crm.quotes.storage_disk'))
+                            ->download((string) $record->pdf_path);
+                    }),
+
+                EditAction::make(),
+                DeleteAction::make(),
+            ])
+            ->toolbarActions([
+                BulkActionGroup::make([
+                    DeleteBulkAction::make(),
+                ]),
+            ]);
+    }
+}

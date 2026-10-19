@@ -42,7 +42,7 @@ class QuoteRequestFile extends Model
     }
 
     /**
-     * @return resource
+     * @return resource|null
      */
     public function readStream()
     {

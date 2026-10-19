@@ -35,7 +35,7 @@ class QuoteRequestReceived extends Mailable
     }
 
     /**
-     * @return array<int, array<string, string>>
+     * @return array<string, string>
      */
     public function headers(): array
     {
