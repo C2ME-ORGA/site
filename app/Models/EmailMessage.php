@@ -2,9 +2,35 @@
 
 namespace App\Models;
 
+use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
+/**
+ * @property int $id
+ * @property int $email_mailbox_id
+ * @property string|null $message_id
+ * @property string|null $in_reply_to
+ * @property string|null $references
+ * @property string $folder
+ * @property string|null $uid
+ * @property string $from_email
+ * @property string|null $from_name
+ * @property list<array{email?: string, name?: string|null}>|null $to_recipients
+ * @property list<array{email?: string, name?: string|null}>|null $cc_recipients
+ * @property string|null $subject
+ * @property string|null $body_text
+ * @property string|null $body_html
+ * @property CarbonImmutable|null $sent_at
+ * @property CarbonImmutable|null $received_at
+ * @property bool $is_read
+ * @property bool $is_sent
+ * @property int|null $crm_account_id
+ * @property int|null $crm_contact_id
+ * @property int|null $crm_opportunity_id
+ * @property int|null $quote_id
+ * @property array<string, mixed>|null $raw_headers
+ */
 class EmailMessage extends Model
 {
     /**

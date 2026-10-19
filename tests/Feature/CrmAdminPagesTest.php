@@ -8,6 +8,8 @@ use App\Models\CrmAccount;
 use App\Models\CrmActivity;
 use App\Models\CrmContact;
 use App\Models\CrmOpportunity;
+use App\Models\EmailMailbox;
+use App\Models\EmailMessage;
 use App\Models\Quote;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -36,6 +38,7 @@ test('les pages du CRM s’ouvrent pour un administrateur', function (string $ur
     '/admin/building-company-accounts',
     '/admin/quotes',
     '/admin/activities',
+    '/admin/emails',
 ]);
 
 test('le calendrier affiche les relances du mois', function (): void {
@@ -157,6 +160,46 @@ test('la fiche affiche le logo de la société', function (): void {
         ->get("/admin/prescriber-accounts/{$account->id}")
         ->assertOk()
         ->assertSee('img.logo.dev/archi-ouest.fr', false);
+});
+
+test('la boîte de réception liste les messages entrants', function (): void {
+    $admin = crmAdmin();
+
+    $mailbox = EmailMailbox::create([
+        'name' => 'Commercial',
+        'email' => 'commercial@c2me.fr',
+        'is_shared' => true,
+        'imap_host' => 'imap.orange.fr',
+        'imap_port' => 993,
+        'imap_encryption' => 'ssl',
+        'imap_username' => 'commercial@c2me.fr',
+        'imap_password' => 'secret',
+        'smtp_host' => 'smtp.orange.fr',
+        'smtp_port' => 465,
+        'smtp_encryption' => 'ssl',
+        'smtp_username' => 'commercial@c2me.fr',
+        'smtp_password' => 'secret',
+        'is_active' => true,
+    ]);
+
+    EmailMessage::create([
+        'email_mailbox_id' => $mailbox->id,
+        'uid' => '1',
+        'from_email' => 'jean@usine.fr',
+        'from_name' => 'Jean Martin',
+        'to_recipients' => [['email' => 'commercial@c2me.fr', 'name' => null]],
+        'subject' => 'Objet du message',
+        'body_text' => 'Contenu du message',
+        'received_at' => now(),
+        'is_read' => false,
+        'is_sent' => false,
+        'folder' => 'INBOX',
+    ]);
+
+    $this->actingAs($admin)
+        ->get('/admin/emails')
+        ->assertOk()
+        ->assertSee('Objet du message');
 });
 
 test('un commercial ne voit pas la fiche d’un compte qui n’est pas le sien', function (): void {
