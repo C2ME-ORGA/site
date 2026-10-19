@@ -28,8 +28,8 @@ function adminUser(): User
     ]);
 }
 
-test('un utilisateur hors liste ne peut pas atteindre le back-office', function (): void {
-    $this->actingAs(User::factory()->create())
+test('un compte désactivé ne peut pas atteindre le back-office', function (): void {
+    $this->actingAs(User::factory()->create(['is_active' => false]))
         ->get('/admin/contact-requests')
         ->assertForbidden();
 });

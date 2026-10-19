@@ -75,7 +75,7 @@ class QuoteRequestForm
                     ->schema([
                         Placeholder::make('payload')
                             ->label(null)
-                            ->content(fn (?QuoteRequest $record): string => static::payloadSummary($record)),
+                            ->content(fn (?QuoteRequest $record): string => self::payloadSummary($record)),
 
                         Repeater::make('files')
                             ->relationship()

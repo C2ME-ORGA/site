@@ -13,10 +13,15 @@ use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
+use UnitEnum;
 
 class ContactRequestResource extends Resource
 {
     protected static ?string $model = ContactRequest::class;
+
+    protected static string|UnitEnum|null $navigationGroup = 'Demandes';
+
+    protected static ?int $navigationSort = 2;
 
     protected static ?string $recordTitleAttribute = 'name';
 
@@ -33,7 +38,7 @@ class ContactRequestResource extends Resource
 
     public static function getNavigationBadge(): ?string
     {
-        $unread = static::getModel()::unread()->count();
+        $unread = ContactRequest::unread()->count();
 
         return $unread > 0 ? (string) $unread : null;
     }

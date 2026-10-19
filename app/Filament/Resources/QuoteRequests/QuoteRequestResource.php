@@ -9,10 +9,12 @@ use App\Filament\Resources\QuoteRequests\Schemas\QuoteRequestForm;
 use App\Filament\Resources\QuoteRequests\Tables\QuoteRequestsTable;
 use App\Models\QuoteRequest;
 use BackedEnum;
+use Filament\Resources\Pages\PageRegistration;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
+use UnitEnum;
 
 class QuoteRequestResource extends Resource
 {
@@ -28,6 +30,8 @@ class QuoteRequestResource extends Resource
 
     protected static ?int $navigationSort = 1;
 
+    protected static string|UnitEnum|null $navigationGroup = 'Demandes';
+
     public static function shouldGenerateNavigationBadges(): bool
     {
         return true;
@@ -35,7 +39,7 @@ class QuoteRequestResource extends Resource
 
     public static function getNavigationBadge(): ?string
     {
-        $pending = static::getModel()::pending()->count();
+        $pending = QuoteRequest::pending()->count();
 
         return $pending > 0 ? (string) $pending : null;
     }
@@ -56,7 +60,7 @@ class QuoteRequestResource extends Resource
     }
 
     /**
-     * @return array<string, class-string>
+     * @return array<string, PageRegistration>
      */
     public static function getPages(): array
     {

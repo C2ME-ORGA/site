@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use App\Enums\UserRole;
 use App\Models\User;
 use Illuminate\Database\Seeder;
 
@@ -21,16 +22,23 @@ class AdminUserSeeder extends Seeder
         $password = (string) config('site.admin.password');
 
         if ($password === '') {
-            $this->command?->error('ADMIN_PASSWORD n’est pas défini : compte administrateur non créé.');
+            $this->command->error('ADMIN_PASSWORD n’est pas défini : compte administrateur non créé.');
 
             return;
         }
 
-        User::firstOrCreate(
+        $user = User::firstOrCreate(
             ['email' => $email],
             ['name' => 'Administrateur C2ME', 'password' => $password],
         );
 
-        $this->command?->info("Compte administrateur prêt : {$email}");
+        // Le compte d'amorçage doit être administrateur : sans ce rôle, il
+        // accède au panneau mais ne peut pas gérer les utilisateurs.
+        $user->forceFill([
+            'role' => UserRole::Admin,
+            'is_active' => true,
+        ])->save();
+
+        $this->command->info("Compte administrateur prêt : {$email}");
     }
 }

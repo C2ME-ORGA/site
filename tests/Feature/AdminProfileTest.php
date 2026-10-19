@@ -89,25 +89,9 @@ test('une confirmation de mot de passe divergente est refusée', function (): vo
     expect(Hash::check(CURRENT_PASSWORD, $user->fresh()->password))->toBeTrue();
 });
 
-test('une adresse hors liste ne peut pas être enregistrée', function (): void {
-    $user = profileAdmin();
-
-    $this->actingAs($user);
-
-    Livewire::test(EditProfile::class)
-        ->set('data.email', 'inconnu@example.com')
-        ->set('data.currentPassword', CURRENT_PASSWORD)
-        ->call('save')
-        ->assertHasErrors(['data.email']);
-
-    expect($user->fresh()->email)->toBe(config('site.admin.allowed_emails')[0]);
-});
-
-test('l adresse autorisée peut être modifiée', function (): void {
+test('l’adresse e-mail peut être modifiée', function (): void {
     $user = profileAdmin();
     $replacement = 'bureau@c2me.fr';
-
-    config(['site.admin.allowed_emails' => [$replacement]]);
 
     $this->actingAs($user);
 

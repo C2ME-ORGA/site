@@ -4,14 +4,35 @@ namespace App\Models;
 
 use App\Enums\QuoteKind;
 use App\Enums\QuoteStatus;
+use Carbon\CarbonImmutable;
 use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Str;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 use ZipArchive;
 
+/**
+ * @property int $id
+ * @property QuoteKind $kind
+ * @property QuoteStatus $status
+ * @property string $name
+ * @property string|null $company
+ * @property string $email
+ * @property string|null $phone
+ * @property string|null $city
+ * @property string|null $message
+ * @property array<string, mixed>|null $payload
+ * @property string|null $note
+ * @property int|null $owner_id
+ * @property int|null $crm_account_id
+ * @property int|null $crm_contact_id
+ * @property int|null $crm_opportunity_id
+ * @property CarbonImmutable|null $quoted_at
+ * @property CarbonImmutable|null $created_at
+ */
 class QuoteRequest extends Model
 {
     /**
@@ -32,6 +53,10 @@ class QuoteRequest extends Model
         'ip_address',
         'user_agent',
         'referer',
+        'crm_account_id',
+        'crm_contact_id',
+        'crm_opportunity_id',
+        'owner_id',
     ];
 
     /**
@@ -67,7 +92,42 @@ class QuoteRequest extends Model
     }
 
     /**
+     * @return BelongsTo<CrmAccount, $this>
+     */
+    public function account(): BelongsTo
+    {
+        return $this->belongsTo(CrmAccount::class, 'crm_account_id');
+    }
+
+    /**
+     * @return BelongsTo<CrmContact, $this>
+     */
+    public function contact(): BelongsTo
+    {
+        return $this->belongsTo(CrmContact::class, 'crm_contact_id');
+    }
+
+    /**
+     * @return BelongsTo<CrmOpportunity, $this>
+     */
+    public function opportunity(): BelongsTo
+    {
+        return $this->belongsTo(CrmOpportunity::class, 'crm_opportunity_id');
+    }
+
+    /**
+     * @return BelongsTo<User, $this>
+     */
+    public function owner(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'owner_id');
+    }
+
+    /**
      * Demandes encore à traiter par le bureau d'études.
+     *
+     * @param  Builder<QuoteRequest>  $query
+     * @return Builder<QuoteRequest>
      */
     public function scopePending(Builder $query): Builder
     {
@@ -76,6 +136,9 @@ class QuoteRequest extends Model
 
     /**
      * Demandes déposées avant la date limite de conservation.
+     *
+     * @param  Builder<QuoteRequest>  $query
+     * @return Builder<QuoteRequest>
      */
     public function scopeExpired(Builder $query, CarbonInterface $before): Builder
     {
