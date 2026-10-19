@@ -44,7 +44,8 @@ class UserPolicy
 
     public function deleteAny(User $user): bool
     {
-        return $user->isAdmin();
+        // La suppression groupée contournerait les garde-fous par utilisateur.
+        return false;
     }
 
     private static function activeAdminCount(): int
