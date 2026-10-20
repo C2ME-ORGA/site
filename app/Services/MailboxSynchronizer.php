@@ -7,7 +7,10 @@ use App\Models\CrmAccount;
 use App\Models\CrmContact;
 use App\Models\EmailMailbox;
 use App\Models\EmailMessage;
+use App\Support\Mail\InboundAttachment;
 use App\Support\Mail\InboundEmail;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Throwable;
 
 class MailboxSynchronizer
@@ -85,6 +88,7 @@ class MailboxSynchronizer
 
         if ($existing !== null) {
             $existing->forceFill($attributes)->save();
+            $this->storeAttachments($existing, $message->attachments);
 
             return;
         }
@@ -92,7 +96,48 @@ class MailboxSynchronizer
         $attributes['email_mailbox_id'] = $mailbox->id;
         $attributes['message_id'] = $message->messageId;
 
-        EmailMessage::create($attributes);
+        $created = EmailMessage::create($attributes);
+        $this->storeAttachments($created, $message->attachments);
+    }
+
+    /**
+     * @param  list<InboundAttachment>  $attachments
+     */
+    private function storeAttachments(EmailMessage $message, array $attachments): void
+    {
+        if ($attachments === []) {
+            return;
+        }
+
+        foreach ($message->attachments as $existing) {
+            Storage::disk('local')->delete($existing->path);
+        }
+
+        $message->attachments()->delete();
+
+        foreach ($attachments as $attachment) {
+            $path = sprintf(
+                'mail-attachments/inbound/%d/%s',
+                $message->id,
+                Str::uuid()->toString(),
+            );
+
+            Storage::disk('local')->put($path, $attachment->contents);
+
+            $message->attachments()->create([
+                'filename' => $this->safeFilename($attachment->filename),
+                'mime_type' => $attachment->mimeType,
+                'size' => $attachment->size,
+                'path' => $path,
+            ]);
+        }
+    }
+
+    private function safeFilename(string $filename): string
+    {
+        $name = preg_replace('/[^\pL\pN._ -]+/u', '_', basename($filename)) ?? 'piece-jointe';
+
+        return trim($name) === '' ? 'piece-jointe' : $name;
     }
 
     private function findExisting(EmailMailbox $mailbox, InboundEmail $message): ?EmailMessage

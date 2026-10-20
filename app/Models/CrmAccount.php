@@ -24,6 +24,17 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  * @property string|null $code
  * @property string $name
  * @property string|null $legal_name
+ * @property string|null $siret
+ * @property string|null $vat_number
+ * @property string|null $website
+ * @property string|null $email
+ * @property string|null $phone
+ * @property string|null $mobile
+ * @property string|null $address_line1
+ * @property string|null $address_line2
+ * @property string|null $postal_code
+ * @property string|null $city
+ * @property string|null $country
  * @property AccountStatus $status
  * @property CrmSource|null $source
  * @property AccountPotential|null $potential
@@ -32,6 +43,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  * @property CarbonImmutable|null $next_follow_up_at
  * @property array<string, mixed>|null $metadata
  * @property string|null $notes
+ * @property CarbonImmutable|null $updated_at
  */
 class CrmAccount extends Model
 {

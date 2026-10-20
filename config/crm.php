@@ -88,7 +88,7 @@ return [
         'shared_mailbox' => env('CRM_SHARED_MAILBOX', 'commercial@c2me.fr'),
         'sync_interval_minutes' => 5,
         'sync_batch_size' => 50,
-        'retention_months' => 36,
+        'retention_months' => (int) env('CRM_EMAIL_RETENTION_MONTHS', 36),
         'imap' => [
             'host' => env('CRM_IMAP_HOST', 'imap.orange.fr'),
             'port' => (int) env('CRM_IMAP_PORT', 993),
@@ -137,8 +137,8 @@ return [
     */
 
     'retention' => [
-        'prospects_months' => 36,
-        'activities_months' => 60,
+        'prospects_months' => (int) env('CRM_RETENTION_PROSPECTS_MONTHS', 36),
+        'activities_months' => (int) env('CRM_RETENTION_ACTIVITIES_MONTHS', 60),
     ],
 
     /*

@@ -7,135 +7,112 @@ use App\Models\CrmContact;
 use App\Models\EmailMailbox;
 use App\Models\EmailMessage;
 use App\Services\Mail\MailboxMailer;
-use App\Support\Mail\EmailBody;
 use Filament\Actions\Action;
 use Filament\Forms\Components\FileUpload;
-use Filament\Forms\Components\RichEditor;
 use Filament\Forms\Components\Select;
+use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Notifications\Notification;
-use Filament\Schemas\Components\Utilities\Get;
-use Filament\Support\Enums\Width;
 use Illuminate\Database\Eloquent\Builder;
 
 class ComposeEmailAction
 {
     public static function make(?CrmAccount $account = null, ?CrmContact $contact = null): Action
     {
-        return self::build('compose', 'Nouveau message', $account, $contact, null);
+        return self::build($account, $contact);
     }
 
     public static function reply(EmailMessage $message): Action
     {
-        return self::build('reply', 'Répondre', $message->account, $message->contact, $message)
-            ->icon('heroicon-o-arrow-uturn-left')
-            ->color('info')
-            ->visible(fn (): bool => ! $message->is_sent);
+        return self::build(
+            $message->account,
+            $message->contact,
+            [
+                'mailbox_id' => $message->email_mailbox_id,
+                'to' => $message->from_email,
+                'subject' => self::replySubject((string) $message->subject),
+                'body' => self::quotedBody($message),
+            ],
+            $message,
+        );
     }
 
+    /**
+     * @param  array<string, mixed>  $defaults
+     */
     private static function build(
-        string $name,
-        string $heading,
         ?CrmAccount $account,
         ?CrmContact $contact,
-        ?EmailMessage $replyTo,
+        array $defaults = [],
+        ?EmailMessage $replyTo = null,
     ): Action {
-        $recipient = $replyTo->from_email ?? ($account !== null ? $account->email : $contact?->email);
+        $mailboxOptions = self::mailboxOptions();
+        $defaultMailbox = $defaults['mailbox_id'] ?? self::defaultMailboxId();
 
-        return Action::make($name)
-            ->label($heading)
-            ->icon($replyTo === null ? 'heroicon-o-pencil-square' : 'heroicon-o-arrow-uturn-left')
-            ->color($replyTo === null ? 'primary' : 'info')
-            ->modalHeading($heading)
-            ->modalWidth(Width::FourExtraLarge)
+        if ($defaultMailbox === null || ! array_key_exists((int) $defaultMailbox, $mailboxOptions)) {
+            $defaultMailbox = self::defaultMailboxId();
+        }
+
+        $recipient = $defaults['to'] ?? ($account !== null ? $account->email : $contact?->email);
+        $isReply = $replyTo !== null;
+
+        return Action::make($isReply ? 'reply' : 'compose')
+            ->label($isReply ? 'Répondre' : 'Nouveau message')
+            ->icon($isReply ? 'heroicon-o-arrow-uturn-left' : 'heroicon-o-pencil-square')
+            ->color($isReply ? 'info' : 'primary')
+            ->modalHeading($isReply ? 'Répondre au message' : 'Nouveau message')
             ->modalSubmitActionLabel('Envoyer')
             ->schema(fn (): array => [
                 Select::make('mailbox_id')
                     ->label('Expéditeur')
-                    ->options(self::mailboxOptions())
-                    ->default(fn (): ?int => self::defaultMailboxId($replyTo))
+                    ->options($mailboxOptions)
+                    ->default($defaultMailbox)
                     ->required()
                     ->native(false),
 
-                Select::make('to_contacts')
-                    ->label('Contacts destinataires')
-                    ->helperText('Sélectionner un ou plusieurs contacts du CRM.')
-                    ->options(self::contactOptions())
-                    ->searchable()
-                    ->multiple()
-                    ->placeholder('Rechercher un contact…')
-                    ->required(fn (Get $get): bool => blank(trim((string) $get('to')))),
-
                 TextInput::make('to')
-                    ->label('Adresses e-mail')
-                    ->helperText('Ou saisir des adresses séparées par une virgule.')
+                    ->label('Destinataire(s)')
+                    ->helperText('Séparer plusieurs adresses par une virgule.')
                     ->default($recipient)
-                    ->required(fn (Get $get): bool => blank($get('to_contacts'))),
-
-                Select::make('cc_contacts')
-                    ->label('Contacts en copie')
-                    ->options(self::contactOptions())
-                    ->searchable()
-                    ->multiple()
-                    ->placeholder('Rechercher un contact…'),
+                    ->required(),
 
                 TextInput::make('cc')
-                    ->label('Copie (Cc)')
-                    ->helperText('Adresses séparées par une virgule.'),
+                    ->label('Copie (Cc)'),
 
                 TextInput::make('subject')
                     ->label('Objet')
-                    ->default(fn (): ?string => self::replySubject($replyTo))
+                    ->default($defaults['subject'] ?? null)
                     ->required()
                     ->maxLength(255),
 
-                RichEditor::make('body')
+                Textarea::make('body')
                     ->label('Message')
-                    ->default(fn (): ?string => $replyTo !== null ? EmailBody::replyQuote($replyTo) : null)
-                    ->disableToolbarButtons(['attachFiles'])
-                    ->required()
-                    ->columnSpanFull(),
+                    ->default($defaults['body'] ?? null)
+                    ->rows(8)
+                    ->required(),
 
                 FileUpload::make('attachments')
                     ->label('Pièces jointes')
-                    ->helperText('10 Mo maximum par fichier.')
                     ->multiple()
-                    ->maxFiles(10)
-                    ->maxSize(10240)
                     ->disk('local')
                     ->directory('mail-attachments')
                     ->preserveFilenames()
-                    ->columnSpanFull(),
+                    ->maxSize(10240),
             ])
             ->action(function (array $data) use ($account, $contact, $replyTo): void {
                 $mailbox = EmailMailbox::query()->findOrFail((int) $data['mailbox_id']);
 
-                $to = self::recipients($data['to'] ?? null, $data['to_contacts'] ?? []);
-                $cc = self::recipients($data['cc'] ?? null, $data['cc_contacts'] ?? []);
-
-                if ($to === []) {
-                    Notification::make()
-                        ->title('Aucun destinataire valide')
-                        ->danger()
-                        ->send();
-
-                    return;
-                }
-
-                $html = view('emails.compose', [
-                    'body' => (string) $data['body'],
-                ])->render();
-
                 app(MailboxMailer::class)->send(
                     $mailbox,
-                    $to,
+                    self::emails((string) $data['to']),
                     (string) $data['subject'],
-                    $html,
-                    $cc,
+                    nl2br(htmlspecialchars((string) $data['body'], ENT_QUOTES)),
+                    self::emails((string) ($data['cc'] ?? '')),
                     $replyTo?->message_id,
-                    $account->id ?? $replyTo?->crm_account_id,
-                    $contact->id ?? $replyTo?->crm_contact_id,
-                    self::attachmentPaths($data['attachments'] ?? null),
+                    $account?->id,
+                    $contact?->id,
+                    array_values((array) ($data['attachments'] ?? [])),
+                    $replyTo !== null ? self::references($replyTo) : [],
                 );
 
                 Notification::make()
@@ -158,32 +135,11 @@ class ComposeEmailAction
             ->all();
     }
 
-    private static function defaultMailboxId(?EmailMessage $replyTo = null): ?int
+    private static function defaultMailboxId(): ?int
     {
-        if ($replyTo !== null) {
-            $receivedBy = self::accessibleMailboxes()
-                ->whereKey($replyTo->email_mailbox_id)
-                ->value('id');
-
-            if ($receivedBy !== null) {
-                return (int) $receivedBy;
-            }
-        }
-
         $shared = self::accessibleMailboxes()->where('is_shared', true)->value('id');
 
         return $shared !== null ? (int) $shared : self::accessibleMailboxes()->value('id');
-    }
-
-    private static function replySubject(?EmailMessage $replyTo): ?string
-    {
-        if ($replyTo === null || blank($replyTo->subject)) {
-            return null;
-        }
-
-        $subject = EmailBody::decodeHeader((string) $replyTo->subject);
-
-        return str_starts_with(mb_strtolower($subject), 're:') ? $subject : 'Re: '.$subject;
     }
 
     /**
@@ -204,32 +160,6 @@ class ComposeEmailAction
     }
 
     /**
-     * @return array<int, string>
-     */
-    private static function contactOptions(): array
-    {
-        return CrmContact::query()
-            ->with('account')
-            ->whereNotNull('email')
-            ->where('email', '!=', '')
-            ->where('do_not_contact', false)
-            ->orderBy('last_name')
-            ->orderBy('first_name')
-            ->get()
-            ->mapWithKeys(function (CrmContact $contact): array {
-                $label = $contact->fullName() !== '' ? $contact->fullName() : $contact->email;
-                $label .= ' <'.$contact->email.'>';
-
-                if ($contact->account !== null) {
-                    $label .= ' — '.$contact->account->name;
-                }
-
-                return [$contact->id => $label];
-            })
-            ->all();
-    }
-
-    /**
      * @return list<string>
      */
     private static function emails(string $value): array
@@ -240,51 +170,44 @@ class ComposeEmailAction
         )));
     }
 
+    private static function replySubject(string $subject): string
+    {
+        return str_starts_with(mb_strtolower($subject), 're:')
+            ? $subject
+            : 'Re: '.$subject;
+    }
+
+    private static function quotedBody(EmailMessage $message): string
+    {
+        $text = $message->body_text !== null && $message->body_text !== ''
+            ? $message->body_text
+            : strip_tags((string) $message->body_html);
+
+        $header = sprintf(
+            'Le %s, %s a écrit :',
+            $message->received_at?->format('d/m/Y H:i') ?? '',
+            $message->from_name ?? $message->from_email,
+        );
+
+        $lines = preg_split('/\r\n|\r|\n/', trim($text)) ?: [];
+        $quoted = implode("\n", array_map(fn (string $line): string => '> '.$line, $lines));
+
+        return "\n\n".$header."\n".$quoted;
+    }
+
     /**
-     * @param  array<int, int|string>|null  $contactIds
      * @return list<string>
      */
-    private static function contactEmails(?array $contactIds): array
+    private static function references(EmailMessage $message): array
     {
-        $contactIds = array_values(array_filter(array_map('intval', $contactIds ?? [])));
+        $references = $message->references !== null && $message->references !== ''
+            ? (preg_split('/\s+/', trim($message->references)) ?: [])
+            : [];
 
-        if ($contactIds === []) {
-            return [];
+        if ($message->message_id !== null && $message->message_id !== '') {
+            $references[] = $message->message_id;
         }
 
-        return array_values(
-            CrmContact::query()
-                ->whereKey($contactIds)
-                ->whereNotNull('email')
-                ->where('email', '!=', '')
-                ->pluck('email')
-                ->map(fn (string $email): string => trim($email))
-                ->filter()
-                ->values()
-                ->all(),
-        );
-    }
-
-    /**
-     * @param  array<int, int|string>|null  $contactIds
-     * @return list<string>
-     */
-    private static function recipients(mixed $value, ?array $contactIds): array
-    {
-        return array_values(array_unique(array_merge(
-            self::emails((string) $value),
-            self::contactEmails($contactIds),
-        )));
-    }
-
-    /**
-     * @return list<string>
-     */
-    private static function attachmentPaths(mixed $value): array
-    {
-        return array_values(array_filter(
-            (array) $value,
-            fn (mixed $path): bool => is_string($path) && $path !== '',
-        ));
+        return array_values(array_unique(array_filter($references)));
     }
 }

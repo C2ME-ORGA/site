@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Carbon\CarbonImmutable;
 use Database\Factories\CrmContactFactory;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -10,6 +11,23 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
+/**
+ * @property int $id
+ * @property int $crm_account_id
+ * @property string|null $civility
+ * @property string $first_name
+ * @property string $last_name
+ * @property string|null $job_title
+ * @property string|null $email
+ * @property string|null $phone
+ * @property string|null $mobile
+ * @property bool $is_primary
+ * @property bool $decision_maker
+ * @property bool $do_not_contact
+ * @property string|null $notes
+ * @property CarbonImmutable|null $last_contacted_at
+ * @property CarbonImmutable|null $updated_at
+ */
 class CrmContact extends Model
 {
     /** @use HasFactory<CrmContactFactory> */

@@ -29,21 +29,10 @@ function crmAdmin(): User
 
 function crmInboxMailbox(): EmailMailbox
 {
-    return EmailMailbox::create([
-        'name' => 'Commercial',
+    return EmailMailbox::factory()->create([
         'email' => 'commercial@c2me.fr',
-        'is_shared' => true,
-        'imap_host' => 'imap.orange.fr',
-        'imap_port' => 993,
-        'imap_encryption' => 'ssl',
         'imap_username' => 'commercial@c2me.fr',
-        'imap_password' => 'secret',
-        'smtp_host' => 'smtp.orange.fr',
-        'smtp_port' => 465,
-        'smtp_encryption' => 'ssl',
         'smtp_username' => 'commercial@c2me.fr',
-        'smtp_password' => 'secret',
-        'is_active' => true,
     ]);
 }
 
@@ -206,18 +195,12 @@ test('la boîte de réception liste les messages entrants', function (): void {
 
     $mailbox = crmInboxMailbox();
 
-    EmailMessage::create([
+    EmailMessage::factory()->create([
         'email_mailbox_id' => $mailbox->id,
-        'uid' => '1',
         'from_email' => 'jean@usine.fr',
         'from_name' => 'Jean Martin',
-        'to_recipients' => [['email' => 'commercial@c2me.fr', 'name' => null]],
         'subject' => 'Objet du message',
         'body_text' => 'Contenu du message',
-        'received_at' => now(),
-        'is_read' => false,
-        'is_sent' => false,
-        'folder' => 'INBOX',
     ]);
 
     $this->actingAs($admin)
@@ -231,16 +214,11 @@ test('le badge de la boîte de réception compte les messages non lus', function
     $mailbox = crmInboxMailbox();
 
     foreach ([false, false, true] as $index => $isRead) {
-        EmailMessage::create([
+        EmailMessage::factory()->create([
             'email_mailbox_id' => $mailbox->id,
-            'uid' => (string) ($index + 1),
             'from_email' => 'jean@usine.fr',
-            'to_recipients' => [['email' => 'commercial@c2me.fr', 'name' => null]],
             'subject' => 'Message '.$index,
-            'received_at' => now(),
             'is_read' => $isRead,
-            'is_sent' => false,
-            'folder' => 'INBOX',
         ]);
     }
 

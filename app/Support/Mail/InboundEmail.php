@@ -12,6 +12,7 @@ class InboundEmail
     /**
      * @param  list<array{email: string, name: string|null}>  $to
      * @param  list<array{email: string, name: string|null}>  $cc
+     * @param  list<InboundAttachment>  $attachments
      */
     public function __construct(
         public readonly string $uid,
@@ -27,5 +28,6 @@ class InboundEmail
         public readonly ?string $htmlBody,
         public readonly ?CarbonImmutable $date,
         public readonly bool $isRead,
+        public readonly array $attachments = [],
     ) {}
 }

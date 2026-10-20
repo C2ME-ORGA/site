@@ -6,10 +6,13 @@ use App\Models\CrmAccount;
 use App\Models\CrmContact;
 use App\Models\EmailMailbox;
 use App\Models\EmailMessage;
+use App\Models\User;
 use App\Services\MailboxSynchronizer;
+use App\Support\Mail\InboundAttachment;
 use App\Support\Mail\InboundEmail;
 use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Storage;
 
 uses(RefreshDatabase::class);
 
@@ -57,21 +60,10 @@ function inbox(string $uid, string $from, ?string $messageId = null, bool $read 
 
 function sharedMailbox(): EmailMailbox
 {
-    return EmailMailbox::create([
-        'name' => 'Commercial',
+    return EmailMailbox::factory()->create([
         'email' => 'commercial@c2me.fr',
-        'is_shared' => true,
-        'imap_host' => 'imap.orange.fr',
-        'imap_port' => 993,
-        'imap_encryption' => 'ssl',
         'imap_username' => 'commercial@c2me.fr',
-        'imap_password' => 'secret',
-        'smtp_host' => 'smtp.orange.fr',
-        'smtp_port' => 465,
-        'smtp_encryption' => 'ssl',
         'smtp_username' => 'commercial@c2me.fr',
-        'smtp_password' => 'secret',
-        'is_active' => true,
     ]);
 }
 
@@ -139,4 +131,74 @@ test('la commande mailboxes:sync importe les messages des boîtes actives', func
 
     expect(EmailMessage::query()->count())->toBe(1)
         ->and(EmailMessage::query()->first()->uid)->toBe('42');
+});
+
+test('la synchronisation enregistre les pièces jointes entrantes', function (): void {
+    Storage::fake('local');
+
+    $mailbox = sharedMailbox();
+
+    bindFetcher([new InboundEmail(
+        uid: '7',
+        messageId: 'plan@usine.fr',
+        inReplyTo: null,
+        references: null,
+        fromEmail: 'jean@usine.fr',
+        fromName: 'Jean',
+        to: [['email' => 'commercial@c2me.fr', 'name' => null]],
+        cc: [],
+        subject: 'Plan',
+        textBody: 'Ci-joint le plan.',
+        htmlBody: null,
+        date: CarbonImmutable::now(),
+        isRead: false,
+        attachments: [
+            new InboundAttachment('plan.pdf', 'application/pdf', 7, 'contenu'),
+        ],
+    )]);
+
+    app(MailboxSynchronizer::class)->synchronize($mailbox);
+
+    $attachment = EmailMessage::query()->firstOrFail()->attachments()->firstOrFail();
+
+    expect($attachment->filename)->toBe('plan.pdf')
+        ->and($attachment->mime_type)->toBe('application/pdf')
+        ->and($attachment->size)->toBe(7)
+        ->and(Storage::disk('local')->exists($attachment->path))->toBeTrue()
+        ->and(Storage::disk('local')->get($attachment->path))->toBe('contenu');
+});
+
+test('une pièce jointe est téléchargeable par un utilisateur autorisé', function (): void {
+    Storage::fake('local');
+
+    $mailbox = sharedMailbox();
+    $user = User::factory()->create();
+
+    bindFetcher([new InboundEmail(
+        uid: '8',
+        messageId: 'pj@usine.fr',
+        inReplyTo: null,
+        references: null,
+        fromEmail: 'jean@usine.fr',
+        fromName: 'Jean',
+        to: [],
+        cc: [],
+        subject: 'Plan',
+        textBody: null,
+        htmlBody: null,
+        date: CarbonImmutable::now(),
+        isRead: true,
+        attachments: [
+            new InboundAttachment('plan.pdf', 'application/pdf', 7, 'contenu'),
+        ],
+    )]);
+
+    app(MailboxSynchronizer::class)->synchronize($mailbox);
+
+    $attachment = EmailMessage::query()->firstOrFail()->attachments()->firstOrFail();
+
+    $this->actingAs($user)
+        ->get(route('emails.attachments.download', $attachment))
+        ->assertOk()
+        ->assertDownload('plan.pdf');
 });
