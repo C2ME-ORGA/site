@@ -4,13 +4,17 @@ use App\Enums\CrmActivityType;
 use App\Enums\CrmBook;
 use App\Enums\UserRole;
 use App\Filament\Resources\PrescriberAccounts\PrescriberAccountResource;
+use App\Livewire\TopbarInbox;
 use App\Models\CrmAccount;
 use App\Models\CrmActivity;
 use App\Models\CrmContact;
 use App\Models\CrmOpportunity;
+use App\Models\EmailMailbox;
+use App\Models\EmailMessage;
 use App\Models\Quote;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Livewire\Livewire;
 
 uses(RefreshDatabase::class);
 
@@ -19,6 +23,26 @@ function crmAdmin(): User
     return User::factory()->create([
         'email' => config('site.admin.allowed_emails')[0],
         'role' => UserRole::Admin,
+        'is_active' => true,
+    ]);
+}
+
+function crmInboxMailbox(): EmailMailbox
+{
+    return EmailMailbox::create([
+        'name' => 'Commercial',
+        'email' => 'commercial@c2me.fr',
+        'is_shared' => true,
+        'imap_host' => 'imap.orange.fr',
+        'imap_port' => 993,
+        'imap_encryption' => 'ssl',
+        'imap_username' => 'commercial@c2me.fr',
+        'imap_password' => 'secret',
+        'smtp_host' => 'smtp.orange.fr',
+        'smtp_port' => 465,
+        'smtp_encryption' => 'ssl',
+        'smtp_username' => 'commercial@c2me.fr',
+        'smtp_password' => 'secret',
         'is_active' => true,
     ]);
 }
@@ -36,7 +60,25 @@ test('les pages du CRM s’ouvrent pour un administrateur', function (string $ur
     '/admin/building-company-accounts',
     '/admin/quotes',
     '/admin/activities',
+    '/admin/emails',
 ]);
+
+test('la version de l’application est affichée dans le back-office', function (): void {
+    config()->set('filament-app-version.version', '9.9.9');
+
+    $this->actingAs(crmAdmin())
+        ->get('/admin')
+        ->assertOk()
+        ->assertSee('9.9.9');
+});
+
+test('l’icône de boîte de réception est affichée dans la barre supérieure', function (): void {
+    $this->actingAs(crmAdmin())
+        ->get('/admin')
+        ->assertOk()
+        ->assertSee('/admin/emails', false)
+        ->assertSee('Boîte de réception');
+});
 
 test('le calendrier affiche les relances du mois', function (): void {
     $admin = crmAdmin();
@@ -157,6 +199,54 @@ test('la fiche affiche le logo de la société', function (): void {
         ->get("/admin/prescriber-accounts/{$account->id}")
         ->assertOk()
         ->assertSee('img.logo.dev/archi-ouest.fr', false);
+});
+
+test('la boîte de réception liste les messages entrants', function (): void {
+    $admin = crmAdmin();
+
+    $mailbox = crmInboxMailbox();
+
+    EmailMessage::create([
+        'email_mailbox_id' => $mailbox->id,
+        'uid' => '1',
+        'from_email' => 'jean@usine.fr',
+        'from_name' => 'Jean Martin',
+        'to_recipients' => [['email' => 'commercial@c2me.fr', 'name' => null]],
+        'subject' => 'Objet du message',
+        'body_text' => 'Contenu du message',
+        'received_at' => now(),
+        'is_read' => false,
+        'is_sent' => false,
+        'folder' => 'INBOX',
+    ]);
+
+    $this->actingAs($admin)
+        ->get('/admin/emails')
+        ->assertOk()
+        ->assertSee('Objet du message');
+});
+
+test('le badge de la boîte de réception compte les messages non lus', function (): void {
+    $admin = crmAdmin();
+    $mailbox = crmInboxMailbox();
+
+    foreach ([false, false, true] as $index => $isRead) {
+        EmailMessage::create([
+            'email_mailbox_id' => $mailbox->id,
+            'uid' => (string) ($index + 1),
+            'from_email' => 'jean@usine.fr',
+            'to_recipients' => [['email' => 'commercial@c2me.fr', 'name' => null]],
+            'subject' => 'Message '.$index,
+            'received_at' => now(),
+            'is_read' => $isRead,
+            'is_sent' => false,
+            'folder' => 'INBOX',
+        ]);
+    }
+
+    Livewire::actingAs($admin)
+        ->test(TopbarInbox::class)
+        ->assertViewHas('unread', '2');
 });
 
 test('un commercial ne voit pas la fiche d’un compte qui n’est pas le sien', function (): void {

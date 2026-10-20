@@ -6,6 +6,7 @@ use App\Mail\OutboundMail;
 use App\Models\EmailMailbox;
 use App\Models\EmailMessage;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Storage;
 
 class MailboxMailer
 {
@@ -14,6 +15,7 @@ class MailboxMailer
      *
      * @param  list<string>  $to
      * @param  list<string>  $cc
+     * @param  list<string>  $attachments  chemins relatifs sur le disque « local »
      */
     public function send(
         EmailMailbox $mailbox,
@@ -24,6 +26,7 @@ class MailboxMailer
         ?string $inReplyTo = null,
         ?int $crmAccountId = null,
         ?int $crmContactId = null,
+        array $attachments = [],
     ): EmailMessage {
         $mailer = 'mailbox_'.$mailbox->id;
 
@@ -41,8 +44,13 @@ class MailboxMailer
             ->to($to)
             ->cc($cc)
             ->send(
-                (new OutboundMail($subject, $html))->from($mailbox->email, $mailbox->name)
+                (new OutboundMail($subject, $html, $attachments))->from($mailbox->email, $mailbox->name)
             );
+
+        // Les fichiers ne servent qu'à l'envoi : on ne les conserve pas.
+        if ($attachments !== []) {
+            Storage::disk('local')->delete($attachments);
+        }
 
         return EmailMessage::create([
             'email_mailbox_id' => $mailbox->id,

@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "87dc0a66de664f55e033ac473fc34a9a",
+    "content-hash": "1e0f51355d650491463cb4db21c4b98a",
     "packages": [
         {
             "name": "anourvalar/eloquent-serialize",
@@ -8729,6 +8729,75 @@
                 }
             ],
             "time": "2026-08-31T07:00:09+00:00"
+        },
+        {
+            "name": "vaslv/filament-app-version",
+            "version": "v1.2.0",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/vaslv/filament-app-version.git",
+                "reference": "f3bcf7590eb56305b1253c27c71e7b5ef6dd35ef"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/vaslv/filament-app-version/zipball/f3bcf7590eb56305b1253c27c71e7b5ef6dd35ef",
+                "reference": "f3bcf7590eb56305b1253c27c71e7b5ef6dd35ef",
+                "shasum": ""
+            },
+            "require": {
+                "filament/filament": "^5.0",
+                "illuminate/contracts": "^13.0",
+                "illuminate/support": "^13.0",
+                "php": "^8.4",
+                "spatie/laravel-package-tools": "^1.92"
+            },
+            "require-dev": {
+                "larastan/larastan": "^3.0",
+                "laravel/pint": "^1.18",
+                "orchestra/testbench": "^11.0",
+                "pestphp/pest": "^5.0",
+                "pestphp/pest-plugin-laravel": "^5.0"
+            },
+            "type": "library",
+            "extra": {
+                "laravel": {
+                    "aliases": {
+                        "AppVersion": "Vaslv\\FilamentAppVersion\\Facades\\AppVersion"
+                    },
+                    "providers": [
+                        "Vaslv\\FilamentAppVersion\\AppVersionServiceProvider"
+                    ]
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "Vaslv\\FilamentAppVersion\\": "src/"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Andrei Vasilev",
+                    "email": "andrei@vaslv.ru"
+                }
+            ],
+            "description": "Shows your application's version as a chip next to the Filament panel logo — several sources with a priority chain, the panel's own colours, hidden from guests by default",
+            "homepage": "https://github.com/vaslv/filament-app-version",
+            "keywords": [
+                "filament",
+                "filament-plugin",
+                "laravel",
+                "release",
+                "version"
+            ],
+            "support": {
+                "issues": "https://github.com/vaslv/filament-app-version/issues",
+                "source": "https://github.com/vaslv/filament-app-version"
+            },
+            "time": "2026-08-14T11:11:10+00:00"
         },
         {
             "name": "vlucas/phpdotenv",
