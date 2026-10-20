@@ -3,8 +3,10 @@
 namespace App\Filament\Resources\Emails\Schemas;
 
 use App\Models\EmailMessage;
+use App\Support\Mail\EmailBody;
 use Filament\Infolists\Components\TextEntry;
 use Filament\Schemas\Components\Section;
+use Filament\Schemas\Components\View;
 use Filament\Schemas\Schema;
 
 class EmailMessageInfolist
@@ -14,12 +16,13 @@ class EmailMessageInfolist
         return $schema
             ->components([
                 Section::make('Message')
+                    ->columnSpanFull()
                     ->columns(2)
                     ->schema([
                         TextEntry::make('from_email')
                             ->label('De')
                             ->state(fn (EmailMessage $record): string => $record->from_name !== null
-                                ? $record->from_name.' <'.$record->from_email.'>'
+                                ? EmailBody::decodeHeader($record->from_name).' <'.$record->from_email.'>'
                                 : $record->from_email),
 
                         TextEntry::make('received_at')
@@ -38,6 +41,7 @@ class EmailMessageInfolist
 
                         TextEntry::make('subject')
                             ->label('Objet')
+                            ->state(fn (EmailMessage $record): string => EmailBody::decodeHeader((string) $record->subject))
                             ->placeholder('(sans objet)')
                             ->columnSpanFull(),
 
@@ -63,12 +67,13 @@ class EmailMessageInfolist
                     ]),
 
                 Section::make('Contenu')
+                    ->columnSpanFull()
                     ->schema([
-                        TextEntry::make('body')
-                            ->hiddenLabel()
-                            ->state(fn (EmailMessage $record): string => self::body($record))
-                            ->placeholder('(message vide)')
-                            ->columnSpanFull(),
+                        View::make('filament.emails.body')
+                            ->viewData(fn (EmailMessage $record): array => [
+                                'html' => EmailBody::html($record),
+                                'text' => EmailBody::text($record),
+                            ]),
                     ]),
             ]);
     }
@@ -86,14 +91,5 @@ class EmailMessageInfolist
             fn (array $recipient): string => $recipient['name'] ?? $recipient['email'] ?? '',
             $recipients,
         ));
-    }
-
-    private static function body(EmailMessage $record): string
-    {
-        if ($record->body_text !== null && $record->body_text !== '') {
-            return $record->body_text;
-        }
-
-        return trim(strip_tags((string) $record->body_html));
     }
 }

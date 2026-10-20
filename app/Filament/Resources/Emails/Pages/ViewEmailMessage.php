@@ -7,10 +7,8 @@ use App\Filament\Resources\Emails\EmailMessageResource;
 use App\Models\CrmAccount;
 use App\Models\CrmContact;
 use App\Models\EmailMessage;
-use Filament\Actions\Action;
 use Filament\Actions\DeleteAction;
 use Filament\Resources\Pages\ViewRecord;
-use Filament\Support\Icons\Heroicon;
 
 class ViewEmailMessage extends ViewRecord
 {
@@ -29,10 +27,11 @@ class ViewEmailMessage extends ViewRecord
 
     protected function getHeaderActions(): array
     {
+        /** @var EmailMessage $message */
         $message = $this->getRecord();
 
-        $account = $message instanceof EmailMessage ? $message->account : null;
-        $contact = $message instanceof EmailMessage ? $message->contact : null;
+        $account = $message->account;
+        $contact = $message->contact;
 
         return [
             ComposeEmailAction::make(
@@ -40,12 +39,7 @@ class ViewEmailMessage extends ViewRecord
                 $contact instanceof CrmContact ? $contact : null,
             ),
 
-            Action::make('reply')
-                ->label('Répondre')
-                ->icon(Heroicon::OutlinedArrowUturnLeft)
-                ->color('info')
-                ->url(fn (): string => 'mailto:'.($message instanceof EmailMessage ? $message->from_email : ''))
-                ->visible(fn (): bool => $message instanceof EmailMessage && ! $message->is_sent),
+            ComposeEmailAction::reply($message),
 
             DeleteAction::make(),
         ];

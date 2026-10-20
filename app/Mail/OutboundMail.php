@@ -4,6 +4,7 @@ namespace App\Mail;
 
 use Illuminate\Bus\Queueable;
 use Illuminate\Mail\Mailable;
+use Illuminate\Mail\Mailables\Attachment;
 use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
 use Illuminate\Queue\SerializesModels;
@@ -12,9 +13,13 @@ class OutboundMail extends Mailable
 {
     use Queueable, SerializesModels;
 
+    /**
+     * @param  list<string>  $attachmentPaths  chemins relatifs sur le disque « local »
+     */
     public function __construct(
         public readonly string $mailSubject,
         public readonly string $body,
+        public readonly array $attachmentPaths = [],
     ) {}
 
     public function envelope(): Envelope
@@ -28,6 +33,17 @@ class OutboundMail extends Mailable
     {
         return new Content(
             htmlString: $this->body,
+        );
+    }
+
+    /**
+     * @return array<int, Attachment>
+     */
+    public function attachments(): array
+    {
+        return array_map(
+            fn (string $path): Attachment => Attachment::fromStorageDisk('local', $path),
+            $this->attachmentPaths,
         );
     }
 }
