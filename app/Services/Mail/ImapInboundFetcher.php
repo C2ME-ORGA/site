@@ -4,6 +4,7 @@ namespace App\Services\Mail;
 
 use App\Contracts\InboundFetcher;
 use App\Models\EmailMailbox;
+use App\Support\Mail\InboundAttachment;
 use App\Support\Mail\InboundEmail;
 use Carbon\CarbonImmutable;
 use Throwable;
@@ -82,7 +83,40 @@ class ImapInboundFetcher implements InboundFetcher
             htmlBody: $this->stringOrNull($message->getHTMLBody()),
             date: $this->date($message),
             isRead: $message->getFlags()->contains('seen'),
+            attachments: $this->attachments($message),
         );
+    }
+
+    /**
+     * @return list<InboundAttachment>
+     */
+    private function attachments(Message $message): array
+    {
+        try {
+            $parts = $message->getAttachments();
+        } catch (Throwable) {
+            return [];
+        }
+
+        $attachments = [];
+
+        foreach ($parts as $part) {
+            try {
+                $contents = (string) $part->getContent();
+                $name = $part->getName();
+
+                $attachments[] = new InboundAttachment(
+                    filename: is_string($name) && $name !== '' ? $name : 'piece-jointe',
+                    mimeType: $part->getMimeType(),
+                    size: strlen($contents),
+                    contents: $contents,
+                );
+            } catch (Throwable) {
+                // Ignore les pièces jointes illisibles.
+            }
+        }
+
+        return $attachments;
     }
 
     /**

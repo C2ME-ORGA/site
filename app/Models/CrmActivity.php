@@ -25,6 +25,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property CarbonImmutable|null $due_at
  * @property CarbonImmutable|null $remind_at
  * @property CarbonImmutable|null $completed_at
+ * @property CarbonImmutable|null $updated_at
  */
 class CrmActivity extends Model
 {

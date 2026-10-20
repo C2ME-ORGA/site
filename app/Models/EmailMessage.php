@@ -3,8 +3,11 @@
 namespace App\Models;
 
 use Carbon\CarbonImmutable;
+use Database\Factories\EmailMessageFactory;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
  * @property int $id
@@ -33,6 +36,9 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  */
 class EmailMessage extends Model
 {
+    /** @use HasFactory<EmailMessageFactory> */
+    use HasFactory;
+
     /**
      * @var list<string>
      */
@@ -115,5 +121,13 @@ class EmailMessage extends Model
     public function quote(): BelongsTo
     {
         return $this->belongsTo(Quote::class);
+    }
+
+    /**
+     * @return HasMany<EmailAttachment, $this>
+     */
+    public function attachments(): HasMany
+    {
+        return $this->hasMany(EmailAttachment::class);
     }
 }

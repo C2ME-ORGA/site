@@ -1,0 +1,32 @@
+{
+    "name": "C2ME — Mode terrain",
+    "short_name": "C2ME",
+    "description": "Consultation et mise à jour des fiches clients C2ME, y compris hors réseau.",
+    "lang": "fr",
+    "start_url": "/terrain",
+    "scope": "/",
+    "display": "standalone",
+    "orientation": "portrait-primary",
+    "background_color": "#ffffff",
+    "theme_color": "#0e8577",
+    "icons": [
+        {
+            "src": "/images/icon-192.png",
+            "sizes": "192x192",
+            "type": "image/png",
+            "purpose": "any"
+        },
+        {
+            "src": "/images/icon-512.png",
+            "sizes": "512x512",
+            "type": "image/png",
+            "purpose": "any"
+        },
+        {
+            "src": "/images/icon-512.png",
+            "sizes": "512x512",
+            "type": "image/png",
+            "purpose": "maskable"
+        }
+    ]
+}

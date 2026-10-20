@@ -27,6 +27,9 @@
 
         <link rel="icon" href="{{ asset('images/logo-mark.png') }}" type="image/png">
         <link rel="apple-touch-icon" href="{{ asset('images/logo-mark.png') }}">
+        <link rel="manifest" href="/manifest.webmanifest">
+        <meta name="theme-color" content="#0e8577">
+        <script src="/js/c2me-pwa.js" defer></script>
 
         <x-site.structured-data :site="$site" />
 

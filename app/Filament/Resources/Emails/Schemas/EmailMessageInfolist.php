@@ -2,12 +2,15 @@
 
 namespace App\Filament\Resources\Emails\Schemas;
 
+use App\Models\EmailAttachment;
 use App\Models\EmailMessage;
 use App\Support\Mail\EmailBody;
+use Filament\Infolists\Components\RepeatableEntry;
 use Filament\Infolists\Components\TextEntry;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\View;
 use Filament\Schemas\Schema;
+use Illuminate\Support\HtmlString;
 
 class EmailMessageInfolist
 {
@@ -65,6 +68,26 @@ class EmailMessageInfolist
                             ->state(fn (EmailMessage $record): ?string => $record->contact?->fullName())
                             ->placeholder('—'),
                     ]),
+
+                Section::make('Pièces jointes')
+                    ->columnSpanFull()
+                    ->schema([
+                        RepeatableEntry::make('attachments')
+                            ->hiddenLabel()
+                            ->schema([
+                                TextEntry::make('filename')
+                                    ->label('Fichier')
+                                    ->formatStateUsing(fn (string $state, EmailAttachment $record): HtmlString => new HtmlString(
+                                        '<a href="'.e(route('emails.attachments.download', $record)).'" target="_blank" rel="noopener">'.e($state).'</a>'
+                                    )),
+
+                                TextEntry::make('size')
+                                    ->label('Taille')
+                                    ->formatStateUsing(fn (int $state): string => number_format($state / 1024, 1, ',', ' ').' Ko'),
+                            ])
+                            ->columns(2),
+                    ])
+                    ->visible(fn (EmailMessage $record): bool => $record->attachments()->exists()),
 
                 Section::make('Contenu')
                     ->columnSpanFull()

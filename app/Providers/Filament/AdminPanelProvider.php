@@ -9,10 +9,12 @@ use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
 use Filament\Http\Middleware\DisableBladeIconComponents;
 use Filament\Http\Middleware\DispatchServingFilamentEvent;
+use Filament\Navigation\NavigationItem;
 use Filament\Pages\Dashboard;
 use Filament\Panel;
 use Filament\PanelProvider;
 use Filament\Support\Colors\Color;
+use Filament\Support\Icons\Heroicon;
 use Filament\View\PanelsRenderHook;
 use Illuminate\Contracts\View\View;
 use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
@@ -52,6 +54,21 @@ class AdminPanelProvider extends PanelProvider
                 PanelsRenderHook::USER_MENU_BEFORE,
                 fn (): View => view('filament.topbar.inbox'),
             )
+            ->renderHook(
+                PanelsRenderHook::HEAD_END,
+                fn (): string => '<link rel="manifest" href="/manifest.webmanifest"><meta name="theme-color" content="#0e8577">',
+            )
+            ->renderHook(
+                PanelsRenderHook::BODY_END,
+                fn (): string => '<script src="/js/c2me-pwa.js" defer></script>',
+            )
+            ->navigationItems([
+                NavigationItem::make('Mode terrain')
+                    ->group('CRM')
+                    ->sort(90)
+                    ->url('/terrain')
+                    ->icon(Heroicon::OutlinedDevicePhoneMobile),
+            ])
             ->plugins([
                 AppVersionPlugin::make(),
             ])

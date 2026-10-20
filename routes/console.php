@@ -66,3 +66,30 @@ Schedule::command('quotes:expire')
 Schedule::command('mailboxes:sync')
     ->everyFiveMinutes()
     ->withoutOverlapping();
+
+/*
+|--------------------------------------------------------------------------
+| Conservation des données (RGPD)
+|--------------------------------------------------------------------------
+|
+| Les durées sont définies dans config/crm.php : prospects et e-mails sur
+| 36 mois, activités sur 60 mois. Les prospects sont anonymisés (et non
+| supprimés) pour conserver l'historique commercial sans données
+| personnelles ; les e-mails et leurs pièces jointes sont supprimés.
+|
+*/
+
+Schedule::command('crm:anonymize-prospects')
+    ->dailyAt('03:45')
+    ->withoutOverlapping()
+    ->onOneServer();
+
+Schedule::command('crm:purge-activities')
+    ->dailyAt('04:00')
+    ->withoutOverlapping()
+    ->onOneServer();
+
+Schedule::command('crm:purge-emails')
+    ->dailyAt('04:15')
+    ->withoutOverlapping()
+    ->onOneServer();

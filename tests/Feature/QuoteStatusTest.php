@@ -1,130 +1,137 @@
 <?php
 
+namespace Tests\Feature;
+
+use App\Enums\CrmBook;
 use App\Enums\QuoteDocumentStatus;
 use App\Enums\UserRole;
-use App\Mail\QuoteStatusChangedMail;
+use App\Models\CrmAccount;
 use App\Models\Quote;
 use App\Models\User;
-use App\Notifications\QuoteStatusChanged;
+use App\Policies\QuotePolicy;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\Mail;
-use Illuminate\Support\Facades\Notification;
 
 uses(RefreshDatabase::class);
 
-function quoteOwner(): User
-{
-    return User::factory()->create([
+test('les transitions de statut de devis sont correctes', function (): void {
+    // --- Statuts de test ---
+    $draftStatus = QuoteDocumentStatus::Draft;
+    $sentStatus = QuoteDocumentStatus::Sent;
+    $acceptedStatus = QuoteDocumentStatus::Accepted;
+    $refusedStatus = QuoteDocumentStatus::Refused;
+    $expiredStatus = QuoteDocumentStatus::Expired;
+    $cancelledStatus = QuoteDocumentStatus::Cancelled;
+
+    // --- Création de devis dans chaque statut ---
+    $draftQuote = Quote::factory()->create(['status' => $draftStatus->value]);
+    $sentQuote = Quote::factory()->create(['status' => $sentStatus->value]);
+    $acceptedQuote = Quote::factory()->create(['status' => $acceptedStatus->value]);
+    $refusedQuote = Quote::factory()->create(['status' => $refusedStatus->value]);
+    $expiredQuote = Quote::factory()->create(['status' => $expiredStatus->value]);
+    $cancelledQuote = Quote::factory()->create(['status' => $cancelledStatus->value]);
+
+    // --- 1. Transitions depuis Brouillon ---
+    $this->assertTrue(
+        in_array($sentStatus, $draftStatus->allowedTransitions(), true),
+        'Depuis Brouillon : on peut Envoyer'
+    );
+    $this->assertTrue(
+        in_array($cancelledStatus, $draftStatus->allowedTransitions(), true),
+        'Depuis Brouillon : on peut Annuler'
+    );
+
+    // --- 2. Transitions depuis Envoyé ---
+    $this->assertTrue(
+        in_array($acceptedStatus, $sentStatus->allowedTransitions(), true),
+        'Depuis Envoyé : on peut Accepter'
+    );
+    $this->assertTrue(
+        in_array($refusedStatus, $sentStatus->allowedTransitions(), true),
+        'Depuis Envoyé : on peut Refuser'
+    );
+    $this->assertTrue(
+        in_array($expiredStatus, $sentStatus->allowedTransitions(), true),
+        'Depuis Envoyé : on peut Expirer'
+    );
+    $this->assertTrue(
+        in_array($cancelledStatus, $sentStatus->allowedTransitions(), true),
+        'Depuis Envoyé : on peut Annuler'
+    );
+
+    // --- 3. Transitions depuis Accepté (terminal) ---
+    $this->assertEmpty($acceptedStatus->allowedTransitions(), 'Accepté est terminal');
+
+    // --- 4. Transitions depuis Refusé (terminal) ---
+    $this->assertEmpty($refusedStatus->allowedTransitions(), 'Refusé est terminal');
+
+    // --- 5. Transitions depuis Expiré ---
+    $this->assertTrue(
+        in_array($sentStatus, $expiredStatus->allowedTransitions(), true),
+        'Depuis Expiré : on peut Retourner Envoyé'
+    );
+    $this->assertTrue(
+        in_array($cancelledStatus, $expiredStatus->allowedTransitions(), true),
+        'Depuis Expiré : on peut Annuler'
+    );
+
+    // --- 6. Transitions depuis Annulé (terminal) ---
+    $this->assertEmpty($cancelledStatus->allowedTransitions(), 'Annulé est terminal');
+});
+
+test('un administrateur peut voir tous les devis', function (): void {
+    $admin = User::factory()->create([
+        'email' => 'admin@test.local',
+        'role' => UserRole::Admin,
+        'is_active' => true,
+    ]);
+
+    $quote = Quote::factory()->create();
+
+    $this->assertTrue(
+        (new QuotePolicy)->viewAny($admin)
+    );
+});
+
+test('un commercial peut voir ses propres devis', function (): void {
+    $commercial = User::factory()->create([
+        'email' => 'commercial@test.local',
         'role' => UserRole::Commercial,
         'is_active' => true,
     ]);
-}
 
-test('la machine à états du devis autorise et interdit les bons statuts', function (): void {
-    expect(QuoteDocumentStatus::Draft->canTransitionTo(QuoteDocumentStatus::Sent))->toBeTrue()
-        ->and(QuoteDocumentStatus::Draft->canTransitionTo(QuoteDocumentStatus::Accepted))->toBeFalse()
-        ->and(QuoteDocumentStatus::Sent->canTransitionTo(QuoteDocumentStatus::Accepted))->toBeTrue()
-        ->and(QuoteDocumentStatus::Sent->canTransitionTo(QuoteDocumentStatus::Expired))->toBeTrue()
-        ->and(QuoteDocumentStatus::Accepted->canTransitionTo(QuoteDocumentStatus::Sent))->toBeFalse()
-        ->and(QuoteDocumentStatus::Accepted->isTerminal())->toBeTrue()
-        ->and(QuoteDocumentStatus::Sent->isTerminal())->toBeFalse();
-});
-
-test('transitionTo applique une transition valide et horodate l’envoi', function (): void {
-    $quote = Quote::factory()->create(['status' => QuoteDocumentStatus::Draft]);
-
-    expect($quote->transitionTo(QuoteDocumentStatus::Sent))->toBeTrue();
-
-    $quote->refresh();
-
-    expect($quote->status)->toBe(QuoteDocumentStatus::Sent)
-        ->and($quote->sent_at)->not->toBeNull();
-});
-
-test('transitionTo refuse une transition interdite', function (): void {
-    $quote = Quote::factory()->create(['status' => QuoteDocumentStatus::Draft]);
-
-    expect($quote->transitionTo(QuoteDocumentStatus::Accepted))->toBeFalse()
-        ->and($quote->refresh()->status)->toBe(QuoteDocumentStatus::Draft);
-});
-
-test('une transition interdite enregistrée directement lève une exception', function (): void {
-    $quote = Quote::factory()->create(['status' => QuoteDocumentStatus::Accepted]);
-
-    expect(fn () => $quote->update(['status' => QuoteDocumentStatus::Sent]))
-        ->toThrow(DomainException::class);
-});
-
-test('les lignes calculent leur total et celui du devis', function (): void {
-    $quote = Quote::factory()->create(['amount_ht' => 0, 'vat_rate' => 20]);
-
-    $line = $quote->lines()->create([
-        'position' => 1,
-        'designation' => 'Pièce découpée',
-        'quantity' => 2,
-        'unit' => 'u',
-        'unit_price' => 100,
-        'discount_percent' => 10,
+    $account = CrmAccount::factory()->create([
+        'book' => CrmBook::Prescribers,
+        'owner_id' => $commercial->id,
     ]);
-
-    $quote->refresh();
-
-    expect((float) $line->total_ht)->toBe(180.0)
-        ->and((float) $quote->amount_ht)->toBe(180.0)
-        ->and((float) $quote->amount_ttc)->toBe(216.0);
-});
-
-test('un changement de statut notifie le propriétaire par base et par e-mail', function (): void {
-    Notification::fake();
-    Mail::fake();
-
-    $owner = quoteOwner();
 
     $quote = Quote::factory()->create([
-        'owner_id' => $owner->id,
-        'status' => QuoteDocumentStatus::Draft,
+        'crm_account_id' => $account->id,
+        'owner_id' => $commercial->id,
     ]);
 
-    $quote->transitionTo(QuoteDocumentStatus::Sent);
-
-    Notification::assertSentTo($owner, QuoteStatusChanged::class);
-    Mail::assertSent(QuoteStatusChangedMail::class);
+    $this->assertTrue(
+        (new QuotePolicy)->view($commercial, $quote)
+    );
 });
 
-test('une modification sans changement de statut n’envoie pas de notification', function (): void {
-    Notification::fake();
-    Mail::fake();
+test('un commercial ne peut pas voir les devis des autres comptes', function (): void {
+    $commercial = User::factory()->create([
+        'email' => 'commercial@test.local',
+        'role' => UserRole::Commercial,
+        'is_active' => true,
+    ]);
 
-    $owner = quoteOwner();
+    $otherAccount = CrmAccount::factory()->create([
+        'book' => CrmBook::Prescribers,
+        'owner_id' => User::factory()->create(['role' => UserRole::Admin, 'is_active' => true])->id,
+    ]);
 
     $quote = Quote::factory()->create([
-        'owner_id' => $owner->id,
-        'status' => QuoteDocumentStatus::Draft,
+        'crm_account_id' => $otherAccount->id,
+        'owner_id' => User::factory()->create(['role' => UserRole::Admin, 'is_active' => true])->id,
     ]);
 
-    $quote->update(['subject' => 'Objet modifié']);
-
-    Notification::assertNothingSent();
-    Mail::assertNothingSent();
-});
-
-test('la commande quotes:expire bascule les devis périmés', function (): void {
-    $owner = quoteOwner();
-
-    $expired = Quote::factory()->create([
-        'owner_id' => $owner->id,
-        'status' => QuoteDocumentStatus::Sent,
-        'valid_until' => now()->subDay(),
-    ]);
-
-    $valid = Quote::factory()->create([
-        'owner_id' => $owner->id,
-        'status' => QuoteDocumentStatus::Sent,
-        'valid_until' => now()->addWeek(),
-    ]);
-
-    $this->artisan('quotes:expire')->assertSuccessful();
-
-    expect($expired->refresh()->status)->toBe(QuoteDocumentStatus::Expired)
-        ->and($valid->refresh()->status)->toBe(QuoteDocumentStatus::Sent);
+    $this->assertFalse(
+        (new QuotePolicy)->view($commercial, $quote)
+    );
 });

@@ -4,9 +4,11 @@ namespace App\Filament\Resources\Emails\Tables;
 
 use App\Models\EmailMessage;
 use Filament\Actions\Action;
+use Filament\Actions\BulkAction;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\ViewAction;
+use Filament\Notifications\Notification;
 use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
@@ -89,6 +91,20 @@ class EmailMessagesTable
             ->toolbarActions([
                 BulkActionGroup::make([
                     DeleteBulkAction::make(),
+                    BulkAction::make('markRead')
+                        ->label('Marquer comme lu')
+                        ->icon('heroicon-o-envelope-open')
+                        ->color('success')
+                        ->action(function (array $records): void {
+                            foreach ($records as $record) {
+                                $record->forceFill(['is_read' => true])->save();
+                            }
+
+                            Notification::make()
+                                ->title(count($records).' message(s) marqué(s) comme lu')
+                                ->success()
+                                ->send();
+                        }),
                 ]),
             ]);
     }

@@ -16,6 +16,7 @@ class MailboxMailer
      * @param  list<string>  $to
      * @param  list<string>  $cc
      * @param  list<string>  $attachments  chemins relatifs sur le disque « local »
+     * @param  list<string>  $references  identifiants des messages cités
      */
     public function send(
         EmailMailbox $mailbox,
@@ -27,6 +28,7 @@ class MailboxMailer
         ?int $crmAccountId = null,
         ?int $crmContactId = null,
         array $attachments = [],
+        array $references = [],
     ): EmailMessage {
         $mailer = 'mailbox_'.$mailbox->id;
 
@@ -44,7 +46,8 @@ class MailboxMailer
             ->to($to)
             ->cc($cc)
             ->send(
-                (new OutboundMail($subject, $html, $attachments))->from($mailbox->email, $mailbox->name)
+                (new OutboundMail($subject, $html, $attachments, $inReplyTo, $references))
+                    ->from($mailbox->email, $mailbox->name)
             );
 
         // Les fichiers ne servent qu'à l'envoi : on ne les conserve pas.
@@ -66,6 +69,7 @@ class MailboxMailer
             'is_sent' => true,
             'folder' => 'Sent',
             'in_reply_to' => $inReplyTo,
+            'references' => $references === [] ? null : implode(' ', $references),
             'crm_account_id' => $crmAccountId,
             'crm_contact_id' => $crmContactId,
         ]);

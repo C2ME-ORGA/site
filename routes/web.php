@@ -1,5 +1,7 @@
 <?php
 
+use App\Http\Controllers\EmailAttachmentController;
+use App\Http\Controllers\FieldModeController;
 use Illuminate\Routing\Route as RouteInstance;
 use Illuminate\Support\Facades\Route;
 use Symfony\Component\HttpFoundation\Response;
@@ -68,6 +70,26 @@ Route::view('/mentions-legales', 'pages.legal.mentions-legales')
 
 Route::view('/confidentialite', 'pages.legal.confidentialite')
     ->name('legal.privacy');
+
+/*
+|--------------------------------------------------------------------------
+| Mode terrain
+|--------------------------------------------------------------------------
+|
+| Page autonome (sans Livewire) mise en cache par le service worker : elle
+| reste consultable hors réseau et synchronise les modifications en attente
+| dès le retour de la connexion.
+|
+*/
+
+Route::middleware('auth')->group(function (): void {
+    Route::view('/terrain', 'field.index')->name('field.index');
+    Route::get('/terrain/snapshot', [FieldModeController::class, 'snapshot'])->name('field.snapshot');
+    Route::post('/terrain/sync', [FieldModeController::class, 'sync'])->name('field.sync');
+
+    Route::get('/emails/attachments/{attachment}', [EmailAttachmentController::class, 'download'])
+        ->name('emails.attachments.download');
+});
 
 /*
 |--------------------------------------------------------------------------
