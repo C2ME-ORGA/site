@@ -63,6 +63,15 @@ test('les pages du CRM s’ouvrent pour un administrateur', function (string $ur
     '/admin/emails',
 ]);
 
+test('la version de l’application est affichée dans le back-office', function (): void {
+    config()->set('filament-app-version.version', '9.9.9');
+
+    $this->actingAs(crmAdmin())
+        ->get('/admin')
+        ->assertOk()
+        ->assertSee('9.9.9');
+});
+
 test('l’icône de boîte de réception est affichée dans la barre supérieure', function (): void {
     $this->actingAs(crmAdmin())
         ->get('/admin')

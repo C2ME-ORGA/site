@@ -21,6 +21,7 @@ use Illuminate\Foundation\Http\Middleware\PreventRequestForgery;
 use Illuminate\Routing\Middleware\SubstituteBindings;
 use Illuminate\Session\Middleware\StartSession;
 use Illuminate\View\Middleware\ShareErrorsFromSession;
+use Vaslv\FilamentAppVersion\AppVersionPlugin;
 
 class AdminPanelProvider extends PanelProvider
 {
@@ -51,6 +52,9 @@ class AdminPanelProvider extends PanelProvider
                 PanelsRenderHook::USER_MENU_BEFORE,
                 fn (): View => view('filament.topbar.inbox'),
             )
+            ->plugins([
+                AppVersionPlugin::make(),
+            ])
             ->middleware([
                 EncryptCookies::class,
                 AddQueuedCookiesToResponse::class,

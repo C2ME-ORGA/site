@@ -15,6 +15,7 @@
         "livewire/livewire": "^4.1",
         "predis/predis": "^3.7",
         "tinusg/filament-company-logo-column": "*",
+        "vaslv/filament-app-version": "*",
         "webklex/laravel-imap": "*"
     },
     "require-dev": {

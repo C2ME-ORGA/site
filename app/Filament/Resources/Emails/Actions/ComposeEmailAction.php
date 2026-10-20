@@ -40,7 +40,7 @@ class ComposeEmailAction
         ?CrmContact $contact,
         ?EmailMessage $replyTo,
     ): Action {
-        $recipient = $replyTo?->from_email ?? ($account !== null ? $account->email : $contact?->email);
+        $recipient = $replyTo->from_email ?? ($account !== null ? $account->email : $contact?->email);
 
         return Action::make($name)
             ->label($heading)
@@ -133,8 +133,8 @@ class ComposeEmailAction
                     $html,
                     $cc,
                     $replyTo?->message_id,
-                    $account?->id ?? $replyTo?->crm_account_id,
-                    $contact?->id ?? $replyTo?->crm_contact_id,
+                    $account->id ?? $replyTo?->crm_account_id,
+                    $contact->id ?? $replyTo?->crm_contact_id,
                     self::attachmentPaths($data['attachments'] ?? null),
                 );
 
@@ -252,15 +252,17 @@ class ComposeEmailAction
             return [];
         }
 
-        return CrmContact::query()
-            ->whereKey($contactIds)
-            ->whereNotNull('email')
-            ->where('email', '!=', '')
-            ->pluck('email')
-            ->map(fn (string $email): string => trim($email))
-            ->filter()
-            ->values()
-            ->all();
+        return array_values(
+            CrmContact::query()
+                ->whereKey($contactIds)
+                ->whereNotNull('email')
+                ->where('email', '!=', '')
+                ->pluck('email')
+                ->map(fn (string $email): string => trim($email))
+                ->filter()
+                ->values()
+                ->all(),
+        );
     }
 
     /**
