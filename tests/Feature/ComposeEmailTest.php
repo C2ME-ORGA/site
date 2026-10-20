@@ -3,17 +3,15 @@
 namespace Tests\Feature;
 
 use App\Enums\UserRole;
+use App\Filament\Resources\Emails\Pages\ListEmailMessages;
 use App\Models\EmailMailbox;
 use App\Models\User;
-use Livewire\Livewire;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-
-use Tests\TestCase;
+use Livewire\Livewire;
 
 uses(RefreshDatabase::class);
 
-test('la page Boîte de réception s\'affiche et contient l\'action Nouveau message', function (): void
-{
+test('la page Boîte de réception s\'affiche et contient l\'action Nouveau message', function (): void {
     $admin = User::factory()->create([
         'email' => 'admin@test.local',
         'role' => UserRole::Admin,
@@ -26,7 +24,7 @@ test('la page Boîte de réception s\'affiche et contient l\'action Nouveau mess
     ]);
 
     $response = Livewire::actingAs($admin)
-        ->test(\App\Filament\Resources\Emails\Pages\ListEmailMessages::class);
+        ->test(ListEmailMessages::class);
 
     $response->assertOk();
 

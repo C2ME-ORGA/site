@@ -2,18 +2,18 @@
 
 namespace Tests\Feature;
 
+use App\Enums\CrmBook;
 use App\Enums\QuoteDocumentStatus;
 use App\Enums\UserRole;
+use App\Models\CrmAccount;
 use App\Models\Quote;
 use App\Models\User;
+use App\Policies\QuotePolicy;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-
-use Tests\TestCase;
 
 uses(RefreshDatabase::class);
 
-test('les transitions de statut de devis sont correctes', function (): void
-{
+test('les transitions de statut de devis sont correctes', function (): void {
     // --- Statuts de test ---
     $draftStatus = QuoteDocumentStatus::Draft;
     $sentStatus = QuoteDocumentStatus::Sent;
@@ -78,8 +78,7 @@ test('les transitions de statut de devis sont correctes', function (): void
     $this->assertEmpty($cancelledStatus->allowedTransitions(), 'Annulé est terminal');
 });
 
-test('un administrateur peut voir tous les devis', function (): void
-{
+test('un administrateur peut voir tous les devis', function (): void {
     $admin = User::factory()->create([
         'email' => 'admin@test.local',
         'role' => UserRole::Admin,
@@ -89,20 +88,19 @@ test('un administrateur peut voir tous les devis', function (): void
     $quote = Quote::factory()->create();
 
     $this->assertTrue(
-        (new \App\Policies\QuotePolicy)->viewAny($admin)
+        (new QuotePolicy)->viewAny($admin)
     );
 });
 
-test('un commercial peut voir ses propres devis', function (): void
-{
+test('un commercial peut voir ses propres devis', function (): void {
     $commercial = User::factory()->create([
         'email' => 'commercial@test.local',
         'role' => UserRole::Commercial,
         'is_active' => true,
     ]);
 
-    $account = \App\Models\CrmAccount::factory()->create([
-        'book' => \App\Enums\CrmBook::Prescribers,
+    $account = CrmAccount::factory()->create([
+        'book' => CrmBook::Prescribers,
         'owner_id' => $commercial->id,
     ]);
 
@@ -112,20 +110,19 @@ test('un commercial peut voir ses propres devis', function (): void
     ]);
 
     $this->assertTrue(
-        (new \App\Policies\QuotePolicy)->view($commercial, $quote)
+        (new QuotePolicy)->view($commercial, $quote)
     );
 });
 
-test('un commercial ne peut pas voir les devis des autres comptes', function (): void
-{
+test('un commercial ne peut pas voir les devis des autres comptes', function (): void {
     $commercial = User::factory()->create([
         'email' => 'commercial@test.local',
         'role' => UserRole::Commercial,
         'is_active' => true,
     ]);
 
-    $otherAccount = \App\Models\CrmAccount::factory()->create([
-        'book' => \App\Enums\CrmBook::Prescribers,
+    $otherAccount = CrmAccount::factory()->create([
+        'book' => CrmBook::Prescribers,
         'owner_id' => User::factory()->create(['role' => UserRole::Admin, 'is_active' => true])->id,
     ]);
 
@@ -135,6 +132,6 @@ test('un commercial ne peut pas voir les devis des autres comptes', function ():
     ]);
 
     $this->assertFalse(
-        (new \App\Policies\QuotePolicy)->view($commercial, $quote)
+        (new QuotePolicy)->view($commercial, $quote)
     );
 });
