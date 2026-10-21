@@ -153,4 +153,26 @@ return [
         'workday_end' => 18,
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Relances automatiques
+    |--------------------------------------------------------------------------
+    |
+    | Les comptes dont next_follow_up_at arrive à échéance génèrent un rappel
+    | la veille (17:00) et le jour J (08:00). Les horaires sont exprimés dans
+    | le fuseau de l'application (Europe/Paris).
+    |
+    */
+
+    'follow_ups' => [
+        'enabled' => (bool) env('CRM_FOLLOW_UPS_ENABLED', true),
+        'day_before_time' => env('CRM_FOLLOW_UPS_DAY_BEFORE_TIME', '17:00'),
+        'due_day_time' => env('CRM_FOLLOW_UPS_DUE_DAY_TIME', '08:00'),
+        'mail_enabled' => (bool) env('CRM_FOLLOW_UPS_MAIL', true),
+        'exclude_inactive' => true,
+        'retry_days' => 7,
+        'max_notification_items' => 5,
+        'batch_size' => 100,
+    ],
+
 ];

@@ -63,8 +63,8 @@ C2ME is a Laravel Livewire-based CRM application managing clients industriels, p
 
 ### 3. Tests
 
-- `php artisan test` → **158 tests, 608 assertions** ✅
-- `composer types:check` → **0 erreur** (173 fichiers)
+- `php artisan test` → **180 tests, 715 assertions** ✅
+- `composer types:check` → **0 erreur**
 - `vendor/bin/pint` → **passé** sur tous les fichiers modifiés
 
 ### 4. Seeders & Démonstration
@@ -85,6 +85,7 @@ C2ME is a Laravel Livewire-based CRM application managing clients industriels, p
 | `php artisan crm:purge-prospects` | Purge des prospects inactifs selon `crm.retention.prospects_months` |
 | `php artisan crm:purge-activities` | Purge des activités anciennes selon `crm.retention.activities_months` |
 | `php artisan crm:purge-emails` | Purge des e-mails anciens selon `crm.email.retention_months` |
+| `php artisan crm:send-follow-up-reminders --stage=due-day` | Envoie le digest des relances dues (voir section 10) |
 
 ### 6. Configuration `.env`
 
@@ -102,6 +103,10 @@ C2ME is a Laravel Livewire-based CRM application managing clients industriels, p
 | `crm.retention.prospects_months` | Mois de conservation des prospects (entier) |
 | `crm.retention.activities_months` | Mois de conservation des activités (entier) |
 | `crm.email.retention_months` | Mois de conservation des e-mails (entier) |
+| `CRM_FOLLOW_UPS_ENABLED` | Active ou désactive les rappels de relance (`true` par défaut) |
+| `CRM_FOLLOW_UPS_DAY_BEFORE_TIME` | Heure du rappel la veille (`17:00` par défaut) |
+| `CRM_FOLLOW_UPS_DUE_DAY_TIME` | Heure du rappel le jour J (`08:00` par défaut) |
+| `CRM_FOLLOW_UPS_MAIL` | Active l'envoi des digests e-mail (`true` par défaut) |
 
 ### 7. Déploiement & Maintenance
 
@@ -112,7 +117,7 @@ C2ME is a Laravel Livewire-based CRM application managing clients industriels, p
 
 ### 8. Développement Futur (Proposé)
 
-- Relances automatiques à partir de `next_follow_up_at`
+- Relances sur les activités (`due_at` / `remind_at`), en complément des relances comptes
 - Tableau de bord enrichi (CA signé, taux de conversion, pipeline par carnet)
 - Export CSV des comptes/affaires et impression des fiches
 - Notifications temps réel (broadcast) pour les nouveaux e-mails
@@ -139,6 +144,18 @@ La page **Recherche globale** (`/admin/global-search`, groupe CRM) permet de ret
   - navigation clavier (↑ / ↓, Entrée pour ouvrir).
 - **Sécurité** : chaque résultat est filtré par `Gate::allows('view', …)` ; un commercial ne voit jamais les fiches dont il n'est pas propriétaire.
 - **Liens** : les comptes pointent vers la ressource de leur carnet ; les contacts et affaires vers le compte rattaché ; les devis vers leur fiche d'édition.
+
+### 10. Relances automatiques
+
+Les rappels sont calculés à partir de `crm_accounts.next_follow_up_at` par `App\Services\FollowUpReminderService`.
+
+- **Planification** : rappel la veille (`day_before`) à 17:00 et le jour J (`due_day`) à 08:00 dans `routes/console.php`. La planification peut être désactivée avec `CRM_FOLLOW_UPS_ENABLED=false`.
+- **Destinataires** : le propriétaire du compte et les administrateurs actifs. Un compte sans propriétaire, ou dont le propriétaire est inactif, est envoyé uniquement aux administrateurs.
+- **Canaux** : notification Filament in-app et e-mail digest. Les deux envois sont suivis séparément dans `crm_follow_up_reminders`, ce qui permet de réessayer un e-mail sans renvoyer la notification in-app.
+- **Anti-doublon** : contrainte unique sur `(crm_account_id, user_id, due_at, stage)`. Un rappel en retard est rattrapé une seule fois.
+- **Périmètre** : comptes uniquement, hors comptes inactifs par défaut. Un administrateur peut les afficher avec le filtre « Tous les comptes ».
+- **Page** : `/admin/relances` (groupe CRM) avec badge de navigation, filtres par carnet/statut/propriétaire/période et actions « Marquer comme relancé », « Reporter », « Ouvrir la fiche » et « Modifier ». Le commercial ne voit que les comptes dont il est propriétaire.
+- **Commande** : `php artisan crm:send-follow-up-reminders --stage=day-before|due-day`. Options : `--dry-run`, `--user=`, `--force` (renvoie sans créer de doublon), `--retry` (reprend les échecs récents).
 
 ---
 

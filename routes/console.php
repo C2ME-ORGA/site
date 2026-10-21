@@ -93,3 +93,26 @@ Schedule::command('crm:purge-emails')
     ->dailyAt('04:15')
     ->withoutOverlapping()
     ->onOneServer();
+
+/*
+|--------------------------------------------------------------------------
+| Relances automatiques
+|--------------------------------------------------------------------------
+|
+| La veille à 17:00 et le jour J à 08:00, un digest est envoyé au
+| propriétaire du compte et aux administrateurs. Les horaires sont
+| configurables dans config/crm.php.
+|
+*/
+
+Schedule::command('crm:send-follow-up-reminders --stage=day-before')
+    ->dailyAt((string) config('crm.follow_ups.day_before_time', '17:00'))
+    ->when(fn (): bool => (bool) config('crm.follow_ups.enabled', true))
+    ->withoutOverlapping()
+    ->onOneServer();
+
+Schedule::command('crm:send-follow-up-reminders --stage=due-day')
+    ->dailyAt((string) config('crm.follow_ups.due_day_time', '08:00'))
+    ->when(fn (): bool => (bool) config('crm.follow_ups.enabled', true))
+    ->withoutOverlapping()
+    ->onOneServer();
