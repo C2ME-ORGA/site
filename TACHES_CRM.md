@@ -1,7 +1,7 @@
 # CRM C2ME — Liste de tâches
 
 > État au 21/10/2026 — branche `feature/crm`.
-> Qualité : Pint OK · PHPStan niveau 7 (0 erreur, tests inclus via `pest-plugin-phpstan`). 157 tests / 607 assertions.
+> Qualité : Pint OK · PHPStan niveau 7 (0 erreur, tests inclus via `pest-plugin-phpstan`). 180 tests / 715 assertions.
 
 ## A Faire
 
@@ -71,11 +71,21 @@
 - [ ] Accessibilité : contrastes, focus, labels ARIA, navigation clavier.
 - [ ] Tests : snapshot (scoping admin/commercial), conflits, reprise après erreur, quota IndexedDB, parcours hors ligne.
 
+### 8. Relances automatiques
+
+- [x] Table `crm_follow_up_reminders` avec contrainte anti-doublon `(crm_account_id, user_id, due_at, stage)`.
+- [x] Commande `crm:send-follow-up-reminders` avec `--stage`, `--dry-run`, `--user`, `--force` et `--retry`.
+- [x] Digest Filament in-app et e-mail, avec suivi séparé des deux canaux.
+- [x] Planification la veille à 17:00 et le jour J à 08:00 dans `routes/console.php`.
+- [x] Page `/admin/relances` : tableau, filtres, badge de navigation et actions de traitement.
+- [x] Scoping admin/commercial, comptes inactifs masqués par défaut et filtre admin dédié.
+- [x] Tests du moteur et de la page ; Pint, PHPStan et suite complète au vert.
+
 ## Proposition de développement supplémentaire
 
 - [ ] **Amélioration du mode terrain** : édition hors ligne, création d'activités, actions rapides, conflits de synchronisation, photos et tournée — détail en section 7.
 - [x] Recherche globale Filament inter-carnets (comptes, contacts, affaires, devis).
-- [ ] Relances automatiques : notifications/rappels à partir de `next_follow_up_at`.
+- [x] Relances automatiques : notifications/rappels à partir de `next_follow_up_at` — implémenté (voir section 8).
 - [ ] Tableau de bord enrichi : CA signé, taux de conversion, pipeline par carnet.
 - [ ] Export CSV des comptes/affaires et impression des fiches.
 - [ ] Notifications temps réel (broadcast) pour les nouveaux e-mails.

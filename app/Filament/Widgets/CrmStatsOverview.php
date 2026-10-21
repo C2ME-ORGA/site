@@ -4,10 +4,12 @@ namespace App\Filament\Widgets;
 
 use App\Enums\OpportunityStage;
 use App\Enums\QuoteDocumentStatus;
+use App\Filament\Pages\FollowUps;
 use App\Models\CrmAccount;
 use App\Models\CrmActivity;
 use App\Models\CrmOpportunity;
 use App\Models\Quote;
+use App\Support\FollowUpAccounts;
 use Filament\Widgets\StatsOverviewWidget;
 use Filament\Widgets\StatsOverviewWidget\Stat;
 use Illuminate\Database\Eloquent\Builder;
@@ -43,10 +45,7 @@ class CrmStatsOverview extends StatsOverviewWidget
             ->overdue()
             ->count();
 
-        $followUps = CrmAccount::query()
-            ->when($user !== null, fn (Builder $query) => $query->ownedBy($user))
-            ->followUpDue()
-            ->count();
+        $followUps = FollowUpAccounts::due($user)->count();
 
         $accounts = CrmAccount::query()
             ->when($user !== null, fn (Builder $query) => $query->ownedBy($user))
@@ -71,7 +70,8 @@ class CrmStatsOverview extends StatsOverviewWidget
             Stat::make('Relances dues', (string) $followUps)
                 ->description('Comptes à recontacter')
                 ->descriptionIcon('heroicon-o-arrow-path')
-                ->color($followUps > 0 ? 'danger' : 'success'),
+                ->color($followUps > 0 ? 'danger' : 'success')
+                ->url(FollowUps::getUrl()),
 
             Stat::make('Actions en retard', (string) $overdue)
                 ->description('À traiter sans attendre')
