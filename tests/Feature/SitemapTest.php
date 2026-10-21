@@ -28,7 +28,7 @@ test('le plan de site est un document XML bien formé', function (): void {
     $response = $this->get('/sitemap.xml');
 
     $response->assertOk();
-    expect(simplexml_load_string($response->getContent()))->not->toBeFalse();
+    expect(simplexml_load_string(testResponseContent($response)))->not->toBeFalse();
 });
 
 test('le plan de site n’expose pas les routes du back-office', function (): void {

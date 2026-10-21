@@ -1,6 +1,8 @@
 <?php
 
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Testing\PendingCommand;
+use Illuminate\Testing\TestResponse;
 use Tests\TestCase;
 
 /*
@@ -44,7 +46,36 @@ expect()->extend('toBeOne', function () {
 |
 */
 
-function something()
+/**
+ * Prépare une commande Artisan pour les assertions de sortie.
+ *
+ * @param  array<string, mixed>  $parameters
+ */
+function artisanCommand(TestCase $test, string $command, array $parameters = []): PendingCommand
 {
-    // ..
+    $pendingCommand = $test->artisan($command, $parameters);
+
+    if (! $pendingCommand instanceof PendingCommand) {
+        throw new RuntimeException('La commande Artisan n’a pas pu être mise en attente.');
+    }
+
+    return $pendingCommand;
+}
+
+/**
+ * Retourne le contenu d’une réponse HTTP en garantissant qu’il s’agit d’une chaîne.
+ *
+ * @template TResponse of \Symfony\Component\HttpFoundation\Response
+ *
+ * @param  TestResponse<TResponse>  $response
+ */
+function testResponseContent(TestResponse $response): string
+{
+    $content = $response->getContent();
+
+    if ($content === false) {
+        throw new RuntimeException('La réponse HTTP ne contient pas de contenu.');
+    }
+
+    return $content;
 }

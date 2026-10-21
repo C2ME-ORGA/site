@@ -35,7 +35,7 @@ function structuredDataFrom(string $html): array
 }
 
 test('la page d accueil déclare les données structurées de l entreprise', function (): void {
-    $data = structuredDataFrom($this->get(route('home'))->assertOk()->getContent());
+    $data = structuredDataFrom(testResponseContent($this->get(route('home'))->assertOk()));
 
     expect($data)
         ->toMatchArray([
@@ -53,9 +53,9 @@ test('la page d accueil déclare les données structurées de l entreprise', fun
 });
 
 test('le siège social est l adresse principale déclarée', function (): void {
-    $data = structuredDataFrom($this->get(route('home'))->getContent());
+    $data = structuredDataFrom(testResponseContent($this->get(route('home'))));
 
-    $siege = collect(config('site.company.locations'))->firstWhere('key', 'siege');
+    $siege = collect((array) config('site.company.locations'))->firstWhere('key', 'siege');
 
     expect($data['address']['streetAddress'])
         ->toBe($siege['line1'].', '.$siege['line2'])
@@ -66,9 +66,9 @@ test('le siège social est l adresse principale déclarée', function (): void {
 });
 
 test('l atelier est déclaré comme implantation secondaire', function (): void {
-    $data = structuredDataFrom($this->get(route('home'))->getContent());
+    $data = structuredDataFrom(testResponseContent($this->get(route('home'))));
 
-    $atelier = collect(config('site.company.locations'))->firstWhere('key', 'atelier');
+    $atelier = collect((array) config('site.company.locations'))->firstWhere('key', 'atelier');
 
     expect($data['department'])->toHaveCount(1);
 
@@ -96,23 +96,23 @@ test('l atelier est déclaré comme implantation secondaire', function (): void 
 });
 
 test('les trois prestations figurent au catalogue', function (): void {
-    $data = structuredDataFrom($this->get(route('home'))->getContent());
+    $data = structuredDataFrom(testResponseContent($this->get(route('home'))));
 
     $services = $data['hasOfferCatalog']['itemListElement'];
 
     expect($services)
         ->toHaveCount(count(config('site.services')))
-        ->and(collect($services)->pluck('item.name')->all())
-        ->toBe(collect(config('site.services'))->pluck('name')->all())
+        ->and(collect((array) $services)->pluck('item.name')->all())
+        ->toBe(collect((array) config('site.services'))->pluck('name')->all())
         ->and($services[0]['@type'])->toBe('ListItem')
         ->and($services[0]['item']['@type'])->toBe('Service')
         ->and($services[0]['item']['url'])->toBe(route('services.laser'));
 });
 
 test('les horaires structurés suivent la configuration', function (): void {
-    $data = structuredDataFrom($this->get(route('home'))->getContent());
+    $data = structuredDataFrom(testResponseContent($this->get(route('home'))));
 
-    $expected = collect(config('site.company.schema.opening_hours'))
+    $expected = collect((array) config('site.company.schema.opening_hours'))
         ->map(fn (array $hours): array => [
             '@type' => 'OpeningHoursSpecification',
             'dayOfWeek' => $hours['day_of_week'],
@@ -126,7 +126,7 @@ test('les horaires structurés suivent la configuration', function (): void {
 
 test('le balisage est identique sur toutes les pages publiques', function (): void {
     foreach (['home', 'company', 'projects', 'contact', 'quote', 'services.laser'] as $routeName) {
-        $data = structuredDataFrom($this->get(route($routeName))->assertOk()->getContent());
+        $data = structuredDataFrom(testResponseContent($this->get(route($routeName))->assertOk()));
 
         expect($data['@id'])->toBe(route('home').'#c2me')
             ->and($data['url'])->toBe(route('home'));
@@ -134,7 +134,7 @@ test('le balisage est identique sur toutes les pages publiques', function (): vo
 });
 
 test('le JSON-LD ne peut pas refermer sa propre balise script', function (): void {
-    $json = rawStructuredJsonFrom($this->get(route('home'))->getContent());
+    $json = rawStructuredJsonFrom(testResponseContent($this->get(route('home'))));
 
     // JSON_HEX_TAG convertit < et > en entités Unicode : même si une valeur
     // contenait une balise, elle ne pourrait pas interrompre le bloc.

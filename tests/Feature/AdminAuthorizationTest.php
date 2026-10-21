@@ -2,10 +2,7 @@
 
 use App\Enums\UserRole;
 use App\Models\User;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Gate;
-
-uses(RefreshDatabase::class);
 
 function roleAdmin(): User
 {
@@ -57,14 +54,14 @@ test('un administrateur accède à la gestion des utilisateurs et des boîtes', 
 test('la commande crm:make-admin promeut un compte existant', function (): void {
     $user = roleCommercial();
 
-    $this->artisan('crm:make-admin', ['email' => $user->email])
+    artisanCommand($this, 'crm:make-admin', ['email' => $user->email])
         ->assertSuccessful();
 
     expect($user->fresh()->role)->toBe(UserRole::Admin);
 });
 
 test('la commande crm:make-admin échoue pour une adresse inconnue', function (): void {
-    $this->artisan('crm:make-admin', ['email' => 'inconnu@c2me.fr'])
+    artisanCommand($this, 'crm:make-admin', ['email' => 'inconnu@c2me.fr'])
         ->assertFailed();
 });
 

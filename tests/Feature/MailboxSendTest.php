@@ -3,11 +3,8 @@
 use App\Mail\OutboundMail;
 use App\Models\EmailMailbox;
 use App\Services\Mail\MailboxMailer;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
-
-uses(RefreshDatabase::class);
 
 function sendingMailbox(): EmailMailbox
 {

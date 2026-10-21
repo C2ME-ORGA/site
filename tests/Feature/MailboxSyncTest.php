@@ -11,10 +11,7 @@ use App\Services\MailboxSynchronizer;
 use App\Support\Mail\InboundAttachment;
 use App\Support\Mail\InboundEmail;
 use Carbon\CarbonImmutable;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Storage;
-
-uses(RefreshDatabase::class);
 
 /**
  * @param  list<InboundEmail>  $messages
@@ -127,7 +124,7 @@ test('la commande mailboxes:sync importe les messages des boîtes actives', func
 
     bindFetcher([inbox('42', 'jean@usine.fr', 'xyz@usine.fr')]);
 
-    $this->artisan('mailboxes:sync')->assertSuccessful();
+    artisanCommand($this, 'mailboxes:sync')->assertSuccessful();
 
     expect(EmailMessage::query()->count())->toBe(1)
         ->and(EmailMessage::query()->first()->uid)->toBe('42');

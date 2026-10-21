@@ -16,9 +16,6 @@ use App\Policies\CrmContactPolicy;
 use App\Policies\CrmOpportunityPolicy;
 use App\Policies\EmailMessagePolicy;
 use App\Policies\QuotePolicy;
-use Illuminate\Foundation\Testing\RefreshDatabase;
-
-uses(RefreshDatabase::class);
 
 /**
  * Tests policies d'autorisation pour s'assurer que les rôles admin et commercial

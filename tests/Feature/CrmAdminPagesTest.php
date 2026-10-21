@@ -2,7 +2,10 @@
 
 use App\Enums\CrmActivityType;
 use App\Enums\CrmBook;
+use App\Enums\OpportunityStage;
+use App\Enums\QuoteDocumentStatus;
 use App\Enums\UserRole;
+use App\Filament\Pages\GlobalSearch;
 use App\Filament\Resources\PrescriberAccounts\PrescriberAccountResource;
 use App\Livewire\TopbarInbox;
 use App\Models\CrmAccount;
@@ -13,10 +16,7 @@ use App\Models\EmailMailbox;
 use App\Models\EmailMessage;
 use App\Models\Quote;
 use App\Models\User;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;
-
-uses(RefreshDatabase::class);
 
 function crmAdmin(): User
 {
@@ -50,6 +50,7 @@ test('les pages du CRM s’ouvrent pour un administrateur', function (string $ur
     '/admin/quotes',
     '/admin/activities',
     '/admin/emails',
+    '/admin/global-search',
 ]);
 
 test('la version de l’application est affichée dans le back-office', function (): void {
@@ -249,4 +250,194 @@ test('les boutons de navigation du calendrier sont cohérents avec la vue', func
         ->assertSee('view=month', false)
         ->assertSee('view=week', false)
         ->assertSee('view=day', false);
+});
+
+test('la recherche globale trouve un compte depuis un autre carnet', function (): void {
+    $admin = crmAdmin();
+
+    CrmAccount::factory()->create([
+        'name' => 'Aciers Martin',
+        'book' => CrmBook::Prescribers,
+    ]);
+
+    CrmAccount::factory()->create([
+        'name' => 'Béton Durand',
+        'book' => CrmBook::BuildingCompanies,
+    ]);
+
+    Livewire::actingAs($admin)
+        ->test(GlobalSearch::class)
+        ->set('searchQuery', 'Aciers')
+        ->assertSee('Martin')
+        ->assertDontSee('Durand');
+});
+
+test('la recherche globale couvre les contacts, affaires et devis', function (): void {
+    $admin = crmAdmin();
+
+    $account = CrmAccount::factory()->create([
+        'name' => 'Compte Zeta',
+        'book' => CrmBook::IndustrialClients,
+    ]);
+
+    CrmContact::factory()->create([
+        'crm_account_id' => $account->id,
+        'first_name' => 'Zeta',
+        'last_name' => 'Martin',
+    ]);
+
+    CrmOpportunity::factory()->create([
+        'crm_account_id' => $account->id,
+        'title' => 'Zeta pont roulant',
+    ]);
+
+    Quote::factory()->create([
+        'crm_account_id' => $account->id,
+        'subject' => 'Zeta devis',
+    ]);
+
+    Livewire::actingAs($admin)
+        ->test(GlobalSearch::class)
+        ->set('searchQuery', 'Zeta')
+        ->assertSee('Contacts')
+        ->assertSee('Martin')
+        ->assertSee('Affaires')
+        ->assertSee('pont roulant')
+        ->assertSee('Devis')
+        ->assertSee('Brouillon');
+});
+
+test('la recherche globale filtre les comptes par carnet', function (): void {
+    $admin = crmAdmin();
+
+    CrmAccount::factory()->create([
+        'name' => 'Carnet Prescripteur',
+        'book' => CrmBook::Prescribers,
+    ]);
+
+    CrmAccount::factory()->create([
+        'name' => 'Carnet Batiment',
+        'book' => CrmBook::BuildingCompanies,
+    ]);
+
+    Livewire::actingAs($admin)
+        ->test(GlobalSearch::class)
+        ->set('searchQuery', 'Carnet')
+        ->set('book', CrmBook::Prescribers->value)
+        ->assertSee('Prescripteur')
+        ->assertDontSee('Batiment');
+});
+
+test('un commercial ne voit pas dans la recherche un compte dont il n’est pas propriétaire', function (): void {
+    $owner = User::factory()->create(['role' => UserRole::Admin, 'is_active' => true]);
+    $commercial = User::factory()->create(['role' => UserRole::Commercial, 'is_active' => true]);
+
+    CrmAccount::factory()->create([
+        'name' => 'Compte Prive',
+        'book' => CrmBook::Prescribers,
+        'owner_id' => $owner->id,
+    ]);
+
+    Livewire::actingAs($commercial)
+        ->test(GlobalSearch::class)
+        ->set('searchQuery', 'Compte Prive')
+        ->assertSee('Aucun résultat')
+        ->assertDontSee('prescriber-accounts/');
+});
+
+test('la recherche globale attend au moins deux caractères', function (): void {
+    $admin = crmAdmin();
+
+    CrmAccount::factory()->create([
+        'name' => 'Acompte',
+        'book' => CrmBook::Prescribers,
+    ]);
+
+    Livewire::actingAs($admin)
+        ->test(GlobalSearch::class)
+        ->set('searchQuery', 'A')
+        ->assertSee('Saisissez au moins 2 caractères')
+        ->assertDontSee('class="c2me-search-result"', false);
+});
+
+test('la recherche globale filtre les affaires par statut', function (): void {
+    $admin = crmAdmin();
+    $account = CrmAccount::factory()->create(['book' => CrmBook::IndustrialClients]);
+
+    CrmOpportunity::factory()->create([
+        'crm_account_id' => $account->id,
+        'title' => 'Affaire Alpha',
+        'stage' => OpportunityStage::Study,
+    ]);
+
+    CrmOpportunity::factory()->create([
+        'crm_account_id' => $account->id,
+        'title' => 'Affaire Beta',
+        'stage' => OpportunityStage::Won,
+    ]);
+
+    Livewire::actingAs($admin)
+        ->test(GlobalSearch::class)
+        ->set('searchQuery', 'Affaire')
+        ->set('stage', OpportunityStage::Study->value)
+        ->assertSee('Alpha')
+        ->assertDontSee('Beta');
+});
+
+test('la recherche globale filtre les devis par statut', function (): void {
+    $admin = crmAdmin();
+    $account = CrmAccount::factory()->create(['book' => CrmBook::IndustrialClients]);
+
+    Quote::factory()->create([
+        'crm_account_id' => $account->id,
+        'subject' => 'Devis Alpha',
+        'status' => QuoteDocumentStatus::Draft,
+    ]);
+
+    Quote::factory()->create([
+        'crm_account_id' => $account->id,
+        'subject' => 'Devis Beta',
+        'status' => QuoteDocumentStatus::Sent,
+    ]);
+
+    Livewire::actingAs($admin)
+        ->test(GlobalSearch::class)
+        ->set('searchQuery', 'Devis')
+        ->set('status', QuoteDocumentStatus::Draft->value)
+        ->assertSee('Alpha')
+        ->assertDontSee('Beta');
+});
+
+test('la recherche globale déplie un groupe au-delà de dix résultats', function (): void {
+    $admin = crmAdmin();
+
+    foreach (range(1, 12) as $index) {
+        CrmAccount::factory()->create([
+            'name' => 'Groupe '.str_pad((string) $index, 2, '0', STR_PAD_LEFT),
+            'book' => CrmBook::Prescribers,
+        ]);
+    }
+
+    Livewire::actingAs($admin)
+        ->test(GlobalSearch::class)
+        ->set('searchQuery', 'Groupe')
+        ->assertSee('Voir les 12 résultats')
+        ->assertDontSee('Groupe</mark> 12', false)
+        ->call('toggleGroup', 'Comptes')
+        ->assertSee('Réduire')
+        ->assertSee('Groupe</mark> 12', false);
+});
+
+test('la recherche globale surligne le terme recherché', function (): void {
+    $admin = crmAdmin();
+
+    CrmAccount::factory()->create([
+        'name' => 'Surlignage Test',
+        'book' => CrmBook::Prescribers,
+    ]);
+
+    Livewire::actingAs($admin)
+        ->test(GlobalSearch::class)
+        ->set('searchQuery', 'Surlignage')
+        ->assertSee('<mark>Surlignage</mark>', false);
 });

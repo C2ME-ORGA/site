@@ -3,13 +3,10 @@
 use App\Enums\QuoteKind;
 use App\Mail\QuoteRequestReceived;
 use App\Models\QuoteRequest;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\Storage;
-
-uses(RefreshDatabase::class);
 
 beforeEach(function (): void {
     // Les tests partagent la même IP (127.0.0.1) : on repart d'un compteur vierge.

@@ -10,7 +10,8 @@ C2ME is a Laravel Livewire-based CRM application managing clients industriels, p
 
 | Resource | Description |
 |----------|-------------|
-| **Accounts** (`/admin/accounts`) | Gestion des comptes clients (prescripteurs, industriels, bâtiment). Chaque compte possède des carnets d'adresses. |
+| **Accounts** (`/admin/prescriber-accounts`, `/admin/industrial-accounts`, `/admin/building-company-accounts`) | Gestion des comptes clients, éclatés par carnet (prescripteurs, industriels, bâtiment). |
+| **Recherche globale** (`/admin/global-search`) | Recherche unifiée inter-carnets sur les comptes, contacts, affaires et devis. |
 | **Contacts** | Contacts associés à un compte (commerciaux, décideurs). |
 | **Opportunities (Affaires)** | Étapes de vente (Nouvelle, Qualification, Proposition, Acceptée, Perdue). |
 | **Quotes (Devis)** | Parcours de demande de devis (devis → devis building → devis découpe laser → devis final). |
@@ -62,7 +63,7 @@ C2ME is a Laravel Livewire-based CRM application managing clients industriels, p
 
 ### 3. Tests
 
-- `php artisan test` → **148 tests, 584 assertions** ❓✅
+- `php artisan test` → **158 tests, 608 assertions** ✅
 - `composer types:check` → **0 erreur** (173 fichiers)
 - `vendor/bin/pint` → **passé** sur tous les fichiers modifiés
 
@@ -111,7 +112,6 @@ C2ME is a Laravel Livewire-based CRM application managing clients industriels, p
 
 ### 8. Développement Futur (Proposé)
 
-- Recherche globale inter-carnets (comptes, contacts, affaires, devis)
 - Relances automatiques à partir de `next_follow_up_at`
 - Tableau de bord enrichi (CA signé, taux de conversion, pipeline par carnet)
 - Export CSV des comptes/affaires et impression des fiches
@@ -122,6 +122,23 @@ C2ME is a Laravel Livewire-based CRM application managing clients industriels, p
 - Support OAuth Microsoft 365 / Google Workspace en plus d'IMAP par mot de passe
 - Documentation de sauvegarde/restauration
 - Accessibilité et revue RGPD finale avant mise en production
+
+### 9. Recherche globale inter-carnets
+
+La page **Recherche globale** (`/admin/global-search`, groupe CRM) permet de retrouver en une seule saisie des enregistrements appartenant aux trois carnets.
+
+- **Périmètre** : comptes, contacts, affaires et devis.
+- **Moteur** : `App\Filament\Services\GlobalSearchService` (requêtes `LIKE` sur les champs pertinents, `with('account')` pour éviter le N+1).
+- **Page Filament** : `App\Filament\Pages\GlobalSearch`, vue `resources/views/filament/pages/global-search.blade.php`.
+- **Fonctionnement** :
+  - recherche live (`wire:model.live.debounce.300ms`), à partir de 2 caractères ;
+  - résultats groupés par type, avec icône et compteur ;
+  - filtres par carnet, statut d'affaire et statut de devis, bouton de réinitialisation ;
+  - 10 résultats par groupe, dépliables via « Voir les N résultats » ;
+  - terme recherché surligné (`<mark>`) ;
+  - navigation clavier (↑ / ↓, Entrée pour ouvrir).
+- **Sécurité** : chaque résultat est filtré par `Gate::allows('view', …)` ; un commercial ne voit jamais les fiches dont il n'est pas propriétaire.
+- **Liens** : les comptes pointent vers la ressource de leur carnet ; les contacts et affaires vers le compte rattaché ; les devis vers leur fiche d'édition.
 
 ---
 
