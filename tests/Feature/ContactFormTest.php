@@ -2,11 +2,8 @@
 
 use App\Mail\ContactRequestReceived;
 use App\Models\ContactRequest;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\RateLimiter;
-
-uses(RefreshDatabase::class);
 
 beforeEach(function (): void {
     // Les tests partagent la même IP (127.0.0.1) : on repart d'un compteur vierge.
@@ -14,6 +11,7 @@ beforeEach(function (): void {
 });
 
 /**
+ * @param  array<string, mixed>  $overrides
  * @return array<string, string>
  */
 function validContactPayload(array $overrides = []): array

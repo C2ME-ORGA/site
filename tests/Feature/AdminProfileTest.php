@@ -3,11 +3,8 @@
 use App\Filament\Pages\EditProfile;
 use App\Models\User;
 use Filament\Facades\Filament;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
 use Livewire\Livewire;
-
-uses(RefreshDatabase::class);
 
 const CURRENT_PASSWORD = 'MotDePasse-Actuel-2026!';
 const NEW_PASSWORD = 'Nouveau-MotDePasse-2026!';

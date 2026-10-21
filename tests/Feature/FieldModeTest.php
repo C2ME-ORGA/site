@@ -5,9 +5,6 @@ use App\Enums\UserRole;
 use App\Models\CrmAccount;
 use App\Models\CrmActivity;
 use App\Models\User;
-use Illuminate\Foundation\Testing\RefreshDatabase;
-
-uses(RefreshDatabase::class);
 
 function fieldUser(UserRole $role): User
 {

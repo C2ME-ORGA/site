@@ -16,10 +16,7 @@ use App\Models\EmailMailbox;
 use App\Models\EmailMessage;
 use App\Models\Quote;
 use App\Models\User;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;
-
-uses(RefreshDatabase::class);
 
 function crmAdmin(): User
 {

@@ -1,12 +1,11 @@
 <?php
 
 use App\Models\ContactRequest;
-use Illuminate\Foundation\Testing\RefreshDatabase;
-
-uses(RefreshDatabase::class);
 
 /**
  * Crée une demande de contact, avec la date de dépôt si elle est imposée.
+ *
+ * @param  array<string, mixed>  $overrides
  */
 function makeContactRequest(array $overrides = []): ContactRequest
 {
@@ -29,7 +28,7 @@ function makeContactRequest(array $overrides = []): ContactRequest
 test('la purge supprime les demandes dépassant la durée de conservation', function (): void {
     $expired = makeContactRequest(['created_at' => now()->subMonths(13)]);
 
-    $this->artisan('contacts:purge')
+    artisanCommand($this, 'contacts:purge')
         ->expectsOutputToContain('1 demande(s) supprimée(s)')
         ->assertSuccessful();
 
@@ -39,7 +38,7 @@ test('la purge supprime les demandes dépassant la durée de conservation', func
 test('la purge conserve les demandes encore dans les délais', function (): void {
     $recent = makeContactRequest(['created_at' => now()->subMonths(2)]);
 
-    $this->artisan('contacts:purge')->assertSuccessful();
+    artisanCommand($this, 'contacts:purge')->assertSuccessful();
 
     $this->assertDatabaseHas('contact_requests', ['id' => $recent->id]);
 });
@@ -50,7 +49,7 @@ test('la durée de conservation est lue dans la configuration', function (): voi
     $expired = makeContactRequest(['created_at' => now()->subMonths(2)]);
     $kept = makeContactRequest(['created_at' => now()->subDays(10)]);
 
-    $this->artisan('contacts:purge')
+    artisanCommand($this, 'contacts:purge')
         ->expectsOutputToContain('conservation de 1 mois')
         ->assertSuccessful();
 

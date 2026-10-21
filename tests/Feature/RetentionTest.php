@@ -6,10 +6,7 @@ use App\Models\CrmActivity;
 use App\Models\CrmContact;
 use App\Models\EmailMessage;
 use App\Models\Quote;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Storage;
-
-uses(RefreshDatabase::class);
 
 test('les prospects inactifs sont anonymisés avec leurs contacts', function (): void {
     $account = CrmAccount::factory()->create([
@@ -22,7 +19,7 @@ test('les prospects inactifs sont anonymisés avec leurs contacts', function ():
         'phone' => '0102030405',
     ]);
 
-    $this->artisan('crm:anonymize-prospects')->assertSuccessful();
+    artisanCommand($this, 'crm:anonymize-prospects')->assertSuccessful();
 
     $account->refresh();
     $contact->refresh();
@@ -48,7 +45,7 @@ test('les prospects récents ou ayant un devis sont conservés', function (): vo
 
     Quote::factory()->create(['crm_account_id' => $withQuote->id]);
 
-    $this->artisan('crm:anonymize-prospects')->assertSuccessful();
+    artisanCommand($this, 'crm:anonymize-prospects')->assertSuccessful();
 
     expect($recent->refresh()->email)->not->toBeNull()
         ->and($withQuote->refresh()->email)->not->toBeNull();
@@ -58,7 +55,7 @@ test('les activités trop anciennes sont supprimées', function (): void {
     $old = CrmActivity::factory()->create(['occurred_at' => now()->subMonths(70)]);
     $recent = CrmActivity::factory()->create(['occurred_at' => now()->subMonths(6)]);
 
-    $this->artisan('crm:purge-activities')->assertSuccessful();
+    artisanCommand($this, 'crm:purge-activities')->assertSuccessful();
 
     expect(CrmActivity::query()->whereKey($old->id)->exists())->toBeFalse()
         ->and(CrmActivity::query()->whereKey($recent->id)->exists())->toBeTrue();
@@ -79,7 +76,7 @@ test('les e-mails expirés et leurs pièces jointes sont supprimés', function (
         'path' => 'mail-attachments/inbound/1/plan.pdf',
     ]);
 
-    $this->artisan('crm:purge-emails')->assertSuccessful();
+    artisanCommand($this, 'crm:purge-emails')->assertSuccessful();
 
     expect(EmailMessage::query()->whereKey($old->id)->exists())->toBeFalse()
         ->and(EmailMessage::query()->whereKey($recent->id)->exists())->toBeTrue()

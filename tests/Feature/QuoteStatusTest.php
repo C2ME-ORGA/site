@@ -9,9 +9,6 @@ use App\Models\CrmAccount;
 use App\Models\Quote;
 use App\Models\User;
 use App\Policies\QuotePolicy;
-use Illuminate\Foundation\Testing\RefreshDatabase;
-
-uses(RefreshDatabase::class);
 
 test('les transitions de statut de devis sont correctes', function (): void {
     // --- Statuts de test ---

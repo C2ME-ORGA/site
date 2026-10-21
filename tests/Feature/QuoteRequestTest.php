@@ -4,13 +4,13 @@ use App\Enums\QuoteKind;
 use App\Enums\QuoteStatus;
 use App\Models\QuoteRequest;
 use App\Models\User;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Storage;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 use ZipArchive;
 
-uses(RefreshDatabase::class);
-
+/**
+ * @param  array<string, mixed>  $overrides
+ */
 function makeQuoteRequest(array $overrides = []): QuoteRequest
 {
     $quote = QuoteRequest::create(array_merge([
@@ -69,7 +69,7 @@ test('la purge supprime les demandes expirées et leurs fichiers', function (): 
     ]);
     Storage::disk('local')->put('quote-requests/plan.dxf', 'contenu du plan');
 
-    $this->artisan('quotes:purge')
+    artisanCommand($this, 'quotes:purge')
         ->expectsOutputToContain('1 demande(s) supprimée(s)')
         ->assertSuccessful();
 
@@ -82,7 +82,7 @@ test('la purge conserve les demandes encore dans les délais', function (): void
 
     $recent = makeQuoteRequest(['created_at' => now()->subMonths(2)]);
 
-    $this->artisan('quotes:purge')->assertSuccessful();
+    artisanCommand($this, 'quotes:purge')->assertSuccessful();
 
     $this->assertDatabaseHas('quote_requests', ['id' => $recent->id]);
 });

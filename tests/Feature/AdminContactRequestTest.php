@@ -2,10 +2,10 @@
 
 use App\Models\ContactRequest;
 use App\Models\User;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 
-uses(RefreshDatabase::class);
-
+/**
+ * @param  array<string, mixed>  $overrides
+ */
 function seedContactRequest(array $overrides = []): ContactRequest
 {
     return ContactRequest::create(array_merge([

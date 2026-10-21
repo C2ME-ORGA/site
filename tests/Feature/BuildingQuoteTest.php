@@ -3,14 +3,12 @@
 use App\Enums\QuoteKind;
 use App\Mail\QuoteRequestReceived;
 use App\Models\QuoteRequest;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\Storage;
+use Livewire\Component;
 use Livewire\Features\SupportTesting\Testable;
-
-uses(RefreshDatabase::class);
 
 beforeEach(function (): void {
     RateLimiter::clear('quote-building:127.0.0.1');
@@ -19,7 +17,7 @@ beforeEach(function (): void {
 /**
  * Franchit les étapes 1 à 3 du parcours bâtiment et s'arrête sur l'étape 4.
  *
- * @return Testable
+ * @return Testable<Component>
  */
 function buildingAtStepFour()
 {

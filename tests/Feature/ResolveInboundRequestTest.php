@@ -10,10 +10,10 @@ use App\Models\CrmContact;
 use App\Models\CrmOpportunity;
 use App\Models\QuoteRequest;
 use App\Services\ResolveInboundRequest;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 
-uses(RefreshDatabase::class);
-
+/**
+ * @param  array<string, mixed>  $overrides
+ */
 function resolveQuote(array $overrides = []): QuoteRequest
 {
     return QuoteRequest::create(array_merge([

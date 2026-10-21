@@ -1,9 +1,6 @@
 <?php
 
 use App\Enums\QuoteKind;
-use Illuminate\Foundation\Testing\RefreshDatabase;
-
-uses(RefreshDatabase::class);
 
 test('la page devis présente les deux parcours', function (): void {
     $this->get(route('quote'))
