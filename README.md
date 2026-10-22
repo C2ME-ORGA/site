@@ -11,6 +11,7 @@ C2ME is a Laravel Livewire-based CRM application managing clients industriels, p
 | Resource | Description |
 |----------|-------------|
 | **Accounts** (`/admin/prescriber-accounts`, `/admin/industrial-accounts`, `/admin/building-company-accounts`) | Gestion des comptes clients, éclatés par carnet (prescripteurs, industriels, bâtiment). |
+| **Tableau de bord** (`/admin`) | KPI commerciaux : CA signé, conversion, pipeline par carnet, objectif mensuel, top affaires et devis à relancer. |
 | **Recherche globale** (`/admin/global-search`) | Recherche unifiée inter-carnets sur les comptes, contacts, affaires et devis. |
 | **Contacts** | Contacts associés à un compte (commerciaux, décideurs). |
 | **Opportunities (Affaires)** | Étapes de vente (Nouvelle, Qualification, Proposition, Acceptée, Perdue). |
@@ -63,7 +64,7 @@ C2ME is a Laravel Livewire-based CRM application managing clients industriels, p
 
 ### 3. Tests
 
-- `php artisan test` → **180 tests, 715 assertions** ✅
+- `php artisan test` → **193 tests, 786 assertions** ✅
 - `composer types:check` → **0 erreur**
 - `vendor/bin/pint` → **passé** sur tous les fichiers modifiés
 
@@ -107,6 +108,7 @@ C2ME is a Laravel Livewire-based CRM application managing clients industriels, p
 | `CRM_FOLLOW_UPS_DAY_BEFORE_TIME` | Heure du rappel la veille (`17:00` par défaut) |
 | `CRM_FOLLOW_UPS_DUE_DAY_TIME` | Heure du rappel le jour J (`08:00` par défaut) |
 | `CRM_FOLLOW_UPS_MAIL` | Active l'envoi des digests e-mail (`true` par défaut) |
+| `CRM_DASHBOARD_MONTHLY_TARGET` | Objectif mensuel de CA devis en euros (`0` désactive la jauge) |
 
 ### 7. Déploiement & Maintenance
 
@@ -118,7 +120,6 @@ C2ME is a Laravel Livewire-based CRM application managing clients industriels, p
 ### 8. Développement Futur (Proposé)
 
 - Relances sur les activités (`due_at` / `remind_at`), en complément des relances comptes
-- Tableau de bord enrichi (CA signé, taux de conversion, pipeline par carnet)
 - Export CSV des comptes/affaires et impression des fiches
 - Notifications temps réel (broadcast) pour les nouveaux e-mails
 - Gestion dédiée des tags (création/renommage/fusion)
@@ -157,6 +158,22 @@ Les rappels sont calculés à partir de `crm_accounts.next_follow_up_at` par `Ap
 - **Page** : `/admin/relances` (groupe CRM) avec badge de navigation, filtres par carnet/statut/propriétaire/période et actions « Marquer comme relancé », « Reporter », « Ouvrir la fiche » et « Modifier ». Le commercial ne voit que les comptes dont il est propriétaire.
 - **Commande** : `php artisan crm:send-follow-up-reminders --stage=day-before|due-day`. Options : `--dry-run`, `--user=`, `--force` (renvoie sans créer de doublon), `--retry` (reprend les échecs récents).
 
+### 11. Tableau de bord enrichi
+
+Le tableau de bord (`/admin`) est une page Filament personnalisée (`App\Filament\Pages\Dashboard`) avec un filtre de période global, conservé dans l'URL et en session.
+
+- **Période** : mois, trimestre, année ou période personnalisée. Par défaut, l'année civile en cours. Les bornes sont calculées dans le fuseau `APP_TIMEZONE` (Europe/Paris).
+- **CA signé — devis** : somme de `quotes.amount_ht` des devis `accepted` dont `accepted_at` est dans la période.
+- **CA gagné — affaires** : somme de `crm_opportunities.amount_estimated` des affaires `won` dont `won_at` est dans la période. Les deux CA sont affichés séparément pour éviter de compter deux fois un même dossier.
+- **Taux de conversion** : devis acceptés parmi les devis dont `sent_at` est dans la période. Affiche `—` si aucun devis n'a été envoyé.
+- **Panier moyen** : CA devis / nombre de devis acceptés, avec le panier moyen des affaires gagnées en description.
+- **Pipeline par carnet** : affaires ouvertes uniquement (`nouveau`, `qualifie`, `etude`, `devis_envoye`, `negociation`), en brut et pondéré par probabilité. Le graphique indique le nombre d'affaires et la part de chaque carnet.
+- **Top 5 des affaires ouvertes** : triées par montant décroissant, avec lien vers la fiche compte.
+- **Devis à relancer ou expirés** : devis `sent` dont `valid_until` arrive dans les 7 jours, devis `sent` dépassés et devis `expired`, avec lien vers la fiche devis.
+- **Objectif mensuel** : compare le CA devis du mois en cours à `CRM_DASHBOARD_MONTHLY_TARGET`. Une valeur à `0` masque la jauge et affiche « Objectif non défini ».
+- **Scoping** : un commercial ne voit que ses devis et affaires ; un administrateur voit l'ensemble. Les devis sans propriétaire ne sont visibles que par les administrateurs.
+- **Calculs** : centralisés dans `App\Services\DashboardMetricsService` et `App\Support\DashboardPeriod`.
+
 ---
 
 ## Développement
@@ -176,7 +193,7 @@ php artisan serve
 ```bash
 composer types:check   # 0 erreur
 vendor/bin/pint        # formatage
-php artisan test       # 148 tests, 584 assertions
+php artisan test       # 193 tests, 786 assertions
 ```
 
 ### Structure des dossiers importants

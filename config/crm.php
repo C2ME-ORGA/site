@@ -74,6 +74,11 @@ return [
         ],
     ],
 
+    'dashboard' => [
+        'monthly_revenue_target' => (float) env('CRM_DASHBOARD_MONTHLY_TARGET', 0),
+        'quotes_to_follow_up_days' => 7,
+    ],
+
     /*
     |--------------------------------------------------------------------------
     | Email

@@ -81,12 +81,24 @@
 - [x] Scoping admin/commercial, comptes inactifs masqués par défaut et filtre admin dédié.
 - [x] Tests du moteur et de la page ; Pint, PHPStan et suite complète au vert.
 
+### 9. Tableau de bord enrichi
+
+- [x] Page Dashboard personnalisée avec filtre de période (mois, trimestre, année, personnalisé) persistant en URL/session.
+- [x] CA signé devis et CA gagné affaires, calculés séparément sur la période.
+- [x] Taux de conversion des devis envoyés, panier moyen devis et affaires.
+- [x] Pipeline par carnet en brut et pondéré, avec nombre d'affaires et part de chaque carnet.
+- [x] Top 5 des affaires ouvertes triées par montant.
+- [x] Devis à relancer ou expirés avec liens vers les fiches.
+- [x] Objectif mensuel configurable via `CRM_DASHBOARD_MONTHLY_TARGET`.
+- [x] Scoping admin/commercial et états vides.
+- [x] Tests du service et de la page ; Pint, PHPStan et suite complète au vert.
+
 ## Proposition de développement supplémentaire
 
 - [ ] **Amélioration du mode terrain** : édition hors ligne, création d'activités, actions rapides, conflits de synchronisation, photos et tournée — détail en section 7.
 - [x] Recherche globale Filament inter-carnets (comptes, contacts, affaires, devis).
 - [x] Relances automatiques : notifications/rappels à partir de `next_follow_up_at` — implémenté (voir section 8).
-- [ ] Tableau de bord enrichi : CA signé, taux de conversion, pipeline par carnet.
+- [x] Tableau de bord enrichi : CA signé, taux de conversion, pipeline par carnet — implémenté (voir section 9).
 - [ ] Export CSV des comptes/affaires et impression des fiches.
 - [ ] Notifications temps réel (broadcast) pour les nouveaux e-mails.
 - [ ] Gestion dédiée des tags (création/renommage/fusion) au lieu de la saisie libre.
