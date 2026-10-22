@@ -2,15 +2,20 @@
 
 namespace App\Providers\Filament;
 
+use App\Filament\Pages\Dashboard;
 use App\Filament\Pages\EditProfile;
+use App\Filament\Widgets\CommercialStatsOverview;
 use App\Filament\Widgets\CrmStatsOverview;
+use App\Filament\Widgets\MonthlyTargetOverview;
+use App\Filament\Widgets\PipelineByBookChart;
+use App\Filament\Widgets\QuotesToFollowUp;
+use App\Filament\Widgets\TopOpenOpportunities;
 use App\Filament\Widgets\UpcomingActivities;
 use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
 use Filament\Http\Middleware\DisableBladeIconComponents;
 use Filament\Http\Middleware\DispatchServingFilamentEvent;
 use Filament\Navigation\NavigationItem;
-use Filament\Pages\Dashboard;
 use Filament\Panel;
 use Filament\PanelProvider;
 use Filament\Support\Colors\Color;
@@ -48,6 +53,11 @@ class AdminPanelProvider extends PanelProvider
             ->discoverWidgets(in: app_path('Filament/Widgets'), for: 'App\Filament\Widgets')
             ->widgets([
                 CrmStatsOverview::class,
+                CommercialStatsOverview::class,
+                MonthlyTargetOverview::class,
+                PipelineByBookChart::class,
+                TopOpenOpportunities::class,
+                QuotesToFollowUp::class,
                 UpcomingActivities::class,
             ])
             ->renderHook(

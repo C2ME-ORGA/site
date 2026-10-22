@@ -12,7 +12,7 @@ use Filament\Widgets\TableWidget;
 
 class UpcomingActivities extends TableWidget
 {
-    protected static ?int $sort = 2;
+    protected static ?int $sort = 7;
 
     protected int|string|array $columnSpan = 'full';
 
