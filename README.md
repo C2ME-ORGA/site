@@ -13,6 +13,7 @@ C2ME is a Laravel Livewire-based CRM application managing clients industriels, p
 | **Accounts** (`/admin/prescriber-accounts`, `/admin/industrial-accounts`, `/admin/building-company-accounts`) | Gestion des comptes clients, éclatés par carnet (prescripteurs, industriels, bâtiment). |
 | **Tableau de bord** (`/admin`) | KPI commerciaux : CA signé, conversion, pipeline par carnet, objectif mensuel, top affaires et devis à relancer. |
 | **Recherche globale** (`/admin/global-search`) | Recherche unifiée inter-carnets sur les comptes, contacts, affaires et devis. |
+| **Export & impression** | Export CSV des comptes et affaires (filtré par carnet et par droits), fiches compte et affaire imprimables au format A4. |
 | **Contacts** | Contacts associés à un compte (commerciaux, décideurs). |
 | **Opportunities (Affaires)** | Étapes de vente (Nouvelle, Qualification, Proposition, Acceptée, Perdue). |
 | **Quotes (Devis)** | Parcours de demande de devis (devis → devis building → devis découpe laser → devis final). |
@@ -64,7 +65,7 @@ C2ME is a Laravel Livewire-based CRM application managing clients industriels, p
 
 ### 3. Tests
 
-- `php artisan test` → **193 tests, 786 assertions** ✅
+- `php artisan test` → **200 tests, 847 assertions** ✅
 - `composer types:check` → **0 erreur**
 - `vendor/bin/pint` → **passé** sur tous les fichiers modifiés
 
@@ -120,7 +121,6 @@ C2ME is a Laravel Livewire-based CRM application managing clients industriels, p
 ### 8. Développement Futur (Proposé)
 
 - Relances sur les activités (`due_at` / `remind_at`), en complément des relances comptes
-- Export CSV des comptes/affaires et impression des fiches
 - Notifications temps réel (broadcast) pour les nouveaux e-mails
 - Gestion dédiée des tags (création/renommage/fusion)
 - Journal d'audit des modifications sensibles
@@ -174,6 +174,18 @@ Le tableau de bord (`/admin`) est une page Filament personnalisée (`App\Filamen
 - **Scoping** : un commercial ne voit que ses devis et affaires ; un administrateur voit l'ensemble. Les devis sans propriétaire ne sont visibles que par les administrateurs.
 - **Calculs** : centralisés dans `App\Services\DashboardMetricsService` et `App\Support\DashboardPeriod`.
 
+### 12. Export CSV et impression des fiches
+
+Les exports et impressions respectent le carnet courant, les filtres/recherches du tableau et les policies (`owner_id` pour les commerciaux, accès global pour les administrateurs).
+
+- **Comptes (CSV)** : bouton « Exporter les comptes (CSV) » sur les listes des trois carnets. Le fichier reprend les colonnes communes, les champs spécifiques au carnet et les étiquettes.
+- **Affaires (CSV)** : bouton « Exporter les affaires (CSV) » sur les listes de comptes (affaires des comptes filtrés) et sur l'onglet Affaires d'une fiche compte.
+- **Format** : CSV UTF-8 avec BOM, séparateur `;`, dates `jj/mm/aa` et montants décimaux à virgule, pour une ouverture directe dans Excel.
+- **Fiche compte** : action « Imprimer la fiche » sur la fiche compte. La vue A4 inclut coordonnées, suivi commercial, champs spécifiques, contacts, affaires, devis et dernières activités.
+- **Fiche affaire** : action « Imprimer » sur chaque ligne d'affaire. La vue A4 inclut l'affaire, le compte, le contact, les devis liés et les activités.
+- **Sécurité** : `GET /admin/print/comptes/{account}` et `GET /admin/print/affaires/{opportunity}` sont protégés par `auth`, l'utilisateur actif et `Gate::authorize('view', …)`.
+- **Code** : `App\Services\CrmCsvExporter`, `App\Http\Controllers\PrintController`, vues `resources/views/print/*`.
+
 ---
 
 ## Développement
@@ -193,17 +205,20 @@ php artisan serve
 ```bash
 composer types:check   # 0 erreur
 vendor/bin/pint        # formatage
-php artisan test       # 193 tests, 786 assertions
+php artisan test       # 200 tests, 847 assertions
 ```
 
 ### Structure des dossiers importants
 
 - `app/Filament/Resources/` : ressources Filament (comptes, contacts, affaires, devis, e-mails)
+- `app/Http/Controllers/PrintController.php` : fiches compte/affaire imprimables
 - `app/Policies/` : policies d'autorisation
 - `app/Models/` : modèles Eloquent (EmailMessage, CrmAccount, CrmContact, CrmOpportunity, Quote)
+- `app/Services/CrmCsvExporter.php` : génération des exports CSV comptes/affaires
 - `config/crm.php` : paramètres de rétention, etc.
 - `database/factories/` : factories pour les tests
-- `tests/Feature/` : suite de tests (PolicyTest, QuoteStatusTest, ComposeEmailTest, CrmAdminPagesTest)
+- `resources/views/print/` : gabarits A4 des fiches compte et affaire
+- `tests/Feature/` : suite de tests (PolicyTest, QuoteStatusTest, ComposeEmailTest, CrmExportPrintTest)
 
 ---
 

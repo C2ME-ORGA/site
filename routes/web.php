@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\EmailAttachmentController;
 use App\Http\Controllers\FieldModeController;
+use App\Http\Controllers\PrintController;
 use Illuminate\Routing\Route as RouteInstance;
 use Illuminate\Support\Facades\Route;
 use Symfony\Component\HttpFoundation\Response;
@@ -89,6 +90,12 @@ Route::middleware('auth')->group(function (): void {
 
     Route::get('/emails/attachments/{attachment}', [EmailAttachmentController::class, 'download'])
         ->name('emails.attachments.download');
+
+    Route::get('/admin/print/comptes/{account}', [PrintController::class, 'account'])
+        ->name('crm.print.account');
+
+    Route::get('/admin/print/affaires/{opportunity}', [PrintController::class, 'opportunity'])
+        ->name('crm.print.opportunity');
 });
 
 /*
