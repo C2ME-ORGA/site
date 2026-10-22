@@ -14,6 +14,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Notifications\Notification;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Str;
 
@@ -127,5 +128,13 @@ class User extends Authenticatable implements FilamentUser
         return Str::length($initials) > 1
             ? Str::substr($initials, 0, 1).Str::substr($initials, -1)
             : $initials;
+    }
+
+    /**
+     * Canal privé utilisé par Filament pour les notifications temps réel.
+     */
+    public function receivesBroadcastNotificationsOn(?Notification $notification = null): string
+    {
+        return str_replace('\\', '.', static::class).'.'.$this->getKey();
     }
 }

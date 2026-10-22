@@ -9,13 +9,17 @@ use App\Models\EmailMailbox;
 use App\Models\EmailMessage;
 use App\Support\Mail\InboundAttachment;
 use App\Support\Mail\InboundEmail;
+use Carbon\CarbonInterface;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Throwable;
 
 class MailboxSynchronizer
 {
-    public function __construct(private readonly InboundFetcher $fetcher) {}
+    public function __construct(
+        private readonly InboundFetcher $fetcher,
+        private readonly InboundEmailNotifier $notifier,
+    ) {}
 
     /**
      * Importe les nouveaux messages d'une boîte et met à jour son curseur.
@@ -39,13 +43,22 @@ class MailboxSynchronizer
 
         $imported = 0;
         $lastUid = (int) ($mailbox->last_uid ?? 0);
+        $previousSyncedAt = $mailbox->last_synced_at;
+
+        /** @var list<EmailMessage> $createdMessages */
+        $createdMessages = [];
 
         foreach ($batch as $message) {
             if ($message->fromEmail === '') {
                 continue;
             }
 
-            $this->store($mailbox, $message);
+            $created = $this->store($mailbox, $message);
+
+            if ($created !== null) {
+                $createdMessages[] = $created;
+            }
+
             $imported++;
 
             $lastUid = max($lastUid, (int) $message->uid);
@@ -57,10 +70,37 @@ class MailboxSynchronizer
             'last_error' => null,
         ])->saveQuietly();
 
+        $this->notifyNewMessages($createdMessages, $previousSyncedAt);
+
         return $imported;
     }
 
-    private function store(EmailMailbox $mailbox, InboundEmail $message): void
+    /**
+     * Ignore le premier import (ou un rattrapage de l'existant) : seuls les
+     * messages reçus après une synchronisation précédente sont notifiés.
+     *
+     * @param  list<EmailMessage>  $messages
+     */
+    private function notifyNewMessages(array $messages, ?CarbonInterface $previousSyncedAt): void
+    {
+        if ($previousSyncedAt === null) {
+            return;
+        }
+
+        foreach ($messages as $message) {
+            if ($message->is_read || $message->received_at === null) {
+                continue;
+            }
+
+            if ($message->received_at->lessThan($previousSyncedAt)) {
+                continue;
+            }
+
+            $this->notifier->notify($message);
+        }
+    }
+
+    private function store(EmailMailbox $mailbox, InboundEmail $message): ?EmailMessage
     {
         [$account, $contact] = $this->match($message->fromEmail);
 
@@ -90,7 +130,7 @@ class MailboxSynchronizer
             $existing->forceFill($attributes)->save();
             $this->storeAttachments($existing, $message->attachments);
 
-            return;
+            return null;
         }
 
         $attributes['email_mailbox_id'] = $mailbox->id;
@@ -98,6 +138,8 @@ class MailboxSynchronizer
 
         $created = EmailMessage::create($attributes);
         $this->storeAttachments($created, $message->attachments);
+
+        return $created;
     }
 
     /**

@@ -27,6 +27,7 @@ use Illuminate\Cookie\Middleware\EncryptCookies;
 use Illuminate\Foundation\Http\Middleware\PreventRequestForgery;
 use Illuminate\Routing\Middleware\SubstituteBindings;
 use Illuminate\Session\Middleware\StartSession;
+use Illuminate\Support\Facades\Vite;
 use Illuminate\View\Middleware\ShareErrorsFromSession;
 use Vaslv\FilamentAppVersion\AppVersionPlugin;
 
@@ -66,7 +67,10 @@ class AdminPanelProvider extends PanelProvider
             )
             ->renderHook(
                 PanelsRenderHook::HEAD_END,
-                fn (): string => '<link rel="manifest" href="/manifest.webmanifest"><meta name="theme-color" content="#0e8577">',
+                fn (): string => (Vite::isRunningHot() || is_file(public_path('build/manifest.json'))
+                    ? (string) Vite::__invoke('resources/js/echo.js')
+                    : '')
+                    .'<link rel="manifest" href="/manifest.webmanifest"><meta name="theme-color" content="#0e8577">',
             )
             ->renderHook(
                 PanelsRenderHook::BODY_END,
