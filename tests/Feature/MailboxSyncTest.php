@@ -2,15 +2,20 @@
 
 use App\Contracts\InboundFetcher;
 use App\Enums\CrmBook;
+use App\Enums\UserRole;
 use App\Models\CrmAccount;
 use App\Models\CrmContact;
 use App\Models\EmailMailbox;
 use App\Models\EmailMessage;
 use App\Models\User;
+use App\Notifications\InboundEmailReceived;
 use App\Services\MailboxSynchronizer;
 use App\Support\Mail\InboundAttachment;
 use App\Support\Mail\InboundEmail;
 use Carbon\CarbonImmutable;
+use Filament\Notifications\Events\DatabaseNotificationsSent;
+use Illuminate\Support\Facades\Event;
+use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Storage;
 
 /**
@@ -198,4 +203,84 @@ test('une pièce jointe est téléchargeable par un utilisateur autorisé', func
         ->get(route('emails.attachments.download', $attachment))
         ->assertOk()
         ->assertDownload('plan.pdf');
+});
+
+test('le premier import d une bo�te ne notifie pas les messages existants', function (): void {
+    Event::fake([DatabaseNotificationsSent::class]);
+    Notification::fake();
+
+    $owner = User::factory()->create(['role' => UserRole::Commercial]);
+
+    $mailbox = EmailMailbox::factory()->forUser($owner)->create([
+        'last_uid' => null,
+        'last_synced_at' => null,
+    ]);
+
+    bindFetcher([inbox('10', 'jean@usine.fr', 'premier@usine.fr')]);
+
+    app(MailboxSynchronizer::class)->synchronize($mailbox);
+
+    Notification::assertNothingSent();
+});
+
+test('un nouvel e-mail personnel notifie uniquement son propri�taire', function (): void {
+    Event::fake([DatabaseNotificationsSent::class]);
+    Notification::fake();
+
+    $owner = User::factory()->create(['role' => UserRole::Commercial]);
+    $other = User::factory()->create(['role' => UserRole::Commercial]);
+
+    $mailbox = EmailMailbox::factory()->forUser($owner)->create([
+        'last_uid' => '9',
+        'last_synced_at' => now()->subMinute(),
+    ]);
+
+    bindFetcher([inbox('10', 'jean@usine.fr', 'nouveau@usine.fr')]);
+
+    app(MailboxSynchronizer::class)->synchronize($mailbox);
+
+    $message = EmailMessage::query()->firstOrFail();
+
+    Notification::assertSentTo(
+        $owner,
+        InboundEmailReceived::class,
+        fn (InboundEmailReceived $notification): bool => $notification->message->is($message),
+    );
+    Notification::assertNotSentTo($other, InboundEmailReceived::class);
+    Event::assertDispatchedTimes(DatabaseNotificationsSent::class, 1);
+});
+
+test('un nouvel e-mail dans une bo�te partag�e notifie tous les utilisateurs actifs', function (): void {
+    Event::fake([DatabaseNotificationsSent::class]);
+    Notification::fake();
+
+    $admin = User::factory()->create(['role' => UserRole::Admin]);
+    $commercial = User::factory()->create(['role' => UserRole::Commercial]);
+    $inactive = User::factory()->create(['role' => UserRole::Commercial, 'is_active' => false]);
+
+    $mailbox = sharedMailbox();
+    $mailbox->forceFill(['last_uid' => '9', 'last_synced_at' => now()->subMinute()])->save();
+
+    bindFetcher([inbox('10', 'jean@usine.fr', 'partage@usine.fr')]);
+
+    app(MailboxSynchronizer::class)->synchronize($mailbox);
+
+    Notification::assertSentTo([$admin, $commercial], InboundEmailReceived::class);
+    Notification::assertNotSentTo($inactive, InboundEmailReceived::class);
+});
+
+test('un e-mail d�j� import� ou d�j� lu ne d�clenche pas de notification', function (): void {
+    Event::fake([DatabaseNotificationsSent::class]);
+    Notification::fake();
+
+    $mailbox = sharedMailbox();
+    $mailbox->forceFill(['last_uid' => '9', 'last_synced_at' => now()->subMinute()])->save();
+
+    bindFetcher([inbox('10', 'jean@usine.fr', 'lu@usine.fr', read: true)]);
+    app(MailboxSynchronizer::class)->synchronize($mailbox);
+
+    bindFetcher([inbox('10', 'jean@usine.fr', 'lu@usine.fr', read: true)]);
+    app(MailboxSynchronizer::class)->synchronize($mailbox);
+
+    Notification::assertNothingSent();
 });

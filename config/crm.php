@@ -93,6 +93,7 @@ return [
         'shared_mailbox' => env('CRM_SHARED_MAILBOX', 'commercial@c2me.fr'),
         'sync_interval_minutes' => 5,
         'sync_batch_size' => 50,
+        'notifications' => (bool) env('CRM_EMAIL_NOTIFICATIONS', true),
         'retention_months' => (int) env('CRM_EMAIL_RETENTION_MONTHS', 36),
         'imap' => [
             'host' => env('CRM_IMAP_HOST', 'imap.orange.fr'),

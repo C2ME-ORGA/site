@@ -1,7 +1,7 @@
 # CRM C2ME — Liste de tâches
 
-> État au 21/10/2026 — branche `feature/crm`.
-> Qualité : Pint OK · PHPStan niveau 7 (0 erreur, tests inclus via `pest-plugin-phpstan`). 180 tests / 715 assertions.
+> État au 22/10/2026 — branche `feature/crm`.
+> Qualité : Pint OK · PHPStan niveau 7 (0 erreur, tests inclus via `pest-plugin-phpstan`). 206 tests / 862 assertions.
 
 ## A Faire
 
@@ -105,6 +105,18 @@
 - [x] Routes d'impression protégées par `auth`, utilisateur actif et `Gate::authorize('view', …)`.
 - [x] Tests des exports, des impressions et du scoping ; Pint, PHPStan et suite complète au vert.
 
+### 11. Notifications temps réel des e-mails
+
+- [x] Ajout de Laravel Reverb et du client Echo, chargés uniquement dans le panneau d'administration.
+- [x] Canal privé par utilisateur (`App.Models.User.{id}`) protégé par `routes/channels.php`.
+- [x] Notification Filament persistée en base et diffusée en temps réel à chaque nouvel e-mail entrant non lu.
+- [x] Destinataires : propriétaire pour une boîte personnelle ; administrateurs et commerciaux actifs pour une boîte partagée.
+- [x] Premier import d'une boîte volontairement silencieux pour éviter de notifier l'historique.
+- [x] Toast, cloche Filament et badge de la boîte de réception rafraîchis via WebSocket, avec polling `30s` conservé en secours.
+- [x] Décodage des sujets MIME dans les notifications et variable `CRM_EMAIL_NOTIFICATIONS` pour désactiver le mécanisme.
+- [x] Configuration locale Herd documentée (`wss://c2me.test:8080`, certificat Herd, `php artisan dev`).
+- [x] Tests des notifications, du canal privé et du payload Filament ; validation navigateur (toast, WebSocket et badge).
+
 ## Proposition de développement supplémentaire
 
 - [ ] **Amélioration du mode terrain** : édition hors ligne, création d'activités, actions rapides, conflits de synchronisation, photos et tournée — détail en section 7.
@@ -112,7 +124,7 @@
 - [x] Relances automatiques : notifications/rappels à partir de `next_follow_up_at` — implémenté (voir section 8).
 - [x] Tableau de bord enrichi : CA signé, taux de conversion, pipeline par carnet — implémenté (voir section 9).
 - [x] Export CSV des comptes/affaires et impression des fiches — implémenté (voir section 10).
-- [ ] Notifications temps réel (broadcast) pour les nouveaux e-mails.
+- [x] Notifications temps réel (broadcast) pour les nouveaux e-mails — implémenté (voir section 11).
 - [ ] Gestion dédiée des tags (création/renommage/fusion) au lieu de la saisie libre.
 - [ ] Journal d'audit des modifications sensibles (statuts, suppressions, envois).
 - [ ] Signatures e-mail configurables par utilisateur.
