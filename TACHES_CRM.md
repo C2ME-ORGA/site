@@ -93,13 +93,25 @@
 - [x] Scoping admin/commercial et états vides.
 - [x] Tests du service et de la page ; Pint, PHPStan et suite complète au vert.
 
+### 10. Export CSV et impression des fiches
+
+- [x] Export CSV des comptes depuis les trois listes, avec colonnes communes, champs spécifiques au carnet et étiquettes.
+- [x] Export CSV des affaires depuis les listes de comptes (comptes filtrés) et depuis l'onglet Affaires d'une fiche compte.
+- [x] Fichiers UTF-8 avec BOM et séparateur `;`, dates françaises et montants décimaux à virgule.
+- [x] Prise en compte des filtres/recherches actifs et du scoping admin/commercial.
+- [x] Fiche compte imprimable A4 : coordonnées, suivi, contacts, affaires, devis et activités.
+- [x] Fiche affaire imprimable A4 : affaire, compte, contact, devis liés et activités.
+- [x] Actions Filament « Imprimer la fiche » sur le compte et « Imprimer » sur chaque affaire.
+- [x] Routes d'impression protégées par `auth`, utilisateur actif et `Gate::authorize('view', …)`.
+- [x] Tests des exports, des impressions et du scoping ; Pint, PHPStan et suite complète au vert.
+
 ## Proposition de développement supplémentaire
 
 - [ ] **Amélioration du mode terrain** : édition hors ligne, création d'activités, actions rapides, conflits de synchronisation, photos et tournée — détail en section 7.
 - [x] Recherche globale Filament inter-carnets (comptes, contacts, affaires, devis).
 - [x] Relances automatiques : notifications/rappels à partir de `next_follow_up_at` — implémenté (voir section 8).
 - [x] Tableau de bord enrichi : CA signé, taux de conversion, pipeline par carnet — implémenté (voir section 9).
-- [ ] Export CSV des comptes/affaires et impression des fiches.
+- [x] Export CSV des comptes/affaires et impression des fiches — implémenté (voir section 10).
 - [ ] Notifications temps réel (broadcast) pour les nouveaux e-mails.
 - [ ] Gestion dédiée des tags (création/renommage/fusion) au lieu de la saisie libre.
 - [ ] Journal d'audit des modifications sensibles (statuts, suppressions, envois).

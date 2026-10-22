@@ -4,6 +4,9 @@ namespace App\Filament\Resources\Accounts\RelationManagers;
 
 use App\Enums\CrmSource;
 use App\Enums\OpportunityStage;
+use App\Models\CrmOpportunity;
+use App\Services\CrmCsvExporter;
+use Filament\Actions\Action;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\CreateAction;
 use Filament\Actions\DeleteAction;
@@ -18,6 +21,8 @@ use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Schemas\Schema;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class OpportunitiesRelationManager extends RelationManager
 {
@@ -129,8 +134,31 @@ class OpportunitiesRelationManager extends RelationManager
             ])
             ->headerActions([
                 CreateAction::make(),
+
+                Action::make('exportCsv')
+                    ->label('Exporter (CSV)')
+                    ->icon('heroicon-o-arrow-down-tray')
+                    ->color('gray')
+                    ->action(function (): StreamedResponse {
+                        $account = $this->getOwnerRecord();
+
+                        /** @var Builder<CrmOpportunity> $query */
+                        $query = $this->getTableQueryForExport();
+
+                        return app(CrmCsvExporter::class)->opportunities(
+                            'c2me-affaires-'.($account->getAttribute('code') ?: $account->getKey()).'-'.now()->format('Y-m-d').'.csv',
+                            $query,
+                        );
+                    }),
             ])
             ->recordActions([
+                Action::make('print')
+                    ->label('Imprimer')
+                    ->icon('heroicon-o-printer')
+                    ->color('gray')
+                    ->url(fn (CrmOpportunity $record): string => route('crm.print.opportunity', $record))
+                    ->openUrlInNewTab(),
+
                 EditAction::make(),
                 DeleteAction::make(),
             ])
