@@ -70,7 +70,13 @@
                 <dt>Dernière mise à jour</dt>
                 <dd>{{ $account->updated_at?->format('d/m/Y') ?? '—' }}</dd>
                 <dt>Étiquettes</dt>
-                <dd>{{ $account->tags->pluck('name')->implode(', ') ?: '—' }}</dd>
+                <dd>
+                    @forelse ($account->tags as $tag)
+                        <span class="badge" style="color: {{ \App\Enums\CrmTagColor::tryFrom((string) $tag->color)?->printTint() ?? '#6b7280' }};">{{ $tag->name }}</span>
+                    @empty
+                        —
+                    @endforelse
+                </dd>
             </dl>
         </section>
     </div>

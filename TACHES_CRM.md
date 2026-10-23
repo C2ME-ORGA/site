@@ -138,7 +138,7 @@
 - [x] Export CSV des comptes/affaires et impression des fiches — implémenté (voir section 10).
 - [x] Notifications temps réel (broadcast) pour les nouveaux e-mails — implémenté (voir section 11).
 - [x] Visionneuse de logs dans le panel pour le suivi technique — implémenté (voir section 12).
-- [ ] Gestion dédiée des tags (création/renommage/fusion) au lieu de la saisie libre.
+- [x] Gestion dédiée des tags (création/renommage/fusion) avec couleurs, badges, filtres par carnet et outils de nettoyage des doublons.
 - [ ] Journal d'audit des modifications sensibles (statuts, suppressions, envois).
 - [ ] Signatures e-mail configurables par utilisateur.
 - [ ] Support OAuth Microsoft 365 / Google Workspace en plus d'IMAP par mot de passe.

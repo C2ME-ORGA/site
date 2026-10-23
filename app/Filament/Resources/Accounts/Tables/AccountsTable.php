@@ -6,7 +6,9 @@ use App\Enums\AccountPotential;
 use App\Enums\AccountStatus;
 use App\Enums\CrmCategory;
 use App\Enums\CrmSource;
+use App\Enums\CrmTagColor;
 use App\Models\CrmAccount;
+use App\Models\CrmTag;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
@@ -17,6 +19,7 @@ use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Filters\TernaryFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Model;
 use TinusG\FilamentCompanyLogoColumn\CompanyLogoColumn;
 
 class AccountsTable
@@ -25,7 +28,7 @@ class AccountsTable
     {
         return $table
             ->defaultSort('name')
-            ->modifyQueryUsing(fn (Builder $query): Builder => $query->withCount(['contacts', 'opportunities']))
+            ->modifyQueryUsing(fn (Builder $query): Builder => $query->with(['contacts', 'opportunities', 'tags'])->withCount(['contacts', 'opportunities']))
             ->columns([
                 CompanyLogoColumn::make('website')
                     ->label('')
@@ -56,6 +59,16 @@ class AccountsTable
                 TextColumn::make('owner.name')
                     ->label('Commercial')
                     ->placeholder('—'),
+
+                TextColumn::make('tags.name')
+                    ->label('Étiquettes')
+                    ->badge()
+                    ->limitList(2)
+                    ->expandableLimitedList()
+                    ->placeholder('—')
+                    ->color(fn (mixed $state, ?Model $relatedRecord): string => $relatedRecord instanceof CrmTag
+                        ? $relatedRecord->badgeColor()
+                        : CrmTagColor::Gray->getColor()),
 
                 TextColumn::make('contacts_count')
                     ->label('Contacts')
@@ -103,6 +116,12 @@ class AccountsTable
                     ->label('Commercial')
                     ->relationship('owner', 'name')
                     ->searchable()
+                    ->preload(),
+
+                SelectFilter::make('tags')
+                    ->label('Étiquette')
+                    ->relationship('tags', 'name')
+                    ->multiple()
                     ->preload(),
 
                 TernaryFilter::make('follow_up_due')
