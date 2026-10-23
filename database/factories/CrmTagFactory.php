@@ -2,6 +2,7 @@
 
 namespace Database\Factories;
 
+use App\Enums\CrmTagColor;
 use App\Models\CrmTag;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
@@ -19,8 +20,7 @@ class CrmTagFactory extends Factory
     {
         return [
             'name' => $this->faker->unique()->word(),
-            'color' => $this->faker->randomElement(['gray', 'info', 'success', 'warning', 'danger']),
-            'kind' => 'libre',
+            'color' => $this->faker->randomElement(array_keys(CrmTagColor::options())),
         ];
     }
 }

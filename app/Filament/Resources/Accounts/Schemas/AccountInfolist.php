@@ -7,11 +7,14 @@ use App\Enums\AccountStatus;
 use App\Enums\CrmBook;
 use App\Enums\CrmCategory;
 use App\Enums\CrmSource;
+use App\Enums\CrmTagColor;
 use App\Models\CrmAccount;
+use App\Models\CrmTag;
 use Filament\Infolists\Components\TextEntry;
 use Filament\Schemas\Components\Tabs;
 use Filament\Schemas\Components\Tabs\Tab;
 use Filament\Schemas\Schema;
+use Illuminate\Database\Eloquent\Model;
 
 class AccountInfolist
 {
@@ -65,7 +68,10 @@ class AccountInfolist
                                 TextEntry::make('tags.name')
                                     ->label('Étiquettes')
                                     ->badge()
-                                    ->placeholder('—'),
+                                    ->placeholder('—')
+                                    ->color(fn (mixed $state, ?Model $relatedRecord): string => $relatedRecord instanceof CrmTag
+                                        ? $relatedRecord->badgeColor()
+                                        : CrmTagColor::Gray->getColor()),
                             ]),
 
                         Tab::make('Coordonnées')

@@ -4,8 +4,10 @@ namespace App\Services;
 
 use App\Enums\CrmBook;
 use App\Enums\CrmSource;
+use App\Enums\CrmTagColor;
 use App\Models\CrmAccount;
 use App\Models\CrmOpportunity;
+use App\Models\CrmTag;
 use Illuminate\Database\Eloquent\Builder;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
@@ -68,6 +70,7 @@ final class CrmCsvExporter
             'Dernier contact',
             'Prochaine relance',
             'Étiquettes',
+            'Couleurs des étiquettes',
             'Notes',
         ];
 
@@ -131,6 +134,9 @@ final class CrmCsvExporter
             $account->last_contacted_at?->format('d/m/Y') ?? '',
             $account->next_follow_up_at?->format('d/m/Y') ?? '',
             $account->tags->pluck('name')->implode(', '),
+            $account->tags
+                ->map(fn (CrmTag $tag): string => CrmTagColor::tryFrom((string) $tag->color)?->getLabel() ?? CrmTagColor::Gray->getLabel())
+                ->implode(', '),
             $this->text($account->notes),
         ];
 

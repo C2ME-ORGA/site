@@ -7,7 +7,9 @@ use App\Enums\AccountStatus;
 use App\Enums\CrmBook;
 use App\Enums\CrmCategory;
 use App\Enums\CrmSource;
+use App\Filament\Resources\Tags\Schemas\TagForm;
 use App\Models\CrmAccount;
+use Filament\Actions\Action;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
@@ -128,11 +130,16 @@ class AccountForm
                                     ->preload(),
 
                                 Select::make('tags')
-                                    ->label('Tags secondaires')
+                                    ->label('Étiquettes')
                                     ->relationship('tags', 'name')
                                     ->multiple()
                                     ->preload()
                                     ->searchable()
+                                    ->createOptionAction(fn (Action $action): Action => $action
+                                        ->label('Nouvelle étiquette')
+                                        ->tooltip('Créer une étiquette sans quitter la fiche'))
+                                    ->createOptionModalHeading('Nouvelle étiquette')
+                                    ->createOptionForm(TagForm::fields())
                                     ->columnSpanFull(),
                             ]),
 

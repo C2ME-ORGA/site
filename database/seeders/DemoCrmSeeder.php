@@ -4,6 +4,7 @@ namespace Database\Seeders;
 
 use App\Enums\CrmActivityType;
 use App\Enums\CrmBook;
+use App\Enums\CrmTagColor;
 use App\Enums\QuoteDocumentStatus;
 use App\Enums\UserRole;
 use App\Models\CrmAccount;
@@ -60,9 +61,15 @@ class DemoCrmSeeder extends Seeder
             ],
         );
 
-        foreach (['Chaud', 'Partenaire', 'Grand compte'] as $name) {
-            CrmTag::firstOrCreate(['name' => $name], ['color' => 'info', 'kind' => 'libre']);
-        }
+        $tags = collect([
+            ['Chaud', CrmTagColor::Danger],
+            ['Partenaire', CrmTagColor::Info],
+            ['Grand compte', CrmTagColor::Success],
+            ['Grands comptes', CrmTagColor::Warning],
+        ])->map(fn (array $definition): CrmTag => CrmTag::firstOrCreate(
+            ['name' => $definition[0]],
+            ['color' => $definition[1]->value],
+        ));
 
         $allAccounts = collect();
 
@@ -79,6 +86,10 @@ class DemoCrmSeeder extends Seeder
                 ]);
 
             foreach ($accounts as $account) {
+                $account->tags()->attach(
+                    $tags->random(random_int(0, 2))->pluck('id')->all(),
+                );
+
                 $contact = CrmContact::factory()->primary()->create([
                     'crm_account_id' => $account->id,
                 ]);
