@@ -11,6 +11,7 @@ use App\Filament\Widgets\PipelineByBookChart;
 use App\Filament\Widgets\QuotesToFollowUp;
 use App\Filament\Widgets\TopOpenOpportunities;
 use App\Filament\Widgets\UpcomingActivities;
+use Boquizo\FilamentLogViewer\FilamentLogViewerPlugin;
 use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
 use Filament\Http\Middleware\DisableBladeIconComponents;
@@ -42,6 +43,7 @@ class AdminPanelProvider extends PanelProvider
             ->login()
             ->profile(EditProfile::class)
             ->brandName('C2ME - Administration')
+            ->viteTheme('resources/css/filament/admin/theme.css')
             ->databaseNotifications()
             ->colors([
                 'primary' => Color::hex('#0e8577'),
@@ -85,6 +87,11 @@ class AdminPanelProvider extends PanelProvider
             ])
             ->plugins([
                 AppVersionPlugin::make(),
+                FilamentLogViewerPlugin::make()
+                    ->navigationGroup('Système')
+                    ->navigationSort(95)
+                    ->timezone('Europe/Paris')
+                    ->authorize(fn (): bool => auth()->user()?->isAdmin() === true),
             ])
             ->middleware([
                 EncryptCookies::class,
