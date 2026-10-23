@@ -1,7 +1,7 @@
 # CRM C2ME — Liste de tâches
 
-> État au 22/10/2026 — branche `feature/crm`.
-> Qualité : Pint OK · PHPStan niveau 7 (0 erreur, tests inclus via `pest-plugin-phpstan`). 206 tests / 862 assertions.
+> État au 23/10/2026 — branche `feature/crm`.
+> Qualité : Pint OK · PHPStan niveau 7 (0 erreur, tests inclus via `pest-plugin-phpstan`). 213 tests / 873 assertions.
 
 ## A Faire
 
@@ -117,6 +117,18 @@
 - [x] Configuration locale Herd documentée (`wss://c2me.test:8080`, certificat Herd, `php artisan dev`).
 - [x] Tests des notifications, du canal privé et du payload Filament ; validation navigateur (toast, WebSocket et badge).
 
+### 12. Visionneuse de logs (suivi technique)
+
+- [x] Paquet `gboquizosanchez/filament-log-viewer` 2.x installé (compatible Filament 5, `ext-zip` disponible).
+- [x] Configuration publiée dans `config/filament-log-viewer.php` et traductions dans `lang/vendor/filament-log-viewer`.
+- [x] `FILAMENT_LOG_VIEWER_DRIVER` aligné sur `LOG_STACK` (`daily` en local, `single` dans `.env.example`) — le repli sur `LOG_CHANNEL=stack` choisirait `daily` à tort.
+- [x] Page `/admin/logs` : liste des journaux quotidiens, statistiques par niveau, consultation, téléchargement.
+- [x] Accès réservé aux administrateurs via `->authorize()`, groupe « Système » (tri 95), fuseau `Europe/Paris`.
+- [x] Suppression de la suppression : `FILAMENT_LOG_VIEWER_CLEARABLE` laissé à `false`, aucun droit d'effacement accordé.
+- [x] Thème Filament personnalisé `resources/css/filament/admin/theme.css` (exigé par Filament v4+ et par le paquet) : importe le thème de base et déclare les `@source` des vues du plugin, des vues Filament de l'application et des composants Livewire du panel.
+- [x] Entrée de thème ajoutée à `vite.config.js` et `->viteTheme()` sur le panel : le panel charge désormais le CSS compilé par Vite, ce qui stylise aussi les utilitaires déjà utilisés dans les vues métier (`mb-4`, `text-sm`, etc.).
+- [x] Tests d'accès (admin, commercial, visiteur anonyme, journal inexistant, entrée de navigation) et de l'enregistrement du plugin/thème ; Pint, PHPStan et suite complète au vert.
+
 ## Proposition de développement supplémentaire
 
 - [ ] **Amélioration du mode terrain** : édition hors ligne, création d'activités, actions rapides, conflits de synchronisation, photos et tournée — détail en section 7.
@@ -125,6 +137,7 @@
 - [x] Tableau de bord enrichi : CA signé, taux de conversion, pipeline par carnet — implémenté (voir section 9).
 - [x] Export CSV des comptes/affaires et impression des fiches — implémenté (voir section 10).
 - [x] Notifications temps réel (broadcast) pour les nouveaux e-mails — implémenté (voir section 11).
+- [x] Visionneuse de logs dans le panel pour le suivi technique — implémenté (voir section 12).
 - [ ] Gestion dédiée des tags (création/renommage/fusion) au lieu de la saisie libre.
 - [ ] Journal d'audit des modifications sensibles (statuts, suppressions, envois).
 - [ ] Signatures e-mail configurables par utilisateur.

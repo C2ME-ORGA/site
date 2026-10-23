@@ -1,0 +1,16 @@
+@import '../../../../vendor/filament/filament/resources/css/theme.css';
+
+/*
+ * Sources propres au panel : les classes Tailwind utilisées par les pages,
+ * ressources et composants Filament de l'application n'existent pas dans le
+ * thème par défaut de Filament (compilé avec `source(none)`).
+ */
+@source '../../../../app/Filament/**/*';
+@source '../../../../resources/views/filament/**/*';
+@source '../../../../resources/views/livewire/**/*';
+
+/*
+ * Vues du plugin Log Viewer : elles s'appuient sur des utilitaires Tailwind
+ * (flex, gap-6, dark:*) qui doivent être générés ici pour être stylés.
+ */
+@source '../../../../vendor/gboquizosanchez/filament-log-viewer/resources/views/**/*.blade.php';
