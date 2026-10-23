@@ -5,7 +5,7 @@ namespace App\Filament\Resources\Tags\Schemas;
 use App\Enums\CrmTagColor;
 use App\Models\CrmTag;
 use App\Rules\UniqueTagName;
-use Filament\Schemas\Component as SchemaComponent;
+use Filament\Forms\Components\Component;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Schemas\Components\Section;
@@ -20,14 +20,11 @@ class TagForm
                 Section::make('Étiquette')
                     ->description('Un vocabulaire partagé par toute l’équipe : la même casse ou les mêmes accents ne créent pas deux entrées distinctes.')
                     ->columns(2)
-                    ->schema(self::fields()),
+                    ->schema(array_values(self::fields())),
             ]);
     }
 
     /**
-     * Champs de saisie d'une étiquette, partagés entre la ressource dédiée et
-     * la création à la volée depuis une fiche de compte.
-     *
      * @return array<int, \Filament\Forms\Components\Component>
      */
     public static function fields(): array
