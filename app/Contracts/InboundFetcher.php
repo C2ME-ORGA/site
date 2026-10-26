@@ -10,7 +10,7 @@ interface InboundFetcher
     /**
      * Récupère les messages entrants d'une boîte, du plus ancien au plus récent.
      *
-     * @return list<InboundEmail>
+     * @return iterable<int, InboundEmail>
      */
-    public function fetch(EmailMailbox $mailbox): array;
+    public function fetch(EmailMailbox $mailbox): iterable;
 }

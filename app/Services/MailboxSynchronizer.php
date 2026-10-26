@@ -28,18 +28,7 @@ class MailboxSynchronizer
      */
     public function synchronize(EmailMailbox $mailbox): int
     {
-        try {
-            $messages = $this->fetcher->fetch($mailbox);
-        } catch (Throwable $exception) {
-            $mailbox->forceFill([
-                'last_synced_at' => now(),
-                'last_error' => $exception->getMessage(),
-            ])->saveQuietly();
-
-            return 0;
-        }
-
-        $batch = array_slice($messages, 0, (int) config('crm.email.sync_batch_size', 50));
+        $batchSize = max(1, (int) config('crm.email.sync_batch_size', 50));
 
         $imported = 0;
         $lastUid = (int) ($mailbox->last_uid ?? 0);
@@ -48,20 +37,33 @@ class MailboxSynchronizer
         /** @var list<EmailMessage> $createdMessages */
         $createdMessages = [];
 
-        foreach ($batch as $message) {
-            if ($message->fromEmail === '') {
-                continue;
+        try {
+            foreach ($this->fetcher->fetch($mailbox) as $message) {
+                if ($imported >= $batchSize) {
+                    break;
+                }
+
+                $lastUid = max($lastUid, (int) $message->uid);
+
+                if ($message->fromEmail === '') {
+                    continue;
+                }
+
+                $created = $this->store($mailbox, $message);
+
+                if ($created !== null) {
+                    $createdMessages[] = $created;
+                }
+
+                $imported++;
             }
+        } catch (Throwable $exception) {
+            $mailbox->forceFill([
+                'last_synced_at' => now(),
+                'last_error' => $exception->getMessage(),
+            ])->saveQuietly();
 
-            $created = $this->store($mailbox, $message);
-
-            if ($created !== null) {
-                $createdMessages[] = $created;
-            }
-
-            $imported++;
-
-            $lastUid = max($lastUid, (int) $message->uid);
+            return 0;
         }
 
         $mailbox->forceFill([

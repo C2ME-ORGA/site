@@ -107,6 +107,18 @@ test('la synchronisation déduplique les messages déjà importés', function ()
         ->and(EmailMessage::query()->count())->toBe(1);
 });
 
+test('la synchronisation avance le curseur même pour un message ignoré', function (): void {
+    $mailbox = sharedMailbox();
+    $mailbox->forceFill(['last_uid' => '9'])->save();
+
+    bindFetcher([inbox('10', '', 'sans-expediteur@usine.fr')]);
+
+    app(MailboxSynchronizer::class)->synchronize($mailbox);
+
+    expect($mailbox->refresh()->last_uid)->toBe('10')
+        ->and(EmailMessage::query()->count())->toBe(0);
+});
+
 test('la synchronisation enregistre l’erreur en cas d’échec de connexion', function (): void {
     $mailbox = sharedMailbox();
 
