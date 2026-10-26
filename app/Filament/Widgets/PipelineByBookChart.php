@@ -17,7 +17,12 @@ class PipelineByBookChart extends ChartWidget
 
     protected ?string $description = 'Affaires ouvertes à date, en montant brut et pondéré par la probabilité.';
 
-    protected ?string $maxHeight = '300px';
+    /*
+     * Pas de `$maxHeight` : Filament dimensionne alors le cadre du graphique
+     * avec le ratio d'aspect natif (hauteur définitive), au lieu d'un
+     * `max-height` posé sur un canvas en `height: 100%` dont la hauteur
+     * dépendait du parent lui-même. Voir `theme.css` pour la hauteur visuelle.
+     */
 
     protected function getType(): string
     {

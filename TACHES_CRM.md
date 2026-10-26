@@ -132,10 +132,10 @@
 ## Proposition de développement supplémentaire
 
 - [ ] **Amélioration du mode terrain** : édition hors ligne, création d'activités, actions rapides, conflits de synchronisation, photos et tournée — détail en section 7.
-- [x] Recherche globale Filament inter-carnets (comptes, contacts, affaires, devis).
-- [x] Relances automatiques : notifications/rappels à partir de `next_follow_up_at` — implémenté (voir section 8).
-- [x] Tableau de bord enrichi : CA signé, taux de conversion, pipeline par carnet — implémenté (voir section 9).
-- [x] Export CSV des comptes/affaires et impression des fiches — implémenté (voir section 10).
+- [x] Recherche globale Filament inter-carnets (comptes, contacts, affaires, devis). (v1.1.0)
+- [x] Relances automatiques : notifications/rappels à partir de `next_follow_up_at` — implémenté (voir section 8). (v1.1.0)
+- [x] Tableau de bord enrichi : CA signé, taux de conversion, pipeline par carnet — implémenté (voir section 9). (v1.1.0)
+- [x] Export CSV des comptes/affaires et impression des fiches — implémenté (voir section 10). (v1.1.0)
 - [x] Notifications temps réel (broadcast) pour les nouveaux e-mails — implémenté (voir section 11).
 - [x] Visionneuse de logs dans le panel pour le suivi technique — implémenté (voir section 12).
 - [x] Gestion dédiée des tags (création/renommage/fusion) avec couleurs, badges, filtres par carnet et outils de nettoyage des doublons.

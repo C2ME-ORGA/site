@@ -68,6 +68,10 @@ class AdminPanelProvider extends PanelProvider
                 fn (): View => view('filament.topbar.inbox'),
             )
             ->renderHook(
+                PanelsRenderHook::USER_MENU_BEFORE,
+                fn (): View => view('filament.topbar.changelog'),
+            )
+            ->renderHook(
                 PanelsRenderHook::HEAD_END,
                 fn (): string => (Vite::isRunningHot() || is_file(public_path('build/manifest.json'))
                     ? (string) Vite::__invoke('resources/js/echo.js')
@@ -77,6 +81,18 @@ class AdminPanelProvider extends PanelProvider
             ->renderHook(
                 PanelsRenderHook::BODY_END,
                 fn (): string => '<script src="/js/c2me-pwa.js" defer></script>',
+            )
+            /*
+             * Changelog Olvy : la configuration doit être déclarée avant le
+             * script externe (chargé en `defer`). Le widget n'est injecté que
+             * pour les utilisateurs connectés, pas sur l'écran de connexion.
+             */
+            ->renderHook(
+                PanelsRenderHook::HEAD_END,
+                fn (): string => auth()->check()
+                    ? '<script>var OlvyConfig = { workspaceAlias: "c2meapp" };</script>'
+                        .'<script type="text/javascript" src="https://app.olvy.co/scriptV3.js" defer></script>'
+                    : '',
             )
             ->navigationItems([
                 NavigationItem::make('Mode terrain')
