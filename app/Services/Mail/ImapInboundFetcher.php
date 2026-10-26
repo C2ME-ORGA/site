@@ -17,9 +17,9 @@ use Webklex\PHPIMAP\Message;
 class ImapInboundFetcher implements InboundFetcher
 {
     /**
-     * @return list<InboundEmail>
+     * @return iterable<int, InboundEmail>
      */
-    public function fetch(EmailMailbox $mailbox): array
+    public function fetch(EmailMailbox $mailbox): iterable
     {
         $client = $this->client($mailbox);
 
@@ -32,18 +32,24 @@ class ImapInboundFetcher implements InboundFetcher
                 return [];
             }
 
+            $batchSize = max(1, (int) config('crm.email.sync_batch_size', 50));
+
             $messages = $folder->query()
                 ->leaveUnread()
                 ->fetchOrderAsc()
+                ->setFetchBody(false)
+                ->limit($batchSize)
                 ->getByUidGreater((int) ($mailbox->last_uid ?? 0));
 
-            $inbound = [];
+            while ($messages->isNotEmpty()) {
+                $message = $messages->shift();
 
-            foreach ($messages as $message) {
-                $inbound[] = $this->toInbound($message);
+                $message->parseBody();
+
+                yield $this->toInbound($message);
+
+                unset($message);
             }
-
-            return $inbound;
         } finally {
             $client->disconnect();
         }
