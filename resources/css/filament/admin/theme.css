@@ -14,3 +14,20 @@
  * (flex, gap-6, dark:*) qui doivent être générés ici pour être stylés.
  */
 @source '../../../../vendor/gboquizosanchez/filament-log-viewer/resources/views/**/*.blade.php';
+
+/*
+ * Hauteur des graphiques (widgets Chart.js).
+ *
+ * Chart.js redimensionne son canvas d'après la hauteur du conteneur. Filament
+ * observait cette hauteur avec un `ResizeObserver` et rappelait `chart.resize()`
+ * à chaque changement. Sans hauteur explicite, le canvas en `height: 100%`
+ * dans un parent à hauteur automatique se dimensionnait d'après sa propre
+ * hauteur intrinsèque : chaque resize en déclenchait un autre, d'où l'alerte
+ * navigateur « ResizeObserver loop completed with undelivered notifications ».
+ *
+ * Une hauteur fixe rend le redimensionnement idempotent.
+ */
+.fi-wi-chart .fi-wi-chart-frame:not(.fi-wi-chart-frame-no-aspect-ratio) {
+    aspect-ratio: auto;
+    height: 300px;
+}
