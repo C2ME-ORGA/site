@@ -144,3 +144,4 @@
 - [ ] Support OAuth Microsoft 365 / Google Workspace en plus d'IMAP par mot de passe.
 - [ ] Sauvegarde/restauration documentée de la base et des fichiers.
 - [ ] Accessibilité et revue RGPD finale avant mise en production.
+- [ ] Ajouter support Calendrier avec synchronisation/export pour outlook, google calendar, etc...
