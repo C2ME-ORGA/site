@@ -105,6 +105,7 @@ DB_USERNAME="$(printf '%s' "${DB_VALUES[3]}" | base64 -d)"
 DB_PASSWORD="$(printf '%s' "${DB_VALUES[4]}" | base64 -d)"
 unset DB_VALUES
 [[ -n "$DB_DATABASE" && -n "$DB_USERNAME" ]] || { log "Configuration DB incomplète."; exit 1; }
+[[ "$DB_DATABASE" =~ ^[A-Za-z0-9_.-]+$ ]] || { log "Nom de base invalide pour le nom de sauvegarde."; exit 1; }
 
 BACKUP_FILE="$BACKUP_DIR/${DB_DATABASE}_$(date +%Y%m%d-%H%M%S).sql.gz"
 log "Sauvegarde SQL avant migration : $BACKUP_FILE"
@@ -124,11 +125,11 @@ MAINTENANCE=1
 run_www update
 
 log "Redémarrage des processus Supervisor aaPanel C2ME."
-"$SUPERVISORCTL" -c "$SUPERVISOR_CONFIG" restart "$QUEUE_PROGRAM":*
-"$SUPERVISORCTL" -c "$SUPERVISOR_CONFIG" restart "$REVERB_PROGRAM":*
+"$SUPERVISORCTL" -c "$SUPERVISOR_CONFIG" restart "$QUEUE_PROGRAM:*"
+"$SUPERVISORCTL" -c "$SUPERVISOR_CONFIG" restart "$REVERB_PROGRAM:*"
 
 for program in "$QUEUE_PROGRAM" "$REVERB_PROGRAM"; do
-    STATUS="$("$SUPERVISORCTL" -c "$SUPERVISOR_CONFIG" status "$program":*)"
+    STATUS="$("$SUPERVISORCTL" -c "$SUPERVISOR_CONFIG" status "$program:*")"
     printf '%s\n' "$STATUS"
     awk 'NF && $2 != "RUNNING" { failed=1 } END { exit (NR == 0 || failed) }' <<< "$STATUS" || { log "Processus $program non RUNNING."; exit 1; }
 done
