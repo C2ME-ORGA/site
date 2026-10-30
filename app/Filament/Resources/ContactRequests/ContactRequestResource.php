@@ -5,7 +5,9 @@ namespace App\Filament\Resources\ContactRequests;
 use App\Filament\Resources\ContactRequests\Pages\CreateContactRequest;
 use App\Filament\Resources\ContactRequests\Pages\EditContactRequest;
 use App\Filament\Resources\ContactRequests\Pages\ListContactRequests;
+use App\Filament\Resources\ContactRequests\Pages\ViewContactRequest;
 use App\Filament\Resources\ContactRequests\Schemas\ContactRequestForm;
+use App\Filament\Resources\ContactRequests\Schemas\ContactRequestInfolist;
 use App\Filament\Resources\ContactRequests\Tables\ContactRequestsTable;
 use App\Models\ContactRequest;
 use BackedEnum;
@@ -53,6 +55,11 @@ class ContactRequestResource extends Resource
         return ContactRequestForm::configure($schema);
     }
 
+    public static function infolist(Schema $schema): Schema
+    {
+        return ContactRequestInfolist::configure($schema);
+    }
+
     public static function table(Table $table): Table
     {
         return ContactRequestsTable::configure($table);
@@ -70,6 +77,7 @@ class ContactRequestResource extends Resource
         return [
             'index' => ListContactRequests::route('/'),
             'create' => CreateContactRequest::route('/create'),
+            'view' => ViewContactRequest::route('/{record}'),
             'edit' => EditContactRequest::route('/{record}/edit'),
         ];
     }
