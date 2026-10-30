@@ -1,6 +1,6 @@
 # Plan de développement : amélioration du mode terrain
 
-> **État : phases 2 et 3 implémentées (30/10/2026). Phase 4 planifiée.**
+> **État : phases 2, 3 et 4 implémentées (30/10/2026). Plan terminé.**
 > Branche cible : `feature/crm`.
 > Périmètre retenu : priorités 1 et 2, avec photos rattachées aux activités et tournée manuelle.
 > Décisions validées : résolution manuelle des conflits, photos compressées localement puis synchronisées, tournée ordonnée manuellement avec itinéraire Google Maps.
@@ -316,6 +316,8 @@ Réponse par opération :
 
 ### Tests navigateur
 
+Automatisés avec Playwright (`tests/e2e/`) sur une base SQLite dédiée :
+
 - Premier chargement en ligne puis rechargement hors ligne.
 - Création d'activité hors ligne puis synchronisation.
 - Modification de compte hors ligne puis synchronisation.
@@ -324,6 +326,8 @@ Réponse par opération :
 - Session expirée sans perte de file.
 - Photos hors ligne puis upload.
 - Tournée : sélection, ordre, itinéraire.
+- Onglets mobiles, thème persistant et cibles tactiles.
+- Invite PWA et version du cache.
 
 ## 10. Phasage
 
@@ -359,10 +363,12 @@ Réponse par opération :
 
 ### Phase 4 — Finitions
 
-- Refonte mobile et accessibilité.
-- Tests de parcours complets.
-- Documentation `AGENTS.md`.
-- Mise à jour de `TACHES_CRM.md`.
+- Refonte mobile : onglets fixes Comptes / Tournée / Données, en-tête compact, cibles tactiles de 44 px minimum, thème clair/sombre avec bascule manuelle.
+- Accessibilité : lien d'évitement, focus visible, labels ARIA, navigation clavier des onglets, contrastes vérifiés.
+- PWA : invite d'installation personnalisée (report de 14 jours) et version du cache hors ligne affichée dans l'onglet Données.
+- Tests de parcours complets avec Playwright sur une base SQLite dédiée : onglets et thème, hors ligne, création d'activité, conflit, photo, tournée, session expirée, PWA.
+- Documentation `AGENTS.md` et intégration des tests E2E au workflow GitHub Actions.
+- Phase 4 livrée le 30/10/2026. Tests : 290 tests PHP, 8 parcours Playwright (+ authentification).
 
 ## 11. Points de vigilance
 

@@ -17,6 +17,8 @@
         queue: [],
         tour: [],
         tourDate: null,
+        tab: 'accounts',
+        theme: 'light',
         openAccounts: new Set(),
         pending: 0,
         conflicts: 0,
@@ -485,6 +487,13 @@
 
         if (count) {
             count.textContent = `${stops.length} étape(s)`;
+        }
+
+        const badge = $('#tab-tour-badge');
+
+        if (badge) {
+            badge.hidden = stops.length === 0;
+            badge.textContent = String(stops.length);
         }
 
         section.innerHTML = stops.length
@@ -1041,6 +1050,120 @@
         flash.timeout = window.setTimeout(() => toast.classList.remove('toast--visible'), 3500);
     }
 
+    function storedTheme() {
+        try {
+            const value = localStorage.getItem('c2me-field-theme');
+
+            return value === 'light' || value === 'dark' ? value : null;
+        } catch {
+            return null;
+        }
+    }
+
+    function applyTheme(theme, { persist = false } = {}) {
+        const next = theme === 'dark' ? 'dark' : 'light';
+        state.theme = next;
+        document.documentElement.dataset.theme = next;
+
+        const button = $('#theme-toggle');
+
+        if (button) {
+            button.setAttribute('aria-pressed', next === 'dark' ? 'true' : 'false');
+            button.setAttribute('aria-label', next === 'dark' ? 'Passer en mode clair' : 'Passer en mode sombre');
+        }
+
+        const meta = document.querySelector('meta[name="theme-color"]');
+
+        if (meta) {
+            meta.content = next === 'dark' ? '#0b1418' : '#0e8577';
+        }
+
+        if (persist) {
+            try {
+                localStorage.setItem('c2me-field-theme', next);
+            } catch {
+                // Le thème reste appliqué pour la session en cours.
+            }
+        }
+    }
+
+    function initTheme() {
+        applyTheme(document.documentElement.dataset.theme === 'dark' ? 'dark' : 'light');
+
+        const media = window.matchMedia('(prefers-color-scheme: dark)');
+
+        media.addEventListener?.('change', (event) => {
+            if (!storedTheme()) {
+                applyTheme(event.matches ? 'dark' : 'light');
+            }
+        });
+    }
+
+    function syncTabBadges() {
+        const blocked = state.conflicts + state.errors;
+        const accountsBadge = $('#tab-accounts-badge');
+
+        if (accountsBadge) {
+            accountsBadge.hidden = blocked === 0;
+            accountsBadge.textContent = String(blocked);
+        }
+
+        const dataBadge = $('#tab-data-badge');
+        const pending = state.pending + blocked;
+
+        if (dataBadge) {
+            dataBadge.hidden = pending === 0;
+            dataBadge.textContent = String(pending);
+        }
+    }
+
+    function setTab(tab, { focus = false } = {}) {
+        const tabs = $$('.tab');
+        const valid = tabs.some((button) => button.dataset.tab === tab) ? tab : 'accounts';
+        state.tab = valid;
+
+        for (const button of tabs) {
+            const selected = button.dataset.tab === valid;
+            button.setAttribute('aria-selected', selected ? 'true' : 'false');
+            button.tabIndex = selected ? 0 : -1;
+
+            if (selected && focus) {
+                button.focus();
+            }
+        }
+
+        for (const panel of $$('[data-tab-panel]')) {
+            panel.hidden = window.matchMedia('(max-width: 899px)').matches
+                && panel.dataset.tabPanel !== valid;
+        }
+
+        if (valid === 'data') {
+            const panel = $('#data-panel');
+
+            if (panel) {
+                panel.open = true;
+            }
+        }
+
+        try {
+            sessionStorage.setItem('c2me-field-tab', valid);
+        } catch {
+            // La sélection d'onglet n'est pas mémorisée.
+        }
+    }
+
+    function initTab() {
+        let stored = null;
+
+        try {
+            stored = sessionStorage.getItem('c2me-field-tab');
+        } catch {
+            stored = null;
+        }
+
+        setTab(stored ?? 'accounts');
+    }
+
     async function refreshPending() {
         state.queue = await allOps();
         state.pending = state.queue.filter(isPendingOp).length;
@@ -1050,6 +1173,7 @@
         renderStatus();
         renderConflicts();
         renderStorage();
+        syncTabBadges();
     }
 
     function localActivityFromOp(op) {
@@ -2307,7 +2431,11 @@
 
             const linkedOp = (opId) => state.queue.find((item) => item.op_id === opId);
 
-            if (target.dataset.saveActivity) {
+            if (target.dataset.tab) {
+                setTab(target.dataset.tab);
+            } else if (target.id === 'theme-toggle') {
+                applyTheme(state.theme === 'dark' ? 'light' : 'dark', { persist: true });
+            } else if (target.dataset.saveActivity) {
                 await saveActivity(Number(target.dataset.saveActivity));
             } else if (target.dataset.editAccount) {
                 state.editAccountId = Number(target.dataset.editAccount);
@@ -2432,6 +2560,35 @@
             }
         });
 
+        $('#tabbar').addEventListener('keydown', (event) => {
+            const tabs = $$('.tab');
+            const index = tabs.indexOf(document.activeElement);
+            let next = null;
+
+            if (index < 0) {
+                return;
+            }
+
+            if (event.key === 'ArrowRight') {
+                next = tabs[(index + 1) % tabs.length];
+            } else if (event.key === 'ArrowLeft') {
+                next = tabs[(index - 1 + tabs.length) % tabs.length];
+            } else if (event.key === 'Home') {
+                next = tabs[0];
+            } else if (event.key === 'End') {
+                next = tabs[tabs.length - 1];
+            }
+
+            if (next) {
+                event.preventDefault();
+                setTab(next.dataset.tab, { focus: true });
+            }
+        });
+
+        window.matchMedia('(max-width: 899px)').addEventListener?.('change', () => {
+            setTab(state.tab);
+        });
+
         $('#search').addEventListener('input', (event) => {
             state.search = event.target.value;
             render();
@@ -2512,6 +2669,8 @@
         state.photos = await allPhotos();
         await applyQueueToState();
         await loadTour();
+        initTheme();
+        initTab();
         await refreshPending();
         populateFilters();
         bindEvents();

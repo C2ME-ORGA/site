@@ -76,10 +76,13 @@
 > Phase 3 livrée le 30/10/2026 : photos rattachées aux activités (compression JPEG locale, stockage IndexedDB en Blob, upload différé idempotent, 5 photos / 5 Mo maximum), galerie dans `/terrain` et dans la fiche activité Filament, stockage privé purgé avec l'activité et à la rétention ; tournée du jour persistée avec ordre manuel, réinitialisation automatique au changement de date et itinéraires Google Maps par tronçons de 10 étapes. Tests : `FieldAttachmentTest` (11 tests).
 
 **Priorité 4 — ergonomie mobile et qualité**
-- [ ] Refonte mobile : cibles tactiles ≥ 44 px, navigation par onglets, en-tête compact, mode sombre vérifié.
-- [ ] Installation PWA guidée (invite, icônes, écran de démarrage) et indicateur de version du cache.
-- [ ] Accessibilité : contrastes, focus, labels ARIA, navigation clavier.
-- [ ] Tests : snapshot (scoping admin/commercial), conflits, reprise après erreur, quota IndexedDB, parcours hors ligne.
+- [x] Refonte mobile : cibles tactiles ≥ 44 px, navigation par onglets, en-tête compact, thème clair/sombre avec bascule manuelle.
+- [x] Installation PWA guidée (invite personnalisée, report de 14 jours) et indicateur de version du cache.
+- [x] Accessibilité : contrastes, focus visible, labels ARIA, lien d'évitement, navigation clavier des onglets.
+- [x] Tests PHP et Playwright : snapshot (scoping admin/commercial), conflits, reprise après erreur, parcours hors ligne, photos, tournée, session expirée.
+- [ ] Test de quota IndexedDB (simulation de saturation du stockage navigateur).
+
+> Phase 4 livrée le 30/10/2026 : barre d'onglets mobile (Comptes / Tournée / Données) avec badges, en-tête compact, thème clair/sombre persistant, invite d'installation PWA, version du cache hors ligne, accessibilité (cibles 44 px, focus, ARIA, clavier). Parcours Playwright automatisés sur base SQLite dédiée et intégrés au workflow GitHub Actions. Documentation `AGENTS.md`. Tests : 290 tests PHP, 8 parcours E2E.
 
 ### 8. Relances automatiques
 

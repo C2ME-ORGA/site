@@ -1,4 +1,4 @@
-const VERSION = 'c2me-v4';
+const VERSION = 'c2me-v6';
 const STATIC_CACHE = `${VERSION}-static`;
 const PAGE_CACHE = `${VERSION}-pages`;
 const OFFLINE_URL = '/offline.html';
@@ -32,6 +32,21 @@ self.addEventListener('activate', (event) => {
             await self.clients.claim();
         })(),
     );
+});
+
+self.addEventListener('message', (event) => {
+    if (event.data?.type === 'c2me-version') {
+        const message = { type: 'c2me-version', version: VERSION };
+        const port = event.ports?.[0];
+
+        if (port) {
+            port.postMessage(message);
+
+            return;
+        }
+
+        event.source?.postMessage(message);
+    }
 });
 
 const isCacheableAsset = (pathname) =>
