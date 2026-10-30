@@ -1,0 +1,30 @@
+; Production C2ME — Supervisor aaPanel
+; À installer après validation des chemins et du compte www.
+; Ces programmes sont distincts des groupes préproduction c2mequeue/c2mereverb.
+
+[program:c2meprodqueue]
+process_name=%(program_name)s_%(process_num)02d
+command=/www/server/php/84/bin/php /www/wwwroot/c2me.fr/artisan queue:work --sleep=3 --tries=3 --timeout=90
+directory=/www/wwwroot/c2me.fr
+user=www
+numprocs=1
+autostart=true
+autorestart=true
+stopasgroup=true
+killasgroup=true
+redirect_stderr=true
+stdout_logfile=/www/wwwroot/c2me.fr/storage/logs/queue-worker.log
+stopwaitsecs=100
+
+[program:c2meprodreverb]
+command=/www/server/php/84/bin/php /www/wwwroot/c2me.fr/artisan reverb:start
+directory=/www/wwwroot/c2me.fr
+user=www
+numprocs=1
+autostart=true
+autorestart=true
+stopasgroup=true
+killasgroup=true
+redirect_stderr=true
+stdout_logfile=/www/wwwroot/c2me.fr/storage/logs/reverb.log
+stopwaitsecs=30
