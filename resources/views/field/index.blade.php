@@ -94,6 +94,52 @@
             background: #fff;
         }
 
+        .filters {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr));
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+        }
+
+        select, input[type="text"], input[type="email"], input[type="tel"], input[type="datetime-local"] {
+            width: 100%;
+            padding: 0.55rem 0.65rem;
+            border: 1px solid var(--line);
+            border-radius: 0.5rem;
+            font: inherit;
+            background: #fff;
+            color: var(--ink);
+        }
+
+        .filters label.check {
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+            padding: 0.35rem 0.5rem;
+            font-size: 0.85rem;
+        }
+
+        .quick-actions { display: flex; flex-wrap: wrap; gap: 0.4rem; margin: 0.75rem 0; }
+        .button.small, button.small { padding: 0.3rem 0.55rem; font-size: 0.8rem; }
+
+        .pill--pending { background: #fef3c7; color: #92400e; }
+        .pill--danger { background: #fee2e2; color: #991b1b; }
+        .pill--warning { background: #ffedd5; color: #9a3412; }
+
+        .inline-form {
+            margin: 0.75rem 0;
+            padding: 0.85rem;
+            border: 1px dashed var(--line);
+            border-radius: 0.6rem;
+            background: #fcfdff;
+        }
+
+        .inline-form h3 { margin-top: 0; }
+        .inline-form label { display: block; margin-bottom: 0.55rem; font-size: 0.85rem; color: var(--muted); }
+        .form-actions { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.6rem; }
+        .contact__head { display: flex; align-items: flex-start; justify-content: space-between; gap: 0.75rem; }
+        .contact__head p { margin-bottom: 0; }
+
         .account {
             background: #fff;
             border: 1px solid var(--line);
@@ -176,7 +222,7 @@
         @media (prefers-color-scheme: dark) {
             :root { --bg: #0b1418; --ink: #e2e8f0; --line: #1e2f36; }
             body { background: var(--bg); }
-            header, .summary, .account, .search, textarea { background: #102229; }
+            header, .summary, .account, .search, textarea, select, input, .inline-form { background: #102229; }
             .pill { background: #0b3b39; color: #7fe0d6; }
             .toast { background: #e2e8f0; color: #0b1418; }
         }
@@ -208,6 +254,7 @@
         <div class="summary">
             <span id="count">—</span>
             <span id="last-sync">Jamais synchronisé</span>
+            <span id="priority-summary">—</span>
         </div>
 
         <input
@@ -218,6 +265,32 @@
             autocomplete="off"
         >
 
+        <div class="filters">
+            <select id="filter-book" aria-label="Filtrer par carnet">
+                <option value="">Tous les carnets</option>
+            </select>
+            <select id="filter-status" aria-label="Filtrer par statut">
+                <option value="">Tous les statuts</option>
+            </select>
+            <select id="filter-follow-up" aria-label="Filtrer par relance">
+                <option value="">Toutes les relances</option>
+                <option value="overdue">Relance en retard</option>
+                <option value="today">Relance aujourd’hui</option>
+                <option value="week">Relance sous 7 jours</option>
+                <option value="none">Sans relance</option>
+            </select>
+            <select id="sort" aria-label="Trier les comptes">
+                <option value="priority">Priorité terrain</option>
+                <option value="follow_up">Date de relance</option>
+                <option value="name">Nom</option>
+                <option value="status">Statut</option>
+            </select>
+            <label class="check">
+                <input type="checkbox" id="filter-overdue">
+                Activités en retard
+            </label>
+        </div>
+
         <div id="accounts">
             <p class="empty">Chargement des données locales…</p>
         </div>
@@ -226,6 +299,6 @@
     <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
     <script src="/js/c2me-pwa.js" defer></script>
-    <script src="/js/field-mode.js" defer></script>
+    <script src="/js/field-mode.js?v={{ filemtime(public_path('js/field-mode.js')) }}" defer></script>
 </body>
 </html>

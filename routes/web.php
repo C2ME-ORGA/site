@@ -86,6 +86,7 @@ Route::view('/confidentialite', 'pages.legal.confidentialite')
 Route::middleware('auth')->group(function (): void {
     Route::view('/terrain', 'field.index')->name('field.index');
     Route::get('/terrain/snapshot', [FieldModeController::class, 'snapshot'])->name('field.snapshot');
+    Route::get('/terrain/activities', [FieldModeController::class, 'activities'])->name('field.activities');
     Route::post('/terrain/sync', [FieldModeController::class, 'sync'])->name('field.sync');
 
     Route::get('/emails/attachments/{attachment}', [EmailAttachmentController::class, 'download'])
