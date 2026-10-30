@@ -1,38 +1,107 @@
-name: tests
+name: CI / CD
 
 on:
   push:
     branches:
-      - main
+      - master
   pull_request:
+    branches:
+      - master
 
 permissions:
   contents: read
 
+concurrency:
+  group: c2me-production-deploy
+  cancel-in-progress: false
+
 jobs:
-  ci:
+  tests:
+    name: Tests et contrôles
     runs-on: ubuntu-latest
+    timeout-minutes: 30
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
+      - name: Checkout
+        uses: actions/checkout@v4
 
       - name: Setup PHP
-        uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962 # v2
+        uses: shivammathur/setup-php@v2
         with:
           php-version: '8.4'
           tools: composer:v2
           coverage: none
+          extensions: mbstring, bcmath, curl, dom, fileinfo, intl, pdo_mysql, pdo_sqlite, sqlite3, zip
 
       - name: Setup Node
-        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        uses: actions/setup-node@v4
         with:
-          node-version: '22'
+          node-version-file: .nvmrc
+          cache: npm
 
-      - name: Setup Application
-        run: composer setup
+      - name: Install PHP dependencies
+        run: composer install --no-interaction --prefer-dist
 
-      - name: Run CI Checks
+      - name: Prepare test environment
+        run: |
+          cp .env.example .env
+          php artisan key:generate
+          mkdir -p database
+          touch database/database.sqlite
+        env:
+          DB_CONNECTION: sqlite
+          DB_DATABASE: database/database.sqlite
+
+      - name: Install JavaScript dependencies
+        run: npm ci
+
+      - name: Build frontend
+        run: npm run build
+
+      - name: Run quality checks and tests
         run: composer ci:check
+        env:
+          DB_CONNECTION: sqlite
+          DB_DATABASE: database/database.sqlite
+          CACHE_STORE: file
+          SESSION_DRIVER: file
+          QUEUE_CONNECTION: sync
+
+  deploy:
+    name: Déploiement production OVH
+    runs-on: ubuntu-latest
+    needs: tests
+    if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+    timeout-minutes: 20
+    environment: production
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure SSH
+        env:
+          DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          DEPLOY_KNOWN_HOSTS: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
+        run: |
+          install -m 700 -d ~/.ssh
+          printf '%s\\n' "$DEPLOY_SSH_KEY" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          printf '%s\\n' "$DEPLOY_KNOWN_HOSTS" > ~/.ssh/known_hosts
+          chmod 600 ~/.ssh/known_hosts
+
+      - name: Deploy over SSH
+        env:
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+          DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+          DEPLOY_PORT: ${{ secrets.DEPLOY_PORT }}
+          DEPLOY_PATH: ${{ vars.DEPLOY_PATH }}
+        run: |
+          test -n "$DEPLOY_HOST" || (echo "Secret DEPLOY_HOST manquant" && exit 1)
+          test -n "$DEPLOY_USER" || (echo "Secret DEPLOY_USER manquant" && exit 1)
+          DEPLOY_PORT="${DEPLOY_PORT:-22}"
+          DEPLOY_PATH="${DEPLOY_PATH:-/www/wwwroot/c2me.ovh}"
+          ssh -i ~/.ssh/id_ed25519 -p "$DEPLOY_PORT" \\
+            -o BatchMode=yes -o StrictHostKeyChecking=yes \\
+            "$DEPLOY_USER@$DEPLOY_HOST" \\
+            "cd '$DEPLOY_PATH' && bash scripts/deploy-production.sh"
