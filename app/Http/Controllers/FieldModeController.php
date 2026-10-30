@@ -68,14 +68,14 @@ class FieldModeController extends Controller
      */
     private function deletedAccountIds(User $user, CarbonImmutable $since): array
     {
-        return CrmAccount::query()
+        $ids = CrmAccount::query()
             ->onlyTrashed()
             ->when(! $user->isAdmin(), fn ($query) => $query->where('owner_id', $user->id))
             ->where('deleted_at', '>=', $since)
             ->pluck('id')
-            ->map(fn ($id): int => (int) $id)
-            ->values()
             ->all();
+
+        return array_values(array_map(static fn (mixed $id): int => (int) $id, $ids));
     }
 
     /**
@@ -83,7 +83,7 @@ class FieldModeController extends Controller
      */
     private function deletedContactIds(User $user, CarbonImmutable $since): array
     {
-        return CrmContact::query()
+        $ids = CrmContact::query()
             ->onlyTrashed()
             ->when(! $user->isAdmin(), fn ($query) => $query->whereHas(
                 'account',
@@ -91,9 +91,9 @@ class FieldModeController extends Controller
             ))
             ->where('deleted_at', '>=', $since)
             ->pluck('id')
-            ->map(fn ($id): int => (int) $id)
-            ->values()
             ->all();
+
+        return array_values(array_map(static fn (mixed $id): int => (int) $id, $ids));
     }
 
     public function activities(Request $request): JsonResponse

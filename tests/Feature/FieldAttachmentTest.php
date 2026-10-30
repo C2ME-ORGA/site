@@ -7,6 +7,7 @@ use App\Models\CrmActivity;
 use App\Models\CrmActivityAttachment;
 use App\Models\User;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
@@ -215,7 +216,7 @@ test('la purge des activités supprime aussi les photos', function (): void {
         'size' => 1024,
     ]);
 
-    $this->artisan('crm:purge-activities')->assertSuccessful();
+    $this->assertSame(0, Artisan::call('crm:purge-activities'));
 
     expect(CrmActivity::query()->find($activity->id))->toBeNull()
         ->and(CrmActivityAttachment::query()->count())->toBe(0);

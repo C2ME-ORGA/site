@@ -24,6 +24,7 @@ npm run dev             # Vite
 npm run build           # assets de production
 php artisan migrate
 php artisan test
+composer ci:check      # Pint + PHPStan + Pest, comme la CI
 vendor/bin/pint
 vendor/bin/phpstan analyse --memory-limit=1G
 ```
@@ -124,9 +125,8 @@ Toute évolution de structure impose d'incrémenter `DB_VERSION` dans `field-mod
 
 ## Avant de livrer
 
-1. `php artisan test`
-2. `vendor/bin/pint --test`
-3. `npm run test:e2e` si le mode terrain est touché
-4. `node --check` sur les fichiers JS modifiés
-5. Rafraîchir la preview `/terrain` et vérifier mobile (375–390 px) et desktop, console vide
-6. Mettre à jour `plan_mode_terrain.md` et `TACHES_CRM.md`
+1. `composer ci:check` (Pint + PHPStan level 7 + Pest, commande exacte de la CI)
+2. `npm run test:e2e` si le mode terrain est touché
+3. `node --check` sur les fichiers JS modifiés
+4. Rafraîchir la preview `/terrain` et vérifier mobile (375–390 px) et desktop, console vide
+5. Mettre à jour `plan_mode_terrain.md` et `TACHES_CRM.md`
