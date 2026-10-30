@@ -5,7 +5,9 @@ namespace App\Filament\Resources\QuoteRequests;
 use App\Filament\Resources\QuoteRequests\Pages\CreateQuoteRequest;
 use App\Filament\Resources\QuoteRequests\Pages\EditQuoteRequest;
 use App\Filament\Resources\QuoteRequests\Pages\ListQuoteRequests;
+use App\Filament\Resources\QuoteRequests\Pages\ViewQuoteRequest;
 use App\Filament\Resources\QuoteRequests\Schemas\QuoteRequestForm;
+use App\Filament\Resources\QuoteRequests\Schemas\QuoteRequestInfolist;
 use App\Filament\Resources\QuoteRequests\Tables\QuoteRequestsTable;
 use App\Models\QuoteRequest;
 use BackedEnum;
@@ -54,6 +56,11 @@ class QuoteRequestResource extends Resource
         return QuoteRequestForm::configure($schema);
     }
 
+    public static function infolist(Schema $schema): Schema
+    {
+        return QuoteRequestInfolist::configure($schema);
+    }
+
     public static function table(Table $table): Table
     {
         return QuoteRequestsTable::configure($table);
@@ -67,6 +74,7 @@ class QuoteRequestResource extends Resource
         return [
             'index' => ListQuoteRequests::route('/'),
             'create' => CreateQuoteRequest::route('/create'),
+            'view' => ViewQuoteRequest::route('/{record}'),
             'edit' => EditQuoteRequest::route('/{record}/edit'),
         ];
     }

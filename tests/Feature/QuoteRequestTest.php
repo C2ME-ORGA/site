@@ -128,6 +128,31 @@ test('un administrateur consulte la liste des demandes de devis', function (): v
         ->assertSee('Découpe laser');
 });
 
+test('une demande dispose d une fiche détaillée avec ses actions', function (): void {
+    $quote = makeQuoteRequest();
+
+    $quote->files()->create([
+        'original_name' => 'plan.dxf',
+        'path' => 'quote-requests/plan.dxf',
+        'size' => 2048,
+    ]);
+
+    $this->actingAs(quoteAdminUser())
+        ->get("/admin/quote-requests/{$quote->id}")
+        ->assertOk()
+        ->assertSee('Demande')
+        ->assertSee('Jean Dupont')
+        ->assertSee('Message du client')
+        ->assertSee('Détail de la demande')
+        ->assertSee('Découpe laser')
+        ->assertSee('plan.dxf')
+        ->assertSee('2 Ko')
+        ->assertSee('Répondre')
+        ->assertSee('Convertir en affaire')
+        ->assertSee('Télécharger les plans')
+        ->assertSee('Modifier');
+});
+
 test('une demande peut être ouverte pour modification', function (): void {
     $quote = makeQuoteRequest();
 
