@@ -5,14 +5,19 @@ namespace App\Http\Controllers;
 use App\Enums\CrmActivityType;
 use App\Models\CrmAccount;
 use App\Models\CrmActivity;
+use App\Models\CrmActivityAttachment;
 use App\Models\CrmContact;
 use App\Models\User;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
+use Symfony\Component\HttpFoundation\StreamedResponse;
+use Throwable;
 
 class FieldModeController extends Controller
 {
@@ -20,8 +25,21 @@ class FieldModeController extends Controller
     {
         $user = $this->user($request);
 
+        $data = $request->validate([
+            'updated_since' => ['nullable', 'date'],
+        ]);
+
+        $since = isset($data['updated_since']) ? CarbonImmutable::parse($data['updated_since']) : null;
+        $generatedAt = now();
+
         $accounts = CrmAccount::query()
             ->when(! $user->isAdmin(), fn ($query) => $query->ownedBy($user))
+            ->when($since !== null, fn ($query) => $query->where(
+                fn ($query) => $query
+                    ->where('updated_at', '>=', $since)
+                    ->orWhereHas('contacts', fn ($query) => $query->where('updated_at', '>=', $since))
+                    ->orWhereHas('contacts', fn ($query) => $query->onlyTrashed()->where('deleted_at', '>=', $since)),
+            ))
             ->with([
                 'contacts' => fn ($query) => $query->orderByDesc('is_primary')->orderBy('last_name'),
             ])
@@ -29,14 +47,53 @@ class FieldModeController extends Controller
             ->get();
 
         return response()->json([
-            'generated_at' => now()->toIso8601String(),
+            'generated_at' => $generatedAt->toIso8601String(),
+            'cursor' => $generatedAt->toIso8601String(),
+            'full' => $since === null,
             'accounts' => $accounts->map(fn (CrmAccount $account): array => [
                 ...$this->accountPayload($account),
                 'contacts' => $account->contacts
                     ->map(fn (CrmContact $contact): array => $this->contactPayload($contact))
                     ->values(),
             ])->values(),
+            'deleted' => [
+                'accounts' => $since === null ? [] : $this->deletedAccountIds($user, $since),
+                'contacts' => $since === null ? [] : $this->deletedContactIds($user, $since),
+            ],
         ]);
+    }
+
+    /**
+     * @return list<int>
+     */
+    private function deletedAccountIds(User $user, CarbonImmutable $since): array
+    {
+        $ids = CrmAccount::query()
+            ->onlyTrashed()
+            ->when(! $user->isAdmin(), fn ($query) => $query->where('owner_id', $user->id))
+            ->where('deleted_at', '>=', $since)
+            ->pluck('id')
+            ->all();
+
+        return array_values(array_map(static fn (mixed $id): int => (int) $id, $ids));
+    }
+
+    /**
+     * @return list<int>
+     */
+    private function deletedContactIds(User $user, CarbonImmutable $since): array
+    {
+        $ids = CrmContact::query()
+            ->onlyTrashed()
+            ->when(! $user->isAdmin(), fn ($query) => $query->whereHas(
+                'account',
+                fn ($query) => $query->withTrashed()->where('owner_id', $user->id),
+            ))
+            ->where('deleted_at', '>=', $since)
+            ->pluck('id')
+            ->all();
+
+        return array_values(array_map(static fn (mixed $id): int => (int) $id, $ids));
     }
 
     public function activities(Request $request): JsonResponse
@@ -46,16 +103,20 @@ class FieldModeController extends Controller
         $data = $request->validate([
             'after_id' => ['nullable', 'integer', 'min:0'],
             'limit' => ['nullable', 'integer', 'min:1', 'max:500'],
+            'updated_since' => ['nullable', 'date'],
         ]);
 
         $limit = (int) ($data['limit'] ?? 200);
         $afterId = (int) ($data['after_id'] ?? 0);
+        $since = isset($data['updated_since']) ? CarbonImmutable::parse($data['updated_since']) : null;
 
         $activities = CrmActivity::query()
+            ->with('attachments')
             ->when(! $user->isAdmin(), fn ($query) => $query->whereHas(
                 'account',
                 fn ($query) => $query->where('owner_id', $user->id),
             ))
+            ->when($since !== null, fn ($query) => $query->where('updated_at', '>=', $since))
             ->where('id', '>', $afterId)
             ->orderBy('id')
             ->limit($limit + 1)
@@ -105,6 +166,7 @@ class FieldModeController extends Controller
 
         foreach ($data['activities'] ?? [] as $payload) {
             $activity = CrmActivity::query()
+                ->with('attachments')
                 ->when(! $user->isAdmin(), fn ($query) => $query->forUser($user))
                 ->whereKey($payload['id'])
                 ->first();
@@ -195,6 +257,10 @@ class FieldModeController extends Controller
             $existing = CrmActivity::query()->where('client_uuid', $clientUuid)->first();
 
             if ($existing !== null) {
+                if (Gate::denies('update', $existing)) {
+                    return $this->operationError($opId, ['client_uuid' => ['Identifiant d’activité déjà utilisé.']]);
+                }
+
                 return $this->operationOk($opId, 'activity', $existing, $clientUuid);
             }
         }
@@ -210,6 +276,8 @@ class FieldModeController extends Controller
             'due_at' => isset($data['due_at']) ? CarbonImmutable::parse($data['due_at']) : null,
             'completed_at' => isset($data['completed_at']) ? CarbonImmutable::parse($data['completed_at']) : null,
         ]);
+
+        $activity->setRelation('attachments', collect());
 
         return $this->operationOk($opId, 'activity', $activity, $clientUuid);
     }
@@ -231,12 +299,19 @@ class FieldModeController extends Controller
         }
 
         $activity = CrmActivity::query()
+            ->with('attachments')
             ->when(! $user->isAdmin(), fn ($query) => $query->forUser($user))
             ->whereKey((int) ($operation['entity_id'] ?? 0))
             ->first();
 
         if ($activity === null) {
             return $this->operationError($opId, ['activity' => ['Activité inaccessible.']]);
+        }
+
+        $conflict = $this->conflictResult($opId, 'activity', $activity, $operation['base_updated_at'] ?? null);
+
+        if ($conflict !== null) {
+            return $conflict;
         }
 
         $activity->fill($validator->validated())->save();
@@ -272,6 +347,12 @@ class FieldModeController extends Controller
             return $this->operationError($opId, ['account' => ['Compte inaccessible.']]);
         }
 
+        $conflict = $this->conflictResult($opId, 'account', $account, $operation['base_updated_at'] ?? null);
+
+        if ($conflict !== null) {
+            return $conflict;
+        }
+
         $account->fill($validator->validated())->save();
 
         return $this->operationOk($opId, 'account', $account);
@@ -304,6 +385,12 @@ class FieldModeController extends Controller
             return $this->operationError($opId, ['contact' => ['Contact inaccessible.']]);
         }
 
+        $conflict = $this->conflictResult($opId, 'contact', $contact, $operation['base_updated_at'] ?? null);
+
+        if ($conflict !== null) {
+            return $conflict;
+        }
+
         $contact->fill($validator->validated())->save();
 
         return $this->operationOk($opId, 'contact', $contact);
@@ -314,12 +401,6 @@ class FieldModeController extends Controller
      */
     private function operationOk(string $opId, string $entityType, CrmAccount|CrmActivity|CrmContact $entity, ?string $clientUuid = null): array
     {
-        $server = $entity instanceof CrmActivity
-            ? $this->activityPayload($entity)
-            : ($entity instanceof CrmAccount
-                ? $this->accountPayload($entity)
-                : $this->contactPayload($entity));
-
         return [
             'op_id' => $opId,
             'status' => 'ok',
@@ -327,8 +408,52 @@ class FieldModeController extends Controller
             'entity_id' => $entity->getKey(),
             'client_uuid' => $clientUuid,
             'updated_at' => $entity->updated_at?->toIso8601String(),
-            'server' => $server,
+            'server' => $this->entityPayload($entity),
         ];
+    }
+
+    /**
+     * Détecte une modification concurrente en comparant la version connue du
+     * client (`base_updated_at`) à la version serveur actuelle.
+     *
+     * @return array<string, mixed>|null
+     */
+    private function conflictResult(string $opId, string $entityType, CrmAccount|CrmActivity|CrmContact $entity, mixed $baseUpdatedAt): ?array
+    {
+        if (! is_string($baseUpdatedAt) || $baseUpdatedAt === '' || $entity->updated_at === null) {
+            return null;
+        }
+
+        try {
+            $base = CarbonImmutable::parse($baseUpdatedAt);
+        } catch (Throwable) {
+            return null;
+        }
+
+        if ($base->equalTo($entity->updated_at)) {
+            return null;
+        }
+
+        return [
+            'op_id' => $opId,
+            'status' => 'conflict',
+            'entity_type' => $entityType,
+            'entity_id' => $entity->getKey(),
+            'updated_at' => $entity->updated_at->toIso8601String(),
+            'server' => $this->entityPayload($entity),
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function entityPayload(CrmAccount|CrmActivity|CrmContact $entity): array
+    {
+        return match (true) {
+            $entity instanceof CrmActivity => $this->activityPayload($entity),
+            $entity instanceof CrmAccount => $this->accountPayload($entity),
+            default => $this->contactPayload($entity),
+        };
     }
 
     /**
@@ -411,7 +536,104 @@ class FieldModeController extends Controller
             'completed_at' => $activity->completed_at?->toIso8601String(),
             'is_overdue' => $activity->isOverdue(),
             'updated_at' => $activity->updated_at?->toIso8601String(),
+            'attachments' => $activity->attachments
+                ->map(fn (CrmActivityAttachment $attachment): array => $attachment->payload())
+                ->values(),
         ];
+    }
+
+    /**
+     * Ajoute une photo à une activité. L'identifiant `client_uuid` rend
+     * l'upload idempotent lorsqu'une requête est rejouée hors ligne.
+     */
+    public function storeAttachment(Request $request, CrmActivity $activity): JsonResponse
+    {
+        $this->user($request);
+
+        Gate::authorize('update', $activity);
+
+        $maxSizeKb = (int) config('crm.attachments.max_size_kb', 5 * 1024);
+        $maxCount = (int) config('crm.attachments.max_count', 5);
+        $mimeTypes = (array) config('crm.attachments.mime_types', ['image/jpeg', 'image/png', 'image/webp']);
+
+        $data = $request->validate([
+            'photo' => ['required', 'file', 'mimetypes:'.implode(',', $mimeTypes), 'max:'.$maxSizeKb],
+            'client_uuid' => ['nullable', 'uuid'],
+        ]);
+
+        $clientUuid = isset($data['client_uuid']) ? (string) $data['client_uuid'] : null;
+
+        if ($clientUuid !== null) {
+            $existing = CrmActivityAttachment::query()->where('client_uuid', $clientUuid)->first();
+
+            if ($existing !== null) {
+                abort_if($existing->crm_activity_id !== $activity->id, 409);
+
+                return response()->json(['attachment' => $existing->payload()]);
+            }
+        }
+
+        abort_if($activity->attachments()->count() >= $maxCount, 422, 'Nombre maximum de photos atteint.');
+
+        $photo = $request->file('photo');
+
+        abort_if($photo === null, 422, 'Photo manquante.');
+
+        $extension = match ($photo->getMimeType()) {
+            'image/png' => 'png',
+            'image/webp' => 'webp',
+            default => 'jpg',
+        };
+
+        $directory = trim((string) config('crm.attachments.directory', 'crm-activity-attachments'), '/').'/'.$activity->id;
+        $path = Storage::disk(CrmActivityAttachment::disk())->putFileAs(
+            $directory,
+            $photo,
+            Str::uuid()->toString().'.'.$extension,
+        );
+
+        abort_if($path === false, 500, 'Enregistrement de la photo impossible.');
+
+        try {
+            $attachment = $activity->attachments()->create([
+                'client_uuid' => $clientUuid,
+                'path' => $path,
+                'original_name' => $photo->getClientOriginalName(),
+                'mime_type' => $photo->getMimeType(),
+                'size' => (int) $photo->getSize(),
+            ]);
+        } catch (Throwable $exception) {
+            Storage::disk(CrmActivityAttachment::disk())->delete($path);
+
+            throw $exception;
+        }
+
+        return response()->json(['attachment' => $attachment->payload()], 201);
+    }
+
+    /**
+     * Sert une photo via une route authentifiée, jamais depuis le disque public.
+     */
+    public function showAttachment(Request $request, CrmActivityAttachment $attachment): StreamedResponse
+    {
+        $this->user($request);
+
+        $activity = $attachment->activity;
+
+        abort_if($activity === null, 404);
+
+        Gate::authorize('view', $activity);
+
+        abort_unless(Storage::disk(CrmActivityAttachment::disk())->exists($attachment->path), 404);
+
+        return Storage::disk(CrmActivityAttachment::disk())->response(
+            $attachment->path,
+            $attachment->original_name,
+            [
+                'Content-Type' => $attachment->mime_type ?? 'application/octet-stream',
+                'Cache-Control' => 'private, max-age=3600',
+            ],
+        );
     }
 
     private function user(Request $request): User

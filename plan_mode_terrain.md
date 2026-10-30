@@ -1,6 +1,6 @@
 # Plan de développement : amélioration du mode terrain
 
-> **État : phase 1 implémentée (30/10/2026). Phases 2 à 4 planifiées.**
+> **État : phases 2, 3 et 4 implémentées (30/10/2026). Plan terminé.**
 > Branche cible : `feature/crm`.
 > Périmètre retenu : priorités 1 et 2, avec photos rattachées aux activités et tournée manuelle.
 > Décisions validées : résolution manuelle des conflits, photos compressées localement puis synchronisées, tournée ordonnée manuellement avec itinéraire Google Maps.
@@ -270,12 +270,12 @@ Réponse par opération :
 
 ### 6.5 Tournée du jour
 
-- Cases de sélection sur les comptes.
-- Liste ordonnée.
-- Boutons monter/descendre.
-- Bouton « Ouvrir l'itinéraire ».
+- Bouton « Ajouter à la tournée » sur chaque compte.
+- Liste ordonnée avec numéro d'étape.
+- Boutons monter/descendre et retrait.
+- Un bouton d'itinéraire Google Maps par tronçon de 10 étapes maximum.
 - Réinitialisation explicite.
-- Conservation de la sélection pour la journée.
+- Conservation de la sélection pour la journée, remise à zéro automatique au changement de date.
 
 ## 7. Gestion du cache
 
@@ -316,6 +316,8 @@ Réponse par opération :
 
 ### Tests navigateur
 
+Automatisés avec Playwright (`tests/e2e/`) sur une base SQLite dédiée :
+
 - Premier chargement en ligne puis rechargement hors ligne.
 - Création d'activité hors ligne puis synchronisation.
 - Modification de compte hors ligne puis synchronisation.
@@ -324,6 +326,8 @@ Réponse par opération :
 - Session expirée sans perte de file.
 - Photos hors ligne puis upload.
 - Tournée : sélection, ordre, itinéraire.
+- Onglets mobiles, thème persistant et cibles tactiles.
+- Invite PWA et version du cache.
 
 ## 10. Phasage
 
@@ -348,18 +352,23 @@ Réponse par opération :
 
 ### Phase 3 — Photos et tournée
 
-- Table `crm_activity_attachments`.
-- Compression et stockage local.
-- Upload différé.
-- Affichage authentifié.
-- Tournée manuelle et itinéraire Google Maps.
+- Table `crm_activity_attachments` (disque privé, `client_uuid` unique, purge avec l'activité et à la rétention).
+- Compression navigateur (JPEG, 1600 px max) et stockage IndexedDB en Blob.
+- Upload différé idempotent, 5 photos maximum par activité, 5 Mo maximum par photo après compression.
+- Galerie dans `/terrain` (photos serveur + photos locales en attente) et relation manager lecture seule dans la fiche activité Filament.
+- Routes authentifiées `POST /terrain/activities/{activity}/attachments` et `GET /terrain/attachments/{attachment}`, avec limitation de débit.
+- Tournée manuelle persistée dans IndexedDB : ajout, ordre, retrait, réinitialisation, découpage en itinéraires de 10 étapes pour Google Maps.
+- Réinitialisation automatique de la tournée au changement de jour.
+- Phase 3 livrée le 30/10/2026. Tests : `FieldAttachmentTest` (11 tests).
 
 ### Phase 4 — Finitions
 
-- Refonte mobile et accessibilité.
-- Tests de parcours complets.
-- Documentation `AGENTS.md`.
-- Mise à jour de `TACHES_CRM.md`.
+- Refonte mobile : onglets fixes Comptes / Tournée / Données, en-tête compact, cibles tactiles de 44 px minimum, thème clair/sombre avec bascule manuelle.
+- Accessibilité : lien d'évitement, focus visible, labels ARIA, navigation clavier des onglets, contrastes vérifiés.
+- PWA : invite d'installation personnalisée (report de 14 jours) et version du cache hors ligne affichée dans l'onglet Données.
+- Tests de parcours complets avec Playwright sur une base SQLite dédiée : onglets et thème, hors ligne, création d'activité, conflit, photo, tournée, session expirée, PWA.
+- Documentation `AGENTS.md` et intégration des tests E2E au workflow GitHub Actions.
+- Phase 4 livrée le 30/10/2026. Tests : 290 tests PHP, 8 parcours Playwright (+ authentification).
 
 ## 11. Points de vigilance
 

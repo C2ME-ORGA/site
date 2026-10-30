@@ -87,7 +87,14 @@ Route::middleware('auth')->group(function (): void {
     Route::view('/terrain', 'field.index')->name('field.index');
     Route::get('/terrain/snapshot', [FieldModeController::class, 'snapshot'])->name('field.snapshot');
     Route::get('/terrain/activities', [FieldModeController::class, 'activities'])->name('field.activities');
-    Route::post('/terrain/sync', [FieldModeController::class, 'sync'])->name('field.sync');
+    Route::post('/terrain/sync', [FieldModeController::class, 'sync'])
+        ->middleware('throttle:120,1')
+        ->name('field.sync');
+    Route::post('/terrain/activities/{activity}/attachments', [FieldModeController::class, 'storeAttachment'])
+        ->middleware('throttle:30,1')
+        ->name('field.attachments.store');
+    Route::get('/terrain/attachments/{attachment}', [FieldModeController::class, 'showAttachment'])
+        ->name('field.attachments.show');
 
     Route::get('/emails/attachments/{attachment}', [EmailAttachmentController::class, 'download'])
         ->name('emails.attachments.download');

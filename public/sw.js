@@ -1,4 +1,4 @@
-const VERSION = 'c2me-v2';
+const VERSION = 'c2me-v6';
 const STATIC_CACHE = `${VERSION}-static`;
 const PAGE_CACHE = `${VERSION}-pages`;
 const OFFLINE_URL = '/offline.html';
@@ -34,6 +34,21 @@ self.addEventListener('activate', (event) => {
     );
 });
 
+self.addEventListener('message', (event) => {
+    if (event.data?.type === 'c2me-version') {
+        const message = { type: 'c2me-version', version: VERSION };
+        const port = event.ports?.[0];
+
+        if (port) {
+            port.postMessage(message);
+
+            return;
+        }
+
+        event.source?.postMessage(message);
+    }
+});
+
 const isCacheableAsset = (pathname) =>
     pathname.startsWith('/build/') ||
     pathname.startsWith('/css/') ||
@@ -44,6 +59,7 @@ const isCacheableAsset = (pathname) =>
 const isApiRequest = (pathname) =>
     pathname.startsWith('/terrain/snapshot') ||
     pathname.startsWith('/terrain/activities') ||
+    pathname.startsWith('/terrain/attachments') ||
     pathname.startsWith('/terrain/sync');
 
 self.addEventListener('fetch', (event) => {

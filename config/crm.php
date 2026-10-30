@@ -149,6 +149,25 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Photos d'activité (mode terrain)
+    |--------------------------------------------------------------------------
+    |
+    | Les photos sont compressées côté navigateur puis stockées sur un disque
+    | privé. Elles ne sont servies qu'à travers une route authentifiée et sont
+    | supprimées avec l'activité ou lors de la purge de rétention.
+    |
+    */
+
+    'attachments' => [
+        'disk' => env('CRM_ATTACHMENT_DISK', 'local'),
+        'directory' => 'crm-activity-attachments',
+        'max_count' => 5,
+        'max_size_kb' => 5 * 1024,
+        'mime_types' => ['image/jpeg', 'image/png', 'image/webp'],
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Calendrier et relances
     |--------------------------------------------------------------------------
     */

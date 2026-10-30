@@ -35,7 +35,13 @@ yarn-error.log
 /.kiro
 /.pi
 /.mcp.json
-/AGENTS.md
+/database/e2e.sqlite
+/database/e2e.sqlite-journal
+/playwright-report
+/test-results
+/blob-report
+/tests/e2e/.auth
+/storage/app/private/crm-activity-attachments
 /CLAUDE.md
 /boost.json
 /opencode.json
