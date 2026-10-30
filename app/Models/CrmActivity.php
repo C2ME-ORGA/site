@@ -12,6 +12,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /**
  * @property int $id
+ * @property string|null $client_uuid
  * @property int|null $crm_account_id
  * @property int|null $crm_contact_id
  * @property int|null $crm_opportunity_id
@@ -36,6 +37,7 @@ class CrmActivity extends Model
      * @var list<string>
      */
     protected $fillable = [
+        'client_uuid',
         'crm_account_id',
         'crm_contact_id',
         'crm_opportunity_id',

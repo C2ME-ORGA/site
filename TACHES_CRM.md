@@ -42,17 +42,22 @@
 ### 7. Amélioration du mode terrain (`/terrain`)
 
 > Constat : le mode terrain actuel permet surtout de consulter un snapshot en lecture seule et de modifier le compte rendu / le statut des activités existantes. Les fiches ne sont pas éditables, aucune création n'est possible, et la synchronisation est en « dernier écrivain gagne ».
+>
+> Plan détaillé : [plan_mode_terrain.md](plan_mode_terrain.md). Décisions retenues : priorités 1 et 2, résolution manuelle des conflits, photos rattachées aux activités, tournée manuelle avec itinéraire Google Maps.
 
 **Priorité 1 — usage quotidien sur le terrain**
-- [ ] Créer une activité depuis le terrain (appel, visite, note, tâche) avec échéance et rattachement au compte/contact.
-- [ ] Éditer hors ligne les coordonnées du compte et des contacts (téléphone, e-mail, adresse, notes) avec file de synchronisation.
-- [ ] Actions rapides : appeler, envoyer un SMS, écrire un e-mail, ouvrir l'adresse dans Plans.
-- [ ] Trier et filtrer par carnet, statut, relance à venir et activités en retard ; tri par date de relance ou distance.
-- [ ] Mettre en tête de liste les activités du jour et les retards.
+- [x] Créer une activité depuis le terrain (appel, visite, note, tâche) avec échéance et rattachement au compte/contact.
+- [x] Éditer hors ligne les coordonnées du compte et des contacts (téléphone, e-mail, adresse, notes) avec file de synchronisation.
+- [x] Actions rapides : appeler, envoyer un SMS, écrire un e-mail, ouvrir l'adresse dans Plans.
+- [x] Trier et filtrer par carnet, statut, relance à venir et activités en retard ; tri par date de relance ou nom.
+- [x] Mettre en tête de liste les activités du jour et les retards via le tri « Priorité terrain ».
+
+> Phase 1 livrée le 30/10/2026 : snapshot v2 (comptes/contacts séparés des activités), endpoint paginé des activités, file d'opérations IndexedDB, `client_uuid` idempotent, création d'activité et édition compte/contact hors ligne, actions rapides, filtres et tri prioritaire. Tests : `FieldModeTest` (13 tests).
 
 **Priorité 2 — fiabilité de la synchronisation**
 - [ ] Détecter les conflits : exploiter `base_updated_at` (envoyé mais actuellement ignoré) et signaler les modifications concurrentes.
-- [ ] Synchronisation incrémentale (`updated_since`) au lieu de recharger tout le snapshot ; supprimer la limite arbitraire de 50 activités par compte.
+- [ ] Synchronisation incrémentale (`updated_since`) au lieu de recharger tout le snapshot.
+- [x] Suppression de la limite arbitraire de 50 activités par compte via l'endpoint paginé `/terrain/activities`.
 - [ ] Reprise automatique (retry avec backoff) et conservation des erreurs de synchronisation par élément.
 - [ ] Gérer l'expiration de session hors ligne : conserver le snapshot et la file sans perte, puis reconnecter.
 - [ ] Bouton « Vider le cache » avec confirmation et affichage de l'espace utilisé.
