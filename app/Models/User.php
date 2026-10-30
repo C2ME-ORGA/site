@@ -132,6 +132,17 @@ class User extends Authenticatable implements FilamentUser
     }
 
     /**
+     * Identifiant pseudonyme et stable utilisé dans les chemins de stockage.
+     *
+     * L'identifiant numérique reste interne : le HMAC évite d'exposer l'ordre
+     * de création des comptes dans les URLs de fichiers.
+     */
+    public function storageKey(): string
+    {
+        return substr(hash_hmac('sha256', 'storage:'.$this->getKey(), (string) config('app.key')), 0, 32);
+    }
+
+    /**
      * Canal privé utilisé par Filament pour les notifications temps réel.
      */
     public function receivesBroadcastNotificationsOn(?Notification $notification = null): string

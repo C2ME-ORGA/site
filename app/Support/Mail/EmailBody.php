@@ -73,7 +73,7 @@ class EmailBody
                     return $matches[0];
                 }
 
-                return $matches[1].'='.$matches[2].e(url($url)).$matches[2];
+                return $matches[1].'='.$matches[2].url($url).$matches[2];
             },
             $html,
         ) ?? $html;

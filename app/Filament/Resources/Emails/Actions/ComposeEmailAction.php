@@ -16,6 +16,7 @@ use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Notifications\Notification;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Str;
 
 class ComposeEmailAction
 {
@@ -98,7 +99,11 @@ class ComposeEmailAction
                     ->label('Message')
                     ->default($body)
                     ->fileAttachmentsDisk('public')
-                    ->fileAttachmentsDirectory(fn (): string => 'mail-body/'.(auth()->id() ?? 'partage'))
+                    ->fileAttachmentsDirectory(function (): string {
+                        $user = auth()->user();
+
+                        return 'mail-body/'.($user instanceof User ? $user->storageKey() : 'partage');
+                    })
                     ->fileAttachmentsVisibility('public')
                     ->fileAttachmentsAcceptedFileTypes(['image/jpeg', 'image/png', 'image/gif', 'image/webp'])
                     ->fileAttachmentsMaxSize(10240)
@@ -119,7 +124,7 @@ class ComposeEmailAction
                     $mailbox,
                     self::emails((string) $data['to']),
                     (string) $data['subject'],
-                    EmailBody::absoluteUrls((string) $data['body']),
+                    EmailBody::absoluteUrls(Str::sanitizeHtml((string) $data['body'])),
                     self::emails((string) ($data['cc'] ?? '')),
                     $replyTo?->message_id,
                     $account?->id,
@@ -194,7 +199,7 @@ class ComposeEmailAction
             return null;
         }
 
-        $signature = trim((string) $user->email_signature);
+        $signature = trim(Str::sanitizeHtml((string) $user->email_signature));
 
         return $signature === '' ? null : $signature;
     }

@@ -3,11 +3,13 @@
 use App\Enums\UserRole;
 use App\Filament\Pages\EditProfile;
 use App\Filament\Resources\Emails\Pages\ViewEmailMessage;
+use App\Mail\OutboundMail;
 use App\Models\EmailMessage;
 use App\Models\User;
 use App\Support\Mail\EmailBody;
 use Filament\Facades\Filament;
 use Filament\Forms\Components\RichEditor;
+use Illuminate\Support\Facades\Mail;
 use Livewire\Livewire;
 
 /**
@@ -69,7 +71,7 @@ test('les images de signature sont limitées aux images et isolées par utilisat
         throw new RuntimeException('Le champ de signature n’est pas un éditeur enrichi.');
     }
 
-    expect($component->getFileAttachmentsDirectory())->toBe('email-signatures/'.$user->id)
+    expect($component->getFileAttachmentsDirectory())->toBe('email-signatures/'.$user->storageKey())
         ->and($component->getFileAttachmentsAcceptedFileTypes())->toBe([
             'image/jpeg',
             'image/png',
@@ -122,7 +124,7 @@ test('les images du corps sont limitées aux images et isolées par utilisateur'
         throw new RuntimeException('Le corps du message n’est pas un éditeur enrichi.');
     }
 
-    expect($component->getFileAttachmentsDirectory())->toBe('mail-body/'.$user->id)
+    expect($component->getFileAttachmentsDirectory())->toBe('mail-body/'.$user->storageKey())
         ->and($component->getFileAttachmentsAcceptedFileTypes())->toBe([
             'image/jpeg',
             'image/png',
@@ -178,6 +180,7 @@ test('sans signature le corps du message reste inchangé', function (): void {
 test('les images et liens relatifs deviennent absolus pour l’envoi', function (): void {
     $html = '<p><img src="/storage/email-signatures/logo.png" alt="C2ME"></p>'
         .'<p><a href="/contact">Nous contacter</a></p>'
+        .'<p><a href="/contact?source=signature&lang=fr">Contact FR</a></p>'
         .'<p><a href="https://c2me.fr">Site</a></p>';
 
     $result = EmailBody::absoluteUrls($html);
@@ -185,5 +188,48 @@ test('les images et liens relatifs deviennent absolus pour l’envoi', function 
     expect($result)
         ->toContain('src="'.url('/storage/email-signatures/logo.png').'"')
         ->toContain('href="'.url('/contact').'"')
+        ->toContain('href="'.url('/contact?source=signature&lang=fr').'"')
+        ->not->toContain('&amp;lang=fr')
         ->toContain('href="https://c2me.fr"');
+});
+
+test('la signature est nettoyée avant le préremplissage', function (): void {
+    $user = signatureUser('<p>Camille Martin</p><script>alert("signature")</script>');
+    $message = signatureMessage();
+
+    Livewire::actingAs($user)
+        ->test(ViewEmailMessage::class, ['record' => $message->id])
+        ->mountAction('compose')
+        ->assertSchemaStateSet([
+            'body' => '<p>Camille Martin</p>',
+        ]);
+});
+
+test('le corps est nettoyé avant l’envoi', function (): void {
+    Mail::fake();
+
+    $user = signatureUser();
+    $message = signatureMessage();
+
+    Livewire::actingAs($user)
+        ->test(ViewEmailMessage::class, ['record' => $message->id])
+        ->callAction('compose', [
+            'mailbox_id' => $message->email_mailbox_id,
+            'to' => 'client@test.local',
+            'subject' => 'Test de nettoyage',
+            'body' => '<p>Bonjour</p><script>alert("corps")</script><img src=x onerror=alert("image")>',
+            'cc' => '',
+        ])
+        ->assertHasNoErrors();
+
+    $mail = Mail::sent(OutboundMail::class)->first();
+
+    if (! $mail instanceof OutboundMail) {
+        throw new RuntimeException('Aucun e-mail n’a été envoyé.');
+    }
+
+    expect($mail->body)
+        ->toContain('<p>Bonjour</p>')
+        ->not->toContain('<script')
+        ->not->toContain('onerror');
 });

@@ -2,6 +2,7 @@
 
 namespace App\Filament\Pages;
 
+use App\Models\User;
 use Filament\Auth\Pages\EditProfile as BaseEditProfile;
 use Filament\Forms\Components\RichEditor;
 use Filament\Schemas\Schema;
@@ -30,7 +31,11 @@ class EditProfile extends BaseEditProfile
                     ->label('Signature e-mail')
                     ->helperText('Ajoutée automatiquement aux nouveaux messages et aux réponses. Vous pouvez la mettre en forme et y insérer des images.')
                     ->fileAttachmentsDisk('public')
-                    ->fileAttachmentsDirectory(fn (): string => 'email-signatures/'.(auth()->id() ?? 'partage'))
+                    ->fileAttachmentsDirectory(function (): string {
+                        $user = auth()->user();
+
+                        return 'email-signatures/'.($user instanceof User ? $user->storageKey() : 'partage');
+                    })
                     ->fileAttachmentsVisibility('public')
                     ->fileAttachmentsAcceptedFileTypes(['image/jpeg', 'image/png', 'image/gif', 'image/webp'])
                     ->fileAttachmentsMaxSize(5120)
