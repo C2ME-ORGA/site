@@ -22,11 +22,13 @@ jobs:
     timeout-minutes: 30
 
     steps:
-      - name: Validate deployment shell scripts
-        run: bash -n scripts/deploy-production-root.sh scripts/deploy-production-app.sh scripts/deploy-production.sh deploy.sh
-
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Validate deployment shell scripts
+        run: bash -n scripts/deploy-production-root.sh scripts/deploy-production-app.sh scripts/deploy-production.sh deploy.sh
 
       - name: Setup PHP
         uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962 # v2
@@ -42,18 +44,20 @@ jobs:
           node-version-file: .nvmrc
           cache: npm
 
-      - name: Install PHP dependencies
-        run: composer install --no-interaction --prefer-dist
-
       - name: Prepare test environment
         run: |
           cp .env.example .env
-          php artisan key:generate
           mkdir -p database
           touch database/database.sqlite
         env:
           DB_CONNECTION: sqlite
           DB_DATABASE: database/database.sqlite
+
+      - name: Install PHP dependencies
+        run: composer install --no-interaction --prefer-dist
+
+      - name: Generate application key
+        run: php artisan key:generate --force
 
       - name: Install JavaScript dependencies
         run: npm ci
