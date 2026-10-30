@@ -77,7 +77,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Configure SSH
         env:
@@ -101,7 +101,4 @@ jobs:
           test -n "$DEPLOY_USER" || (echo "Secret DEPLOY_USER manquant" && exit 1)
           DEPLOY_PORT="${DEPLOY_PORT:-22}"
           DEPLOY_PATH="${DEPLOY_PATH:-/www/wwwroot/c2me.ovh}"
-          ssh -i ~/.ssh/id_ed25519 -p "$DEPLOY_PORT" \\
-            -o BatchMode=yes -o StrictHostKeyChecking=yes \\
-            "$DEPLOY_USER@$DEPLOY_HOST" \\
-            "cd '$DEPLOY_PATH' && bash scripts/deploy-production.sh"
+          ssh -i ~/.ssh/id_ed25519 -p "$DEPLOY_PORT" -o BatchMode=yes -o StrictHostKeyChecking=yes "$DEPLOY_USER@$DEPLOY_HOST" "cd '$DEPLOY_PATH' && bash scripts/deploy-production.sh"
