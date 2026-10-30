@@ -2,6 +2,15 @@
 
 use App\Enums\QuoteKind;
 
+test('les formulaires publics ne passent pas de syntaxe PHP aux directives Alpine', function (): void {
+    foreach ([route('contact'), route('quote.laser'), route('quote.building')] as $url) {
+        $this->get($url)
+            ->assertOk()
+            ->assertDontSee(':class="$errors->has', false)
+            ->assertDontSee('$errors->has', false);
+    }
+});
+
 test('la page devis présente les deux parcours', function (): void {
     $this->get(route('quote'))
         ->assertOk()

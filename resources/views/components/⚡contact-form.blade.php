@@ -193,8 +193,10 @@ new class extends Component
                         type="text"
                         wire:model="name"
                         autocomplete="name"
-                        class="w-full rounded-lg border border-mist-300 bg-white px-4 py-3 text-sm text-ink-900 transition placeholder:text-ink-700/40 focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-500/20"
-                        :class="$errors->has('name') ? 'border-red-400' : ''"
+                        @class([
+                            'w-full rounded-lg border border-mist-300 bg-white px-4 py-3 text-sm text-ink-900 transition placeholder:text-ink-700/40 focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-500/20',
+                            'border-red-400' => $errors->has('name'),
+                        ])
                         placeholder="Jean Dupont"
                     >
                     @error('name')
@@ -227,8 +229,10 @@ new class extends Component
                         type="email"
                         wire:model="email"
                         autocomplete="email"
-                        class="w-full rounded-lg border border-mist-300 bg-white px-4 py-3 text-sm text-ink-900 transition placeholder:text-ink-700/40 focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-500/20"
-                        :class="$errors->has('email') ? 'border-red-400' : ''"
+                        @class([
+                            'w-full rounded-lg border border-mist-300 bg-white px-4 py-3 text-sm text-ink-900 transition placeholder:text-ink-700/40 focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-500/20',
+                            'border-red-400' => $errors->has('email'),
+                        ])
                         placeholder="vous@exemple.fr"
                     >
                     @error('email')
@@ -258,8 +262,10 @@ new class extends Component
                 <select
                     id="contact-type"
                     wire:model="requestType"
-                    class="w-full appearance-none rounded-lg border border-mist-300 bg-white px-4 py-3 text-sm text-ink-900 transition focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-500/20"
-                    :class="$errors->has('requestType') ? 'border-red-400' : ''"
+                    @class([
+                        'w-full appearance-none rounded-lg border border-mist-300 bg-white px-4 py-3 text-sm text-ink-900 transition focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-500/20',
+                        'border-red-400' => $errors->has('requestType'),
+                    ])
                 >
                     <option value="">Sélectionnez un domaine</option>
                     @foreach (self::requestTypes() as $type)
@@ -279,8 +285,10 @@ new class extends Component
                     id="contact-message"
                     wire:model="message"
                     rows="6"
-                    class="w-full resize-y rounded-lg border border-mist-300 bg-white px-4 py-3 text-sm text-ink-900 transition placeholder:text-ink-700/40 focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-500/20"
-                    :class="$errors->has('message') ? 'border-red-400' : ''"
+                    @class([
+                        'w-full resize-y rounded-lg border border-mist-300 bg-white px-4 py-3 text-sm text-ink-900 transition placeholder:text-ink-700/40 focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-500/20',
+                        'border-red-400' => $errors->has('message'),
+                    ])
                     placeholder="Décrivez votre projet, les quantités, les délais souhaités…"
                 ></textarea>
                 @error('message')
