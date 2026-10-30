@@ -12,8 +12,9 @@ on:
 permissions:
   contents: read
 
+# Un seul déploiement à la fois sur le serveur OVH partagé.
 concurrency:
-  group: c2me-production-deploy
+  group: c2me-server-deployment
   cancel-in-progress: false
 
 jobs:
@@ -76,12 +77,13 @@ jobs:
           QUEUE_CONNECTION: sync
 
   deploy:
-    name: Déploiement production OVH
+    name: Déploiement ${{ github.ref == 'refs/heads/master' && 'préproduction' || 'production' }}
     runs-on: ubuntu-latest
     needs: tests
-    if: github.event_name == 'push' && github.ref == 'refs/heads/production'
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/master' || github.ref == 'refs/heads/production')
     timeout-minutes: 25
-    environment: production
+    environment:
+      name: ${{ github.ref == 'refs/heads/master' && 'preproduction' || 'production' }}
 
     steps:
       - name: Install sshpass
@@ -96,6 +98,7 @@ jobs:
           DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
           DEPLOY_PORT: ${{ secrets.DEPLOY_PORT }}
           DEPLOY_KNOWN_HOSTS: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
+          DEPLOY_TARGET: ${{ github.ref == 'refs/heads/master' && 'preproduction' || 'production' }}
         run: |
           set -euo pipefail
           test -n "$SSHPASS" || { echo "Secret DEPLOY_PASSWORD manquant"; exit 1; }
@@ -105,16 +108,16 @@ jobs:
           test -n "$DEPLOY_KNOWN_HOSTS" || { echo "Secret DEPLOY_KNOWN_HOSTS manquant"; exit 1; }
 
           install -m 700 -d ~/.ssh
-          printf '%s\n' "$DEPLOY_KNOWN_HOSTS" > ~/.ssh/known_hosts
+          printf '%s\\n' "$DEPLOY_KNOWN_HOSTS" > ~/.ssh/known_hosts
           chmod 600 ~/.ssh/known_hosts
 
           DEPLOY_PORT="${DEPLOY_PORT:-22}"
-          sshpass -e ssh \
-            -p "$DEPLOY_PORT" \
-            -o PreferredAuthentications=password \
-            -o PubkeyAuthentication=no \
-            -o BatchMode=no \
-            -o StrictHostKeyChecking=yes \
-            -o ConnectTimeout=15 \
-            "$DEPLOY_USER@$DEPLOY_HOST" \
-            "sudo -n /usr/local/sbin/c2me-deploy"
+          sshpass -e ssh \\
+            -p "$DEPLOY_PORT" \\
+            -o PreferredAuthentications=password \\
+            -o PubkeyAuthentication=no \\
+            -o BatchMode=no \\
+            -o StrictHostKeyChecking=yes \\
+            -o ConnectTimeout=15 \\
+            "$DEPLOY_USER@$DEPLOY_HOST" \\
+            "sudo -n /usr/local/sbin/c2me-deploy $DEPLOY_TARGET"
