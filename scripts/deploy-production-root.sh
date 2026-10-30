@@ -25,7 +25,7 @@ fi
 source "$CONFIG"
 
 APP_DIR="${APP_DIR:-/www/wwwroot/c2me.ovh}"
-DEPLOY_BRANCH="${DEPLOY_BRANCH:-master}"
+DEPLOY_BRANCH="${DEPLOY_BRANCH:-production}"
 HEALTH_URL="${HEALTH_URL:-https://c2me.fr/up}"
 BACKUP_DIR="${BACKUP_DIR:-/www/backup/c2me/database}"
 PHP_BIN="${PHP_BIN:-$DEFAULT_PHP_BIN}"
