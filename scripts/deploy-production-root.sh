@@ -13,6 +13,7 @@ DEFAULT_COMPOSER_BIN="/usr/bin/composer"
 DEPLOY_HOME="/var/cache/c2me/deploy-home"
 
 [[ $EUID -eq 0 ]] || { echo "Ce script doit être lancé via sudo." >&2; exit 1; }
+[[ $# -eq 0 ]] || { echo "Ce script n’accepte aucun argument." >&2; exit 2; }
 [[ -f "$CONFIG" && ! -L "$CONFIG" ]] || { echo "Configuration absente ou invalide : $CONFIG" >&2; exit 1; }
 [[ "$(stat -c '%U' "$CONFIG")" == "root" ]] || { echo "$CONFIG doit appartenir à root." >&2; exit 1; }
 if find "$CONFIG" -maxdepth 0 -perm /022 | grep -q .; then
