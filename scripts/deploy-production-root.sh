@@ -40,7 +40,7 @@ SUPERVISOR_CONFIG="${SUPERVISOR_CONFIG:-$DEFAULT_SUPERVISOR_CONFIG}"
 [[ "$QUEUE_PROGRAM" == "c2mequeue" && "$REVERB_PROGRAM" == "c2mereverb" ]] || { echo "Programmes Supervisor non autorisés." >&2; exit 1; }
 [[ -x "$SUPERVISORCTL" && -f "$SUPERVISOR_CONFIG" ]] || { echo "Supervisor aaPanel introuvable." >&2; exit 1; }
 [[ -x "$PHP_BIN" && -x "$NODE_BIN_DIR/node" && -x "$NODE_BIN_DIR/npm" && -x "$COMPOSER_BIN" ]] || { echo "Runtime applicatif introuvable." >&2; exit 1; }
-[[ -f "$APP_HELPER_SOURCE" && ! -L "$APP_HELPER_SOURCE" ]] || { echo "Script applicatif absent ou invalide." >&2; exit 1; }
+[[ -f "$APP_HELPER_SOURCE" && ! -L "$APP_HELPER_SOURCE" ]] || { echo "Script applicatif absent ou invalide. Effectuer le bootstrap documenté avant le premier déploiement." >&2; exit 1; }
 [[ "$(stat -c '%U' "$APP_DIR")" == "www" ]] || { echo "Le projet doit appartenir à www." >&2; exit 1; }
 
 for cmd in runuser flock mysqldump gzip curl awk; do
@@ -79,13 +79,16 @@ run_www() {
 }
 
 MAINTENANCE=0
-SERVICES_STOPPED=0
+QUEUE_STOP_ATTEMPTED=0
+REVERB_STOP_ATTEMPTED=0
 finish() {
     status=$?
     if (( status != 0 )); then
         log "Déploiement interrompu (code $status)."
-        if (( SERVICES_STOPPED == 1 )); then
+        if (( QUEUE_STOP_ATTEMPTED == 1 )); then
             "$SUPERVISORCTL" -c "$SUPERVISOR_CONFIG" start "$QUEUE_PROGRAM:*" || log "ERREUR : redémarrage queue impossible."
+        fi
+        if (( REVERB_STOP_ATTEMPTED == 1 )); then
             "$SUPERVISORCTL" -c "$SUPERVISOR_CONFIG" start "$REVERB_PROGRAM:*" || log "ERREUR : redémarrage Reverb impossible."
         fi
         if (( MAINTENANCE == 1 )); then
@@ -150,12 +153,13 @@ else
 fi
 
 log "Activation du mode maintenance."
-run_www down
 MAINTENANCE=1
+run_www down
 
 log "Arrêt des workers et de Reverb avant remplacement du code."
-SERVICES_STOPPED=1
+QUEUE_STOP_ATTEMPTED=1
 "$SUPERVISORCTL" -c "$SUPERVISOR_CONFIG" stop "$QUEUE_PROGRAM:*"
+REVERB_STOP_ATTEMPTED=1
 "$SUPERVISORCTL" -c "$SUPERVISOR_CONFIG" stop "$REVERB_PROGRAM:*"
 
 run_www update
@@ -163,7 +167,8 @@ run_www update
 log "Redémarrage des processus Supervisor aaPanel C2ME."
 "$SUPERVISORCTL" -c "$SUPERVISOR_CONFIG" start "$QUEUE_PROGRAM:*"
 "$SUPERVISORCTL" -c "$SUPERVISOR_CONFIG" start "$REVERB_PROGRAM:*"
-SERVICES_STOPPED=0
+QUEUE_STOP_ATTEMPTED=0
+REVERB_STOP_ATTEMPTED=0
 
 for program in "$QUEUE_PROGRAM" "$REVERB_PROGRAM"; do
     STATUS="$("$SUPERVISORCTL" -c "$SUPERVISOR_CONFIG" status "$program:*")"
