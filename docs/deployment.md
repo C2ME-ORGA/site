@@ -9,14 +9,14 @@
 - Le script privilégié est installé et détenu par root. Il sauvegarde la base, orchestre le déploiement sous `www` et contrôle Supervisor aaPanel.
 - Le script applicatif du dépôt s'exécute uniquement sous `www`; il ne reçoit aucun privilège root.
 
-## Environnement confirmé sur le serveur C2ME
+## Valeurs d’environnement à confirmer sur le serveur C2ME
 
 - Application : `/www/wwwroot/c2me.ovh`, propriétaire `www:www`.
 - PHP : `/www/server/php/84/bin/php` (8.4.27).
 - Composer : `/usr/bin/composer`.
 - Node/npm : `/www/server/nodejs/v22.17.1/bin` (Node 22.17.1).
-- Supervisor aaPanel : `/www/server/panel/pyenv/bin/supervisorctl`.
-- Configuration Supervisor : `/etc/supervisor/supervisord.conf`.
+- Supervisor aaPanel : chemin proposé `/www/server/panel/pyenv/bin/supervisorctl`, à confirmer sur le serveur.
+- Configuration Supervisor : chemin proposé `/etc/supervisor/supervisord.conf`, à confirmer sur le serveur.
 - Processus C2ME : `c2mequeue:c2mequeue_00` et `c2mereverb:c2mereverb_00`.
 - Le processus BATISTACK `batistack` est explicitement exclu du déploiement.
 
@@ -131,7 +131,7 @@ Le déploiement est « in-place » : aucun rollback automatique du code ou de la
 1. Confirmer le Document Root aaPanel.
 2. Vérifier `/etc/c2me/deploy.conf`, ses permissions et les chemins PHP/Node.
 3. Installer le script privilégié.
-4. Valider sudoers avec `visudo), puis tester `sudo -l -U deploy`.
+4. Valider sudoers avec `visudo`, puis tester `sudo -l -U deploy`.
 5. Vérifier que `deploy` ne peut pas modifier le dépôt, le script root ou la configuration.
 6. Ajouter les secrets GitHub et vérifier `DEPLOY_KNOWN_HOSTS`.
 7. Tester une sauvegarde/restauration sur une base de test.
