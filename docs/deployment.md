@@ -92,6 +92,8 @@ redirect_stderr=true
 stdout_logfile=/www/wwwroot/c2me.fr/storage/logs/reverb.log
 ```
 
+Un fichier exemple complet est fourni dans `deploy/supervisor/c2me-production.conf.example`. Le recopier dans l'emplacement de configuration Supervisor réellement inclus par aaPanel (ne pas supposer le chemin `conf.d` sans le vérifier), puis exécuter `supervisorctl reread`, `supervisorctl update` et contrôler `status`. Créer les répertoires de logs avec le propriétaire `www` avant de démarrer les processus.
+
 Les commandes et chemins doivent être validés avec la configuration réellement utilisée par aaPanel. Reproduire les programmes équivalents pour la préproduction en conservant les noms déjà en service. Après ajout, recharger Supervisor et vérifier que les quatre groupes ciblés sont indépendants et RUNNING. Ne pas redémarrer ou arrêter les groupes préproduction pendant une opération de production, et inversement.
 
 ## Installation du point d'entrée privilégié
