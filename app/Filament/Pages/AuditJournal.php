@@ -91,7 +91,6 @@ class AuditJournal extends Page implements HasTable
                     ->label('Auteur')
                     ->relationship('user', 'name')
                     ->searchable()
-                    ->preload()
                     ->placeholder('Tous les auteurs'),
 
                 Filter::make('created_at')
