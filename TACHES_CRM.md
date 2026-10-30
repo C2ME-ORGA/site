@@ -163,7 +163,6 @@
 - [x] Gestion dédiée des tags (création/renommage/fusion) avec couleurs, badges, filtres par carnet et outils de nettoyage des doublons.
 - [x] Journal d'audit des modifications sensibles (statuts, suppressions, envois) — implémenté (voir section 13).
 - [x] Signatures e-mail configurables par utilisateur — implémenté (voir section 14).
-- [ ] Support OAuth Microsoft 365 / Google Workspace en plus d'IMAP par mot de passe.
 - [ ] Sauvegarde/restauration documentée de la base et des fichiers.
 - [ ] Accessibilité et revue RGPD finale avant mise en production.
 - [ ] Ajouter support Calendrier avec synchronisation/export pour outlook, google calendar, etc...
