@@ -30,6 +30,9 @@ function bindFetcher(array $messages, ?Throwable $error = null): void
          */
         public function __construct(private array $messages, private ?Throwable $error) {}
 
+        /**
+         * @return list<InboundEmail>
+         */
         public function fetch(EmailMailbox $mailbox): array
         {
             if ($this->error !== null) {

@@ -2,9 +2,11 @@
 
 namespace App\Services\Mail;
 
+use App\Enums\AuditEvent;
 use App\Mail\OutboundMail;
 use App\Models\EmailMailbox;
 use App\Models\EmailMessage;
+use App\Services\AuditLogger;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
 
@@ -55,7 +57,7 @@ class MailboxMailer
             Storage::disk('local')->delete($attachments);
         }
 
-        return EmailMessage::create([
+        $message = EmailMessage::create([
             'email_mailbox_id' => $mailbox->id,
             'from_email' => $mailbox->email,
             'from_name' => $mailbox->name,
@@ -73,6 +75,16 @@ class MailboxMailer
             'crm_account_id' => $crmAccountId,
             'crm_contact_id' => $crmContactId,
         ]);
+
+        app(AuditLogger::class)->record($message, AuditEvent::Sent, [
+            'new' => [
+                'destinataires' => implode(', ', $to),
+                'copie' => $cc === [] ? null : implode(', ', $cc),
+                'objet' => $subject,
+            ],
+        ]);
+
+        return $message;
     }
 
     /**
