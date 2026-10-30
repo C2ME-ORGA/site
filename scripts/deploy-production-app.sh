@@ -23,6 +23,7 @@ case "${1:-}" in
         [[ "$(id -un)" == "www" ]] || { echo "Ce script doit être exécuté sous www." >&2; exit 1; }
         [[ -d .git && -f .env ]] || { echo "Dépôt Git ou .env absent." >&2; exit 1; }
         [[ -x "$PHP_BIN" && -x "$NODE_BIN_DIR/node" && -x "$NODE_BIN_DIR/npm" ]] || { echo "Runtime PHP/Node introuvable." >&2; exit 1; }
+        [[ "$(git branch --show-current)" == "$DEPLOY_BRANCH" ]] || { echo "La branche checkoutée ne correspond pas à DEPLOY_BRANCH." >&2; exit 1; }
         git diff --quiet && git diff --cached --quiet || { echo "Modifications locales détectées dans le dépôt." >&2; exit 1; }
         git fetch --prune origin "$DEPLOY_BRANCH" --tags
         git merge-base --is-ancestor HEAD "origin/$DEPLOY_BRANCH" || { echo "La branche locale diverge de origin/$DEPLOY_BRANCH." >&2; exit 1; }
