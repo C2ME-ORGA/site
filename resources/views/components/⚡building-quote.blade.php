@@ -474,8 +474,10 @@ new class extends Component
                         <select
                             id="building-usage"
                             wire:model="usage"
-                            class="w-full rounded-lg border border-mist-300 bg-white px-4 py-3 text-sm text-ink-900 transition focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-500/20"
-                            :class="$errors->has('usage') ? 'border-red-400' : ''"
+                            @class([
+                                'w-full rounded-lg border border-mist-300 bg-white px-4 py-3 text-sm text-ink-900 transition focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-500/20',
+                                'border-red-400' => $errors->has('usage'),
+                            ])
                         >
                             <option value="">Sélectionnez un usage</option>
                             @foreach (config('site.quote.building.usages', []) as $option)
@@ -508,8 +510,10 @@ new class extends Component
                                     min="1"
                                     max="200"
                                     placeholder="30"
-                                    class="w-full rounded-lg border border-mist-300 bg-white px-4 py-3 text-sm text-ink-900 transition placeholder:text-ink-700/40 focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-500/20"
-                                    :class="$errors->has('length') ? 'border-red-400' : ''"
+                                    @class([
+                                        'w-full rounded-lg border border-mist-300 bg-white px-4 py-3 text-sm text-ink-900 transition placeholder:text-ink-700/40 focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-500/20',
+                                        'border-red-400' => $errors->has('length'),
+                                    ])
                                 >
                             </div>
 
@@ -522,8 +526,10 @@ new class extends Component
                                     min="1"
                                     max="200"
                                     placeholder="20"
-                                    class="w-full rounded-lg border border-mist-300 bg-white px-4 py-3 text-sm text-ink-900 transition placeholder:text-ink-700/40 focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-500/20"
-                                    :class="$errors->has('width') ? 'border-red-400' : ''"
+                                    @class([
+                                        'w-full rounded-lg border border-mist-300 bg-white px-4 py-3 text-sm text-ink-900 transition placeholder:text-ink-700/40 focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-500/20',
+                                        'border-red-400' => $errors->has('width'),
+                                    ])
                                 >
                             </div>
 
@@ -536,8 +542,10 @@ new class extends Component
                                     min="1"
                                     max="60"
                                     placeholder="8"
-                                    class="w-full rounded-lg border border-mist-300 bg-white px-4 py-3 text-sm text-ink-900 transition placeholder:text-ink-700/40 focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-500/20"
-                                    :class="$errors->has('height') ? 'border-red-400' : ''"
+                                    @class([
+                                        'w-full rounded-lg border border-mist-300 bg-white px-4 py-3 text-sm text-ink-900 transition placeholder:text-ink-700/40 focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-500/20',
+                                        'border-red-400' => $errors->has('height'),
+                                    ])
                                 >
                             </div>
                         </div>
@@ -563,8 +571,10 @@ new class extends Component
                             wire:model="city"
                             autocomplete="address-level2"
                             placeholder="Montaigu-Vendée"
-                            class="w-full rounded-lg border border-mist-300 bg-white px-4 py-3 text-sm text-ink-900 transition placeholder:text-ink-700/40 focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-500/20"
-                            :class="$errors->has('city') ? 'border-red-400' : ''"
+                            @class([
+                                'w-full rounded-lg border border-mist-300 bg-white px-4 py-3 text-sm text-ink-900 transition placeholder:text-ink-700/40 focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-500/20',
+                                'border-red-400' => $errors->has('city'),
+                            ])
                         >
                         <p class="mt-2 text-xs text-ink-700/50">
                             Elle détermine la faisabilité du transport et du montage.
@@ -656,8 +666,10 @@ new class extends Component
                             <select
                                 id="building-delay"
                                 wire:model="delay"
-                                class="w-full rounded-lg border border-mist-300 bg-white px-4 py-3 text-sm text-ink-900 transition focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-500/20"
-                                :class="$errors->has('delay') ? 'border-red-400' : ''"
+                                @class([
+                                    'w-full rounded-lg border border-mist-300 bg-white px-4 py-3 text-sm text-ink-900 transition focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-500/20',
+                                    'border-red-400' => $errors->has('delay'),
+                                ])
                             >
                                 @foreach (config('site.quote.building.delays', []) as $option)
                                     <option value="{{ $option['value'] }}">{{ $option['label'] }}</option>
@@ -675,8 +687,10 @@ new class extends Component
                             <select
                                 id="building-budget"
                                 wire:model="budget"
-                                class="w-full rounded-lg border border-mist-300 bg-white px-4 py-3 text-sm text-ink-900 transition focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-500/20"
-                                :class="$errors->has('budget') ? 'border-red-400' : ''"
+                                @class([
+                                    'w-full rounded-lg border border-mist-300 bg-white px-4 py-3 text-sm text-ink-900 transition focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-500/20',
+                                    'border-red-400' => $errors->has('budget'),
+                                ])
                             >
                                 @foreach (config('site.quote.building.budgets', []) as $option)
                                     <option value="{{ $option['value'] }}">{{ $option['label'] }}</option>
@@ -698,8 +712,10 @@ new class extends Component
                         <select
                             id="building-level"
                             wire:model="level"
-                            class="w-full rounded-lg border border-mist-300 bg-white px-4 py-3 text-sm text-ink-900 transition focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-500/20"
-                            :class="$errors->has('level') ? 'border-red-400' : ''"
+                            @class([
+                                'w-full rounded-lg border border-mist-300 bg-white px-4 py-3 text-sm text-ink-900 transition focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-500/20',
+                                'border-red-400' => $errors->has('level'),
+                            ])
                         >
                             @foreach (config('site.quote.building.levels', []) as $option)
                                 <option value="{{ $option['value'] }}">{{ $option['label'] }}</option>
@@ -845,8 +861,10 @@ new class extends Component
                                 wire:model="name"
                                 autocomplete="name"
                                 placeholder="Jean Dupont"
-                                class="w-full rounded-lg border border-mist-300 bg-white px-4 py-3 text-sm text-ink-900 transition placeholder:text-ink-700/40 focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-500/20"
-                                :class="$errors->has('name') ? 'border-red-400' : ''"
+                                @class([
+                                    'w-full rounded-lg border border-mist-300 bg-white px-4 py-3 text-sm text-ink-900 transition placeholder:text-ink-700/40 focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-500/20',
+                                    'border-red-400' => $errors->has('name'),
+                                ])
                             >
                             @error('name')
                                 <p class="mt-2 text-xs font-semibold text-red-600">{{ $message }}</p>
@@ -861,8 +879,10 @@ new class extends Component
                                 wire:model="company"
                                 autocomplete="organization"
                                 placeholder="Charpentes Dupont"
-                                class="w-full rounded-lg border border-mist-300 bg-white px-4 py-3 text-sm text-ink-900 transition placeholder:text-ink-700/40 focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-500/20"
-                                :class="$errors->has('company') ? 'border-red-400' : ''"
+                                @class([
+                                    'w-full rounded-lg border border-mist-300 bg-white px-4 py-3 text-sm text-ink-900 transition placeholder:text-ink-700/40 focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-500/20',
+                                    'border-red-400' => $errors->has('company'),
+                                ])
                             >
                             @error('company')
                                 <p class="mt-2 text-xs font-semibold text-red-600">{{ $message }}</p>
@@ -879,8 +899,10 @@ new class extends Component
                                 wire:model="email"
                                 autocomplete="email"
                                 placeholder="jean@dupont.fr"
-                                class="w-full rounded-lg border border-mist-300 bg-white px-4 py-3 text-sm text-ink-900 transition placeholder:text-ink-700/40 focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-500/20"
-                                :class="$errors->has('email') ? 'border-red-400' : ''"
+                                @class([
+                                    'w-full rounded-lg border border-mist-300 bg-white px-4 py-3 text-sm text-ink-900 transition placeholder:text-ink-700/40 focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-500/20',
+                                    'border-red-400' => $errors->has('email'),
+                                ])
                             >
                             @error('email')
                                 <p class="mt-2 text-xs font-semibold text-red-600">{{ $message }}</p>
@@ -895,8 +917,10 @@ new class extends Component
                                 wire:model="phone"
                                 autocomplete="tel"
                                 placeholder="06 12 34 56 78"
-                                class="w-full rounded-lg border border-mist-300 bg-white px-4 py-3 text-sm text-ink-900 transition placeholder:text-ink-700/40 focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-500/20"
-                                :class="$errors->has('phone') ? 'border-red-400' : ''"
+                                @class([
+                                    'w-full rounded-lg border border-mist-300 bg-white px-4 py-3 text-sm text-ink-900 transition placeholder:text-ink-700/40 focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-500/20',
+                                    'border-red-400' => $errors->has('phone'),
+                                ])
                             >
                             @error('phone')
                                 <p class="mt-2 text-xs font-semibold text-red-600">{{ $message }}</p>
@@ -913,8 +937,10 @@ new class extends Component
                             wire:model="message"
                             rows="4"
                             placeholder="Contraintes de terrain, raccordements, règles d'urbanisme, contraintes d'accès…"
-                            class="w-full rounded-lg border border-mist-300 bg-white px-4 py-3 text-sm text-ink-900 transition placeholder:text-ink-700/40 focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-500/20"
-                            :class="$errors->has('message') ? 'border-red-400' : ''"
+                            @class([
+                                'w-full rounded-lg border border-mist-300 bg-white px-4 py-3 text-sm text-ink-900 transition placeholder:text-ink-700/40 focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-500/20',
+                                'border-red-400' => $errors->has('message'),
+                            ])
                         ></textarea>
                         @error('message')
                             <p class="mt-2 text-xs font-semibold text-red-600">{{ $message }}</p>
