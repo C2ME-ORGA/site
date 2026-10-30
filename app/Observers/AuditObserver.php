@@ -48,34 +48,6 @@ class AuditObserver
         User::class => ['role', 'is_active'],
     ];
 
-    /**
-     * Libellés français des types d'éléments, utilisés par les filtres.
-     *
-     * @return array<string, string>
-     */
-    public static function subjectOptions(): array
-    {
-        $labels = [
-            Quote::class => 'Devis',
-            CrmOpportunity::class => 'Affaire',
-            CrmAccount::class => 'Compte',
-            CrmContact::class => 'Contact',
-            CrmActivity::class => 'Activité',
-            EmailMessage::class => 'E-mail',
-            EmailMailbox::class => 'Boîte e-mail',
-            CrmTag::class => 'Étiquette',
-            User::class => 'Utilisateur',
-        ];
-
-        $options = [];
-
-        foreach (array_keys(self::AUDITED) as $model) {
-            $options[$model] = $labels[$model];
-        }
-
-        return $options;
-    }
-
     public function __construct(private readonly AuditLogger $logger) {}
 
     public function updated(Model $model): void

@@ -47,6 +47,7 @@ test('un changement de statut de devis est journalisé', function (): void {
     expect($log->event)->toBe(AuditEvent::Updated)
         ->and($log->user_id)->toBe($admin->id)
         ->and($log->auditable_type)->toBe(Quote::class)
+        ->and($log->auditable_type_label)->toBe('Devis')
         ->and($log->auditable_id)->toBe($quote->id)
         ->and($log->auditable_label)->toBe($quote->reference)
         ->and($log->oldValue('status'))->toBe('Brouillon')

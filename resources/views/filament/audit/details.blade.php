@@ -1,6 +1,5 @@
 @php
     /** @var \App\Models\AuditLog $audit */
-    $subjectLabel = \App\Observers\AuditObserver::subjectOptions()[$audit->auditable_type] ?? class_basename($audit->auditable_type);
 @endphp
 
 <div class="space-y-4 text-sm">
@@ -18,7 +17,7 @@
         <div>
             <dt class="text-gray-500 dark:text-gray-400">Élément</dt>
             <dd class="font-medium">
-                {{ $subjectLabel }}@if ($audit->auditable_label) — {{ $audit->auditable_label }}@endif
+                {{ $audit->auditable_type_label }}@if ($audit->auditable_label) — {{ $audit->auditable_label }}@endif
             </dd>
         </div>
 

@@ -4,7 +4,6 @@ namespace App\Filament\Pages;
 
 use App\Enums\AuditEvent;
 use App\Models\AuditLog;
-use App\Observers\AuditObserver;
 use BackedEnum;
 use Filament\Actions\Action;
 use Filament\Forms\Components\DatePicker;
@@ -62,7 +61,7 @@ class AuditJournal extends Page implements HasTable
 
                 TextColumn::make('auditable_label')
                     ->label('Élément')
-                    ->description(fn (AuditLog $record): string => AuditObserver::subjectOptions()[$record->auditable_type] ?? class_basename($record->auditable_type))
+                    ->description(fn (AuditLog $record): string => $record->auditable_type_label)
                     ->searchable()
                     ->weight('bold')
                     ->placeholder('—'),
@@ -86,7 +85,7 @@ class AuditJournal extends Page implements HasTable
 
                 SelectFilter::make('auditable_type')
                     ->label('Type d’élément')
-                    ->options(AuditObserver::subjectOptions()),
+                    ->options(AuditLog::subjectOptions()),
 
                 SelectFilter::make('user_id')
                     ->label('Auteur')

@@ -20,6 +20,11 @@ class AuditLogger
     /**
      * Enregistre une entrée dans le journal d'audit.
      *
+     * L'IP provient de `request()->ip()`. Derrière un reverse proxy, elle n'est
+     * fiable que si les proxies de confiance sont déclarés dans le middleware
+     * `TrustProxies` (ou `$trustedProxies` / `TRUSTED_PROXIES`) ; sans cela,
+     * l'en-tête `X-Forwarded-For` peut être usurpé par le client.
+     *
      * @param  array{old?: array<string, string|null>, new?: array<string, string|null>}  $changes
      */
     public function record(
