@@ -135,6 +135,20 @@ gzip -t "$BACKUP_FILE"
 chmod 600 "$BACKUP_FILE"
 log "Sauvegarde SQL vérifiée."
 
+STORAGE_DIR="$APP_DIR/storage/app"
+if [[ -d "$STORAGE_DIR" ]]; then
+    STORAGE_BACKUP_DIR="$BACKUP_DIR/storage"
+    install -d -o root -g root -m 750 "$STORAGE_BACKUP_DIR"
+    STORAGE_BACKUP_FILE="$STORAGE_BACKUP_DIR/${DB_DATABASE}_$(date +%Y%m%d-%H%M%S).tar.gz"
+    log "Sauvegarde des fichiers utilisateurs : $STORAGE_BACKUP_FILE"
+    tar -czf "$STORAGE_BACKUP_FILE" -C "$APP_DIR/storage" app
+    tar -tzf "$STORAGE_BACKUP_FILE" >/dev/null
+    chmod 600 "$STORAGE_BACKUP_FILE"
+    log "Sauvegarde des fichiers utilisateurs vérifiée."
+else
+    log "AVERTISSEMENT : storage/app absent, sauvegarde des fichiers ignorée."
+fi
+
 log "Activation du mode maintenance."
 run_www down
 MAINTENANCE=1
@@ -173,5 +187,5 @@ for attempt in {1..10}; do
 done
 (( HEALTH_OK == 1 )) || { log "Health check HTTP en échec."; exit 1; }
 
-find "$BACKUP_DIR" -type f -name '*.sql.gz' -mtime +14 -delete
+find "$BACKUP_DIR" -type f \( -name '*.sql.gz' -o -name '*.tar.gz' \) -mtime +14 -delete
 log "SUCCÈS : déploiement terminé."
