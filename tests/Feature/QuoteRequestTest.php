@@ -131,11 +131,19 @@ test('un administrateur consulte la liste des demandes de devis', function (): v
 test('une demande peut être ouverte pour modification', function (): void {
     $quote = makeQuoteRequest();
 
+    $quote->files()->create([
+        'original_name' => 'plan.dxf',
+        'path' => 'quote-requests/plan.dxf',
+        'size' => 2048,
+    ]);
+
     $this->actingAs(quoteAdminUser())
         ->get("/admin/quote-requests/{$quote->id}/edit")
         ->assertOk()
         ->assertSee('Demandeur')
-        ->assertSee('Note interne');
+        ->assertSee('Note interne')
+        ->assertSee('plan.dxf')
+        ->assertSee('2 Ko');
 });
 
 test('la page de création d une demande de devis est accessible', function (): void {

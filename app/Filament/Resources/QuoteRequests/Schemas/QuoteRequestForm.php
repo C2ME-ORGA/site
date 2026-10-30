@@ -4,13 +4,13 @@ namespace App\Filament\Resources\QuoteRequests\Schemas;
 
 use App\Enums\QuoteStatus;
 use App\Models\QuoteRequest;
+use App\Models\QuoteRequestFile;
 use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Schemas\Components\Section;
-use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Schema;
 use Illuminate\Support\Str;
 
@@ -89,11 +89,7 @@ class QuoteRequestForm
                                 TextInput::make('size')
                                     ->label('Poids')
                                     ->disabled()
-                                    ->formatStateUsing(function (Get $get, ?QuoteRequest $record): string {
-                                        $file = $record?->files->firstWhere('id', $get('id'));
-
-                                        return $file?->humanSize() ?? '—';
-                                    }),
+                                    ->formatStateUsing(fn (?QuoteRequestFile $record): string => $record?->humanSize() ?? '—'),
                             ])
                             ->columns(2)
                             ->addable(false)
