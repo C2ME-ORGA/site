@@ -139,15 +139,17 @@ log "Début du déploiement C2ME."
 run_www preflight
 
 # Lire les paramètres SQL avec Dotenv, sous www, sans afficher les valeurs.
-mapfile -t DB_VALUES < <(runuser -u www -- env APP_DIR="$APP_DIR" PHP_BIN="$PHP_BIN" "$PHP_BIN" -r '
+DB_ENV_OUTPUT="$(runuser -u www -- env APP_DIR="$APP_DIR" PHP_BIN="$PHP_BIN" "$PHP_BIN" -r '
 chdir(getenv("APP_DIR"));
 require "vendor/autoload.php";
-$env = Dotenv\Dotenv::parse(file_get_contents(".env"));
+$env = Dotenv\\Dotenv::parse(file_get_contents(".env"));
 foreach (["DB_HOST", "DB_PORT", "DB_DATABASE", "DB_USERNAME", "DB_PASSWORD"] as $key) {
     echo base64_encode((string) ($env[$key] ?? "")), PHP_EOL;
 }
-')
-(( ${#DB_VALUES[@]} == 5 )) || { log "Impossible de lire la configuration SQL."; exit 1; }
+')" || { log "Impossible de lire la configuration SQL."; exit 1; }
+mapfile -t DB_VALUES <<< "$DB_ENV_OUTPUT"
+unset DB_ENV_OUTPUT
+(( ${#DB_VALUES[@]} == 5 )) || { log "Configuration SQL incomplète."; exit 1; }
 DB_HOST="$(printf '%s' "${DB_VALUES[0]}" | base64 -d)"
 DB_PORT="$(printf '%s' "${DB_VALUES[1]}" | base64 -d)"
 DB_DATABASE="$(printf '%s' "${DB_VALUES[2]}" | base64 -d)"
