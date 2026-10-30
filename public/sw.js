@@ -1,4 +1,4 @@
-const VERSION = 'c2me-v3';
+const VERSION = 'c2me-v4';
 const STATIC_CACHE = `${VERSION}-static`;
 const PAGE_CACHE = `${VERSION}-pages`;
 const OFFLINE_URL = '/offline.html';
@@ -44,6 +44,7 @@ const isCacheableAsset = (pathname) =>
 const isApiRequest = (pathname) =>
     pathname.startsWith('/terrain/snapshot') ||
     pathname.startsWith('/terrain/activities') ||
+    pathname.startsWith('/terrain/attachments') ||
     pathname.startsWith('/terrain/sync');
 
 self.addEventListener('fetch', (event) => {

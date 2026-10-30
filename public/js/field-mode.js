@@ -2,19 +2,27 @@
     'use strict';
 
     const DB_NAME = 'c2me-field';
-    const DB_VERSION = 2;
+    const DB_VERSION = 3;
     const BACKOFF_STEPS = [5000, 30000, 120000, 600000];
     const MAX_SYNC_BATCH = 50;
+    const MAX_PHOTOS = 5;
+    const MAX_PHOTO_BYTES = 5 * 1024 * 1024;
+    const TOUR_CHUNK_SIZE = 10;
     const csrf = document.querySelector('meta[name="csrf-token"]')?.content ?? '';
     const loginUrl = document.querySelector('meta[name="login-url"]')?.content ?? '/admin/login';
     const state = {
         snapshot: null,
         activities: [],
+        photos: [],
         queue: [],
+        tour: [],
+        tourDate: null,
+        openAccounts: new Set(),
         pending: 0,
         conflicts: 0,
         errors: 0,
         syncing: false,
+        syncingPhotos: false,
         sessionExpired: false,
         search: '',
         filters: { book: '', status: '', followUp: '', overdue: false },
@@ -24,6 +32,7 @@
         newActivityFor: null,
         mergeOpId: null,
         retryTimer: null,
+        photoRetryTimer: null,
     };
     let db = null;
 
@@ -162,6 +171,10 @@
                     database.createObjectStore('ops', { keyPath: 'op_id' });
                 }
 
+                if (!database.objectStoreNames.contains('photos')) {
+                    database.createObjectStore('photos', { keyPath: 'photo_id' });
+                }
+
                 if (!database.objectStoreNames.contains('meta')) {
                     database.createObjectStore('meta', { keyPath: 'key' });
                 }
@@ -192,6 +205,311 @@
     const allOps = () => idb('ops', 'readonly', (store) => store.getAll());
     const putOp = (op) => idb('ops', 'readwrite', (store) => store.put(op));
     const deleteOp = (opId) => idb('ops', 'readwrite', (store) => store.delete(opId));
+    const allPhotos = () => idb('photos', 'readonly', (store) => store.getAll());
+    const putPhoto = (photo) => idb('photos', 'readwrite', (store) => store.put(photo));
+    const deleteStoredPhoto = (photoId) => idb('photos', 'readwrite', (store) => store.delete(photoId));
+    const getMeta = (key) => idb('meta', 'readonly', (store) => store.get(key));
+    const putMeta = (key, value) => idb('meta', 'readwrite', (store) => store.put({ key, value }));
+
+    const photoUrls = new Map();
+
+    function photoPreviewUrl(photo) {
+        if (!photoUrls.has(photo.photo_id)) {
+            photoUrls.set(photo.photo_id, URL.createObjectURL(photo.blob));
+        }
+
+        return photoUrls.get(photo.photo_id);
+    }
+
+    function revokePhotoUrl(photoId) {
+        const url = photoUrls.get(photoId);
+
+        if (url) {
+            URL.revokeObjectURL(url);
+            photoUrls.delete(photoId);
+        }
+    }
+
+    function loadImage(file) {
+        if ('createImageBitmap' in window) {
+            return createImageBitmap(file).catch(() => loadImageElement(file));
+        }
+
+        return loadImageElement(file);
+    }
+
+    function loadImageElement(file) {
+        return new Promise((resolve, reject) => {
+            const url = URL.createObjectURL(file);
+            const image = new Image();
+
+            image.onload = () => {
+                URL.revokeObjectURL(url);
+                resolve(image);
+            };
+
+            image.onerror = () => {
+                URL.revokeObjectURL(url);
+                reject(new Error('Photo illisible'));
+            };
+
+            image.src = url;
+        });
+    }
+
+    /**
+     * Réduit la photo à 1600 px de côté maximum et la réencode en JPEG
+     * avant stockage local : les photos brutes de téléphone dépassent
+     * souvent la limite d'upload et saturent le quota IndexedDB.
+     */
+    async function compressImage(file, maxDimension = 1600, quality = 0.82) {
+        const source = await loadImage(file);
+        const width = source.width || source.naturalWidth || 0;
+        const height = source.height || source.naturalHeight || 0;
+
+        if (width === 0 || height === 0) {
+            throw new Error('Photo illisible');
+        }
+
+        const scale = Math.min(1, maxDimension / Math.max(width, height));
+        const canvas = document.createElement('canvas');
+        canvas.width = Math.max(1, Math.round(width * scale));
+        canvas.height = Math.max(1, Math.round(height * scale));
+
+        const context = canvas.getContext('2d');
+
+        if (!context) {
+            throw new Error('Compression impossible');
+        }
+
+        // Fond blanc : le JPEG ne gère pas la transparence des PNG.
+        context.fillStyle = '#ffffff';
+        context.fillRect(0, 0, canvas.width, canvas.height);
+        context.drawImage(source, 0, 0, canvas.width, canvas.height);
+
+        if (typeof source.close === 'function') {
+            source.close();
+        }
+
+        const blob = await new Promise((resolve) => canvas.toBlob(resolve, 'image/jpeg', quality));
+
+        if (!blob) {
+            throw new Error('Compression impossible');
+        }
+
+        return blob;
+    }
+
+    function pendingPhotosFor(activity) {
+        return state.photos.filter((photo) => {
+            if (activity.client_uuid && photo.activity_client_uuid === activity.client_uuid) {
+                return true;
+            }
+
+            return Number(photo.activity_id) === Number(activity.id);
+        });
+    }
+
+    function photoGallery(activity) {
+        const server = Array.isArray(activity.attachments) ? activity.attachments : [];
+        const local = pendingPhotosFor(activity);
+        const total = server.length + local.length;
+        const remaining = Math.max(0, MAX_PHOTOS - total);
+
+        const serverHtml = server.map((attachment) => `<figure class="photo">
+            <a href="${escapeHtml(attachment.url)}" target="_blank" rel="noopener">
+                <img src="${escapeHtml(attachment.url)}" alt="${escapeHtml(attachment.original_name)}" loading="lazy">
+            </a>
+            <figcaption>${escapeHtml(attachment.human_size ?? '')}</figcaption>
+        </figure>`).join('');
+
+        const localHtml = local.map((photo) => `<figure class="photo photo--pending">
+            <img src="${photoPreviewUrl(photo)}" alt="Photo en attente d’envoi" loading="lazy">
+            <button type="button" class="photo__remove" data-photo-remove="${escapeHtml(photo.photo_id)}" aria-label="Retirer cette photo">×</button>
+            <figcaption>${photo.status === 'error' ? 'Échec de l’envoi' : 'En attente'} · ${formatBytes(photo.size)}</figcaption>
+        </figure>`).join('');
+
+        const addButton = remaining > 0
+            ? `<label class="photo-add">
+                <span>+ Photo</span>
+                <input type="file" accept="image/*" data-photo-input="${activity.id}" hidden>
+            </label>`
+            : '';
+
+        return `<div class="photos">
+            <div class="photos__grid">${serverHtml}${localHtml}${addButton}</div>
+            <p class="muted photos__count">${total}/${MAX_PHOTOS} photo(s)${remaining === 0 ? ' · maximum atteint' : ''}</p>
+        </div>`;
+    }
+
+    function todayKey() {
+        const date = new Date();
+        const pad = (value) => String(value).padStart(2, '0');
+
+        return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+    }
+
+    function tourAddress(account) {
+        return formatAddress(account) || account.name || '';
+    }
+
+    function tourPosition(accountId) {
+        return state.tour.findIndex((id) => Number(id) === Number(accountId));
+    }
+
+    function tourRoutes() {
+        const stops = state.tour
+            .map((id) => findAccount(id))
+            .filter(Boolean);
+
+        const routes = [];
+
+        for (let index = 0; index < stops.length; index += TOUR_CHUNK_SIZE) {
+            const chunk = stops.slice(index, index + TOUR_CHUNK_SIZE);
+            const addresses = chunk.map(tourAddress).filter(Boolean);
+
+            if (addresses.length === 0) {
+                continue;
+            }
+
+            const destination = addresses[addresses.length - 1];
+            const waypoints = addresses.slice(0, -1);
+            const params = new URLSearchParams({
+                api: '1',
+                destination,
+                travelmode: 'driving',
+            });
+
+            if (waypoints.length > 0) {
+                params.set('waypoints', waypoints.join('|'));
+            }
+
+            routes.push({
+                label: chunk.length > 1
+                    ? `Itinéraire ${routes.length + 1} · étapes ${index + 1} à ${index + chunk.length}`
+                    : `Itinéraire ${routes.length + 1} · étape ${index + 1}`,
+                url: `https://www.google.com/maps/dir/?${params.toString()}`,
+            });
+        }
+
+        return routes;
+    }
+
+    async function saveTour() {
+        await putMeta('tour', { date: todayKey(), ids: state.tour });
+    }
+
+    async function loadTour() {
+        const record = await getMeta('tour');
+        const value = record?.value;
+        state.tourDate = todayKey();
+
+        if (!value || value.date !== state.tourDate || !Array.isArray(value.ids)) {
+            state.tour = [];
+
+            if (value) {
+                await saveTour();
+            }
+
+            return;
+        }
+
+        state.tour = value.ids
+            .map(Number)
+            .filter((id) => findAccount(id) !== null);
+    }
+
+    async function toggleTour(accountId) {
+        const id = Number(accountId);
+        const position = tourPosition(id);
+
+        if (position >= 0) {
+            state.tour.splice(position, 1);
+        } else {
+            state.tour.push(id);
+        }
+
+        await saveTour();
+        render();
+    }
+
+    async function moveTour(accountId, offset) {
+        const position = tourPosition(accountId);
+        const target = position + offset;
+
+        if (position < 0 || target < 0 || target >= state.tour.length) {
+            return;
+        }
+
+        const [moved] = state.tour.splice(position, 1);
+        state.tour.splice(target, 0, moved);
+
+        await saveTour();
+        render();
+    }
+
+    async function removeFromTour(accountId) {
+        const position = tourPosition(accountId);
+
+        if (position < 0) {
+            return;
+        }
+
+        state.tour.splice(position, 1);
+        await saveTour();
+        render();
+    }
+
+    async function resetTour() {
+        if (state.tour.length > 0 && !window.confirm('Vider la tournée du jour ?')) {
+            return;
+        }
+
+        state.tour = [];
+        await saveTour();
+        render();
+    }
+
+    function renderTour() {
+        const section = $('#tour-list');
+        const count = $('#tour-count');
+        const routes = $('#tour-routes');
+
+        if (!section) {
+            return;
+        }
+
+        const stops = state.tour
+            .map((id) => findAccount(id))
+            .filter(Boolean);
+
+        if (count) {
+            count.textContent = `${stops.length} étape(s)`;
+        }
+
+        section.innerHTML = stops.length
+            ? stops.map((account, index) => `<li class="tour__item">
+                <span class="tour__index">${index + 1}</span>
+                <span class="tour__label">
+                    <strong>${escapeHtml(account.name)}</strong>
+                    <span class="muted">${escapeHtml(tourAddress(account) || 'Adresse inconnue')}</span>
+                </span>
+                <span class="tour__controls">
+                    <button type="button" class="small" data-tour-up="${account.id}" aria-label="Monter" ${index === 0 ? 'disabled' : ''}>↑</button>
+                    <button type="button" class="small" data-tour-down="${account.id}" aria-label="Descendre" ${index === stops.length - 1 ? 'disabled' : ''}>↓</button>
+                    <button type="button" class="small danger" data-tour-remove="${account.id}" aria-label="Retirer">×</button>
+                </span>
+            </li>`).join('')
+            : '<li class="muted">Aucune étape. Ajoutez des comptes depuis la liste ci-dessous.</li>';
+
+        if (!routes) {
+            return;
+        }
+
+        const links = tourRoutes();
+
+        routes.innerHTML = links.map((route) => `<a class="button small primary" href="${escapeHtml(route.url)}" target="_blank" rel="noopener">${escapeHtml(route.label)}</a>`).join('');
+    }
 
     async function migrateLegacyQueue() {
         if (!db.objectStoreNames.contains('queue')) {
@@ -467,6 +785,7 @@
                 Terminée
             </label>
             <button type="button" class="primary small" data-save-activity="${activity.id}">Enregistrer</button>
+            ${photoGallery(activity)}
         </div>`;
     }
 
@@ -528,6 +847,10 @@
             actions.push(`<button type="button" class="small" data-copy-address="${escapeHtml(address)}">Copier l’adresse</button>`);
         }
 
+        const inTour = tourPosition(account.id) >= 0;
+
+        actions.push(`<button type="button" class="small ${inTour ? 'danger' : ''}" data-tour-toggle="${account.id}">${inTour ? 'Retirer de la tournée' : 'Ajouter à la tournée'}</button>`);
+
         return actions.length ? `<div class="quick-actions">${actions.join('')}</div>` : '';
     }
 
@@ -578,18 +901,22 @@
                 : (account._pending ? ' <span class="pill pill--pending">Modifié localement</span>' : ''));
         const overdueBadge = counts.overdue > 0 ? ` <span class="pill pill--danger">${counts.overdue} en retard</span>` : '';
         const todayBadge = counts.today > 0 ? ` <span class="pill pill--warning">${counts.today} aujourd’hui</span>` : '';
+        const tourIndex = tourPosition(account.id);
+        const tourBadge = tourIndex >= 0 ? ` <span class="pill pill--tour">Tournée ${tourIndex + 1}</span>` : '';
         const editingContact = state.editContactId !== null
             && (account.contacts ?? []).some((contact) => Number(contact.id) === Number(state.editContactId));
-        const isOpen = state.editAccountId === account.id
+        const isOpen = state.openAccounts.has(Number(account.id))
+            || state.editAccountId === account.id
             || state.newActivityFor === account.id
             || editingContact;
 
-        return `<details class="account" ${isOpen ? 'open' : ''}>
+        return `<details class="account" data-account-id="${account.id}" ${isOpen ? 'open' : ''}>
             <summary>
                 <span class="account__name">${escapeHtml(account.name)}${pendingBadge}</span>
                 <span class="pill">${escapeHtml(account.status_label)}</span>
                 ${overdueBadge}
                 ${todayBadge}
+                ${tourBadge}
                 <span class="account__meta">${escapeHtml(account.book_label)} · ${escapeHtml(account.category_label)}</span>
             </summary>
             <div class="account__body">
@@ -670,6 +997,7 @@
             : '<p class="empty">Aucune donnée. Connectez-vous à Internet pour synchroniser.</p>';
 
         renderStatus();
+        renderTour();
     }
 
     function renderStatus() {
@@ -1127,6 +1455,7 @@
 
         if (result.entity_type === 'activity') {
             await applyServerActivity(result.server);
+            await reassignPendingPhotos(result.server, op.local_id, op.client_uuid);
 
             if (op.local_id) {
                 state.activities = state.activities.filter((activity) => Number(activity.id) !== Number(op.local_id));
@@ -1177,6 +1506,7 @@
         if (queue.length === 0) {
             scheduleRetry();
             renderStatus();
+            await flushPhotos();
 
             return;
         }
@@ -1283,7 +1613,286 @@
             await refreshPending();
             render();
             scheduleRetry();
+            await flushPhotos();
         }
+    }
+
+    async function reassignPendingPhotos(serverActivity, localId, clientUuid) {
+        const photos = await allPhotos();
+        let changed = false;
+
+        for (const photo of photos) {
+            const sameLocalId = localId && Number(photo.activity_id) === Number(localId);
+            const sameClientUuid = clientUuid && photo.activity_client_uuid === clientUuid;
+
+            if (!sameLocalId && !sameClientUuid) {
+                continue;
+            }
+
+            photo.activity_id = Number(serverActivity.id);
+            photo.activity_client_uuid = serverActivity.client_uuid ?? clientUuid ?? null;
+            await putPhoto(photo);
+            changed = true;
+        }
+
+        if (changed) {
+            state.photos = await allPhotos();
+        }
+    }
+
+    function failPhotoAttempt(photo) {
+        photo.attempts = (photo.attempts ?? 0) + 1;
+        photo.status = 'pending';
+        photo.next_attempt_at = Date.now() + backoffDelay(photo.attempts);
+
+        return photo;
+    }
+
+    function schedulePhotoRetry() {
+        window.clearTimeout(state.photoRetryTimer);
+
+        if (!navigator.onLine || state.sessionExpired) {
+            return;
+        }
+
+        const upcoming = state.photos
+            .filter((photo) => photo.status !== 'error')
+            .map((photo) => Number(photo.next_attempt_at ?? 0))
+            .filter((value) => value > 0);
+
+        if (upcoming.length === 0) {
+            return;
+        }
+
+        const delay = Math.max(0, Math.min(...upcoming) - Date.now());
+        state.photoRetryTimer = window.setTimeout(() => flushPhotos(), delay + 250);
+    }
+
+    async function photoErrorMessage(response) {
+        try {
+            const data = await response.json();
+
+            if (data?.errors) {
+                return Object.values(data.errors).flat().join(' ');
+            }
+
+            return data?.message ?? `HTTP ${response.status}`;
+        } catch {
+            return `HTTP ${response.status}`;
+        }
+    }
+
+    async function flushPhotos({ force = false } = {}) {
+        if (state.syncingPhotos || !navigator.onLine || state.sessionExpired) {
+            return;
+        }
+
+        const stored = await allPhotos();
+        state.photos = stored;
+
+        const now = Date.now();
+        const queue = stored.filter((photo) => {
+            const activity = findActivity(photo.activity_id);
+
+            return activity !== null
+                && Number(activity.id) > 0
+                && (force || Number(photo.next_attempt_at ?? 0) <= now);
+        });
+
+        if (queue.length === 0) {
+            schedulePhotoRetry();
+
+            return;
+        }
+
+        state.syncingPhotos = true;
+        let changed = false;
+
+        try {
+            for (const photo of queue) {
+                const activity = findActivity(photo.activity_id);
+
+                if (!activity || Number(activity.id) <= 0) {
+                    continue;
+                }
+
+                const form = new FormData();
+                form.append('photo', photo.blob, photo.original_name || 'photo.jpg');
+                form.append('client_uuid', photo.client_uuid);
+
+                const response = await fetch(`/terrain/activities/${activity.id}/attachments`, {
+                    method: 'POST',
+                    headers: {
+                        Accept: 'application/json',
+                        'X-CSRF-TOKEN': csrf,
+                    },
+                    body: form,
+                });
+
+                if (response.status === 401 || response.status === 419) {
+                    markSessionExpired(true);
+
+                    break;
+                }
+
+                if (response.ok) {
+                    const data = await response.json();
+                    const attachment = data.attachment ?? null;
+
+                    await deleteStoredPhoto(photo.photo_id);
+                    revokePhotoUrl(photo.photo_id);
+
+                    if (attachment) {
+                        activity.attachments = [
+                            ...(activity.attachments ?? []).filter((item) => Number(item.id) !== Number(attachment.id)),
+                            attachment,
+                        ];
+                        await putActivity(activity);
+                    }
+
+                    changed = true;
+
+                    continue;
+                }
+
+                if (response.status === 404 || response.status === 409 || response.status === 422) {
+                    photo.status = 'error';
+                    photo.attempts = (photo.attempts ?? 0) + 1;
+                    photo.next_attempt_at = 0;
+                    photo.last_error = await photoErrorMessage(response);
+                    await putPhoto(photo);
+                    changed = true;
+
+                    continue;
+                }
+
+                await putPhoto(failPhotoAttempt(photo));
+                changed = true;
+            }
+        } catch {
+            for (const photo of queue) {
+                const current = await idb('photos', 'readonly', (store) => store.get(photo.photo_id));
+
+                if (current) {
+                    await putPhoto(failPhotoAttempt(current));
+                }
+            }
+
+            flash('Envoi des photos impossible. Nouvelle tentative planifiée.');
+            changed = true;
+        } finally {
+            state.syncingPhotos = false;
+            state.photos = await allPhotos();
+
+            if (changed) {
+                await putSnapshot(state.snapshot);
+                render();
+            }
+
+            schedulePhotoRetry();
+        }
+    }
+
+    async function addPhoto(activityId, file) {
+        const activity = findActivity(activityId);
+
+        if (!activity) {
+            flash('Activité introuvable.');
+
+            return;
+        }
+
+        const count = (activity.attachments ?? []).length + pendingPhotosFor(activity).length;
+
+        if (count >= MAX_PHOTOS) {
+            flash(`Maximum de ${MAX_PHOTOS} photos par activité.`);
+
+            return;
+        }
+
+        if (!file.type.startsWith('image/')) {
+            flash('Seules les images sont acceptées.');
+
+            return;
+        }
+
+        if (file.size > MAX_PHOTO_BYTES * 4) {
+            flash('Photo trop lourde : 20 Mo maximum avant compression.');
+
+            return;
+        }
+
+        flash('Compression de la photo…');
+
+        let blob = null;
+
+        try {
+            blob = await compressImage(file);
+        } catch {
+            flash('Cette photo ne peut pas être lue par le navigateur.');
+
+            return;
+        }
+
+        if (blob.size > MAX_PHOTO_BYTES) {
+            try {
+                blob = await compressImage(file, 1280, 0.7);
+            } catch {
+                // On garde le premier résultat : la taille sera vérifiée juste après.
+            }
+        }
+
+        if (blob.size > MAX_PHOTO_BYTES) {
+            flash('Photo trop lourde même après compression.');
+
+            return;
+        }
+
+        const photoId = uuid();
+        const baseName = (file.name || 'photo').replace(/\.[^.]+$/, '');
+
+        await putPhoto({
+            photo_id: photoId,
+            client_uuid: photoId,
+            activity_id: Number(activity.id),
+            activity_client_uuid: activity.client_uuid ?? null,
+            account_id: Number(activity.crm_account_id),
+            blob,
+            original_name: `${baseName}.jpg`,
+            mime_type: 'image/jpeg',
+            size: blob.size,
+            created_at: Date.now(),
+            attempts: 0,
+            next_attempt_at: 0,
+            status: 'pending',
+            last_error: null,
+        });
+
+        state.photos = await allPhotos();
+        render();
+        flash(`Photo ajoutée (${formatBytes(blob.size)}). Envoi automatique.`);
+
+        if (navigator.onLine) {
+            await flushPhotos();
+        }
+    }
+
+    async function removePhoto(photoId) {
+        const photo = state.photos.find((item) => item.photo_id === photoId);
+
+        if (!photo) {
+            return;
+        }
+
+        if (!window.confirm('Retirer cette photo non envoyée ?')) {
+            return;
+        }
+
+        await deleteStoredPhoto(photoId);
+        revokePhotoUrl(photoId);
+        state.photos = await allPhotos();
+        render();
+        flash('Photo retirée.');
     }
 
     function entityForOp(op) {
@@ -1769,6 +2378,18 @@
                     await refreshPending();
                     render();
                 }
+            } else if (target.dataset.photoRemove) {
+                await removePhoto(target.dataset.photoRemove);
+            } else if (target.dataset.tourToggle) {
+                await toggleTour(Number(target.dataset.tourToggle));
+            } else if (target.dataset.tourUp) {
+                await moveTour(Number(target.dataset.tourUp), -1);
+            } else if (target.dataset.tourDown) {
+                await moveTour(Number(target.dataset.tourDown), 1);
+            } else if (target.dataset.tourRemove) {
+                await removeFromTour(Number(target.dataset.tourRemove));
+            } else if (target.id === 'tour-reset') {
+                await resetTour();
             } else if (target.dataset.copyAddress) {
                 try {
                     await navigator.clipboard.writeText(target.dataset.copyAddress);
@@ -1776,6 +2397,38 @@
                 } catch {
                     flash('Copie impossible sur cet appareil.');
                 }
+            }
+        });
+
+        document.addEventListener('toggle', (event) => {
+            const details = event.target;
+
+            if (!(details instanceof HTMLDetailsElement) || !details.classList.contains('account')) {
+                return;
+            }
+
+            const accountId = Number(details.dataset.accountId);
+
+            if (details.open) {
+                state.openAccounts.add(accountId);
+            } else {
+                state.openAccounts.delete(accountId);
+            }
+        }, true);
+
+        document.addEventListener('change', async (event) => {
+            const input = event.target.closest('[data-photo-input]');
+
+            if (!input || !input.files || input.files.length === 0) {
+                return;
+            }
+
+            const activityId = Number(input.dataset.photoInput);
+            const files = Array.from(input.files);
+            input.value = '';
+
+            for (const file of files) {
+                await addPhoto(activityId, file);
             }
         });
 
@@ -1822,13 +2475,19 @@
             renderStatus();
             await fetchSnapshot();
             await flushQueue({ force: true });
+            await flushPhotos({ force: true });
         });
 
         window.addEventListener('offline', renderStatus);
 
         document.addEventListener('visibilitychange', () => {
             if (document.visibilityState === 'visible' && navigator.onLine) {
+                if (state.tourDate && state.tourDate !== todayKey()) {
+                    loadTour().then(render);
+                }
+
                 flushQueue();
+                flushPhotos();
             }
         });
     }
@@ -1850,7 +2509,9 @@
         }
 
         state.activities = await allActivities();
+        state.photos = await allPhotos();
         await applyQueueToState();
+        await loadTour();
         await refreshPending();
         populateFilters();
         bindEvents();

@@ -267,11 +267,98 @@
 
         .toast--visible { opacity: 1; }
 
+        .photos { margin-top: 0.65rem; }
+        .photos__grid { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+        .photo { position: relative; margin: 0; width: 6.5rem; }
+        .photo img {
+            display: block;
+            width: 100%;
+            height: 6.5rem;
+            object-fit: cover;
+            border-radius: 0.5rem;
+            border: 1px solid var(--line);
+            background: #fff;
+        }
+        .photo figcaption {
+            margin-top: 0.2rem;
+            font-size: 0.7rem;
+            color: var(--muted);
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .photo__remove {
+            position: absolute;
+            top: -0.35rem;
+            right: -0.35rem;
+            width: 1.5rem;
+            height: 1.5rem;
+            padding: 0;
+            border-radius: 999px;
+            background: #b91c1c;
+            border-color: #b91c1c;
+            color: #fff;
+            line-height: 1;
+        }
+        .photo--pending img { border-style: dashed; opacity: 0.85; }
+        .photo-add {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 6.5rem;
+            height: 6.5rem;
+            border: 1px dashed var(--line);
+            border-radius: 0.5rem;
+            background: #fff;
+            color: var(--muted);
+            font-size: 0.85rem;
+            cursor: pointer;
+        }
+        .photos__count { margin-top: 0.35rem; }
+
+        .tour {
+            margin-bottom: 1rem;
+            padding: 0.85rem 1rem;
+            background: #fff;
+            border: 1px solid var(--line);
+            border-radius: 0.75rem;
+        }
+        .tour__head { display: flex; align-items: baseline; justify-content: space-between; gap: 0.75rem; }
+        .tour__head h2 { margin: 0; font-size: 1rem; }
+        .tour__list { margin: 0.6rem 0; padding: 0; list-style: none; display: grid; gap: 0.4rem; }
+        .tour__item {
+            display: grid;
+            grid-template-columns: 1.6rem 1fr auto;
+            gap: 0.5rem;
+            align-items: center;
+            padding: 0.35rem 0;
+            border-bottom: 1px dashed var(--line);
+        }
+        .tour__item:last-child { border-bottom: 0; }
+        .tour__index {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 1.5rem;
+            height: 1.5rem;
+            border-radius: 999px;
+            background: var(--brand);
+            color: #fff;
+            font-size: 0.75rem;
+            font-weight: 700;
+        }
+        .tour__label { display: flex; flex-direction: column; }
+        .tour__controls { display: flex; gap: 0.25rem; }
+        .tour__routes { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-bottom: 0.5rem; }
+        .pill--tour { background: #e0f2fe; color: #075985; }
+
         @media (prefers-color-scheme: dark) {
             :root { --bg: #0b1418; --ink: #e2e8f0; --line: #1e2f36; }
             body { background: var(--bg); }
-            header, .summary, .account, .search, textarea, select, input, .inline-form, .data-panel { background: #102229; }
+            header, .summary, .account, .search, textarea, select, input, .inline-form, .data-panel, .tour, .photo-add { background: #102229; }
             .pill { background: #0b3b39; color: #7fe0d6; }
+            .pill--tour { background: #0c3448; color: #7dd3fc; }
+            .photo img { background: #102229; }
             .toast { background: #e2e8f0; color: #0b1418; }
             .banner { background: #2a1416; border-color: #5b1f26; color: #fecaca; }
             .conflicts { background: #2a1416; border-color: #5b1f26; }
@@ -313,6 +400,18 @@
             <span id="last-sync">Jamais synchronisé</span>
             <span id="priority-summary">—</span>
         </div>
+
+        <section class="tour" id="tour" aria-label="Tournée du jour">
+            <div class="tour__head">
+                <h2>Tournée du jour</h2>
+                <span class="muted" id="tour-count">0 étape(s)</span>
+            </div>
+            <ol class="tour__list" id="tour-list">
+                <li class="muted">Aucune étape. Ajoutez des comptes depuis la liste ci-dessous.</li>
+            </ol>
+            <div class="tour__routes" id="tour-routes"></div>
+            <button type="button" class="small danger" id="tour-reset">Réinitialiser la tournée</button>
+        </section>
 
         <input
             type="search"

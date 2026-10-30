@@ -1,6 +1,6 @@
 # Plan de développement : amélioration du mode terrain
 
-> **État : phase 2 implémentée (30/10/2026). Phases 3 à 4 planifiées.**
+> **État : phases 2 et 3 implémentées (30/10/2026). Phase 4 planifiée.**
 > Branche cible : `feature/crm`.
 > Périmètre retenu : priorités 1 et 2, avec photos rattachées aux activités et tournée manuelle.
 > Décisions validées : résolution manuelle des conflits, photos compressées localement puis synchronisées, tournée ordonnée manuellement avec itinéraire Google Maps.
@@ -270,12 +270,12 @@ Réponse par opération :
 
 ### 6.5 Tournée du jour
 
-- Cases de sélection sur les comptes.
-- Liste ordonnée.
-- Boutons monter/descendre.
-- Bouton « Ouvrir l'itinéraire ».
+- Bouton « Ajouter à la tournée » sur chaque compte.
+- Liste ordonnée avec numéro d'étape.
+- Boutons monter/descendre et retrait.
+- Un bouton d'itinéraire Google Maps par tronçon de 10 étapes maximum.
 - Réinitialisation explicite.
-- Conservation de la sélection pour la journée.
+- Conservation de la sélection pour la journée, remise à zéro automatique au changement de date.
 
 ## 7. Gestion du cache
 
@@ -348,11 +348,14 @@ Réponse par opération :
 
 ### Phase 3 — Photos et tournée
 
-- Table `crm_activity_attachments`.
-- Compression et stockage local.
-- Upload différé.
-- Affichage authentifié.
-- Tournée manuelle et itinéraire Google Maps.
+- Table `crm_activity_attachments` (disque privé, `client_uuid` unique, purge avec l'activité et à la rétention).
+- Compression navigateur (JPEG, 1600 px max) et stockage IndexedDB en Blob.
+- Upload différé idempotent, 5 photos maximum par activité, 5 Mo maximum par photo après compression.
+- Galerie dans `/terrain` (photos serveur + photos locales en attente) et relation manager lecture seule dans la fiche activité Filament.
+- Routes authentifiées `POST /terrain/activities/{activity}/attachments` et `GET /terrain/attachments/{attachment}`, avec limitation de débit.
+- Tournée manuelle persistée dans IndexedDB : ajout, ordre, retrait, réinitialisation, découpage en itinéraires de 10 étapes pour Google Maps.
+- Réinitialisation automatique de la tournée au changement de jour.
+- Phase 3 livrée le 30/10/2026. Tests : `FieldAttachmentTest` (11 tests).
 
 ### Phase 4 — Finitions
 

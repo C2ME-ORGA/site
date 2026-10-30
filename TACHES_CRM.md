@@ -65,12 +65,15 @@
 > Phase 2 livrée le 30/10/2026 : détection et résolution manuelle des conflits (garder local, prendre serveur, fusion champ par champ), reprise automatique avec backoff, erreurs par opération, session expirée sans perte, snapshot incrémental et panneau de gestion du cache. Tests : `FieldModeTest` (17 tests).
 
 **Priorité 3 — richesse fonctionnelle**
-- [ ] Photos et pièces jointes prises sur le terrain, stockées localement puis envoyées à la synchronisation.
+- [x] Photos et pièces jointes prises sur le terrain, stockées localement puis envoyées à la synchronisation.
+- [x] Tournée manuelle : ajout, ordre, retrait, réinitialisation, itinéraires Google Maps découpés par 10 étapes.
 - [ ] Notes vocales (au minimum pièce jointe audio, idéalement retranscription).
 - [ ] Signature client sur devis / bon de réception.
 - [ ] Géolocalisation : « autour de moi », distance, itinéraire multi-étapes de la tournée.
 - [ ] Mode « tournée du jour » avec progression et prochaine étape.
 - [ ] Recherche accents-insensible étendue aux contacts, affaires et devis.
+
+> Phase 3 livrée le 30/10/2026 : photos rattachées aux activités (compression JPEG locale, stockage IndexedDB en Blob, upload différé idempotent, 5 photos / 5 Mo maximum), galerie dans `/terrain` et dans la fiche activité Filament, stockage privé purgé avec l'activité et à la rétention ; tournée du jour persistée avec ordre manuel, réinitialisation automatique au changement de date et itinéraires Google Maps par tronçons de 10 étapes. Tests : `FieldAttachmentTest` (11 tests).
 
 **Priorité 4 — ergonomie mobile et qualité**
 - [ ] Refonte mobile : cibles tactiles ≥ 44 px, navigation par onglets, en-tête compact, mode sombre vérifié.
@@ -160,7 +163,7 @@
 
 ## Proposition de développement supplémentaire
 
-- [ ] **Amélioration du mode terrain** : édition hors ligne, création d'activités, actions rapides, conflits de synchronisation, photos et tournée — détail en section 7.
+- [x] **Amélioration du mode terrain** : édition hors ligne, création d'activités, actions rapides, conflits de synchronisation, photos et tournée — détail en section 7.
 - [x] Recherche globale Filament inter-carnets (comptes, contacts, affaires, devis). (v1.1.0)
 - [x] Relances automatiques : notifications/rappels à partir de `next_follow_up_at` — implémenté (voir section 8). (v1.1.0)
 - [x] Tableau de bord enrichi : CA signé, taux de conversion, pipeline par carnet — implémenté (voir section 9). (v1.1.0)
