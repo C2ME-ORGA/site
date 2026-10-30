@@ -1,0 +1,12 @@
+# Exemple de configuration root pour la production (c2me.fr).
+APP_DIR="/www/wwwroot/c2me.fr"
+DEPLOY_BRANCH="production"
+HEALTH_URL="https://c2me.fr/up"
+BACKUP_DIR="/www/backup/c2me/production"
+PHP_BIN="/www/server/php/84/bin/php"
+COMPOSER_BIN="/usr/bin/composer"
+NODE_BIN_DIR="/www/server/nodejs/v22.17.1/bin"
+QUEUE_PROGRAM="c2meprodqueue"
+REVERB_PROGRAM="c2meprodreverb"
+SUPERVISORCTL="/www/server/panel/pyenv/bin/supervisorctl"
+SUPERVISOR_CONFIG="/etc/supervisor/supervisord.conf"
