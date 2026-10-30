@@ -1,0 +1,12 @@
+# Exemple de configuration root pour la préproduction (c2me.ovh).
+APP_DIR="/www/wwwroot/c2me.ovh"
+DEPLOY_BRANCH="master"
+HEALTH_URL="https://c2me.ovh/up"
+BACKUP_DIR="/www/backup/c2me/preproduction"
+PHP_BIN="/www/server/php/84/bin/php"
+COMPOSER_BIN="/usr/bin/composer"
+NODE_BIN_DIR="/www/server/nodejs/v22.17.1/bin"
+QUEUE_PROGRAM="c2mequeue"
+REVERB_PROGRAM="c2mereverb"
+SUPERVISORCTL="/www/server/panel/pyenv/bin/supervisorctl"
+SUPERVISOR_CONFIG="/etc/supervisor/supervisord.conf"
