@@ -4,7 +4,8 @@ set -Eeuo pipefail
 umask 077
 
 CONFIG="/etc/c2me/deploy.conf"
-APP_HELPER="/www/wwwroot/c2me.ovh/scripts/deploy-production-app.sh"
+APP_HELPER_SOURCE="/www/wwwroot/c2me.ovh/scripts/deploy-production-app.sh"
+APP_HELPER_RUN=""
 DEFAULT_SUPERVISORCTL="/www/server/panel/pyenv/bin/supervisorctl"
 DEFAULT_SUPERVISOR_CONFIG="/etc/supervisor/supervisord.conf"
 DEFAULT_PHP_BIN="/www/server/php/84/bin/php"
@@ -39,7 +40,7 @@ SUPERVISOR_CONFIG="${SUPERVISOR_CONFIG:-$DEFAULT_SUPERVISOR_CONFIG}"
 [[ "$QUEUE_PROGRAM" == "c2mequeue" && "$REVERB_PROGRAM" == "c2mereverb" ]] || { echo "Programmes Supervisor non autorisés." >&2; exit 1; }
 [[ -x "$SUPERVISORCTL" && -f "$SUPERVISOR_CONFIG" ]] || { echo "Supervisor aaPanel introuvable." >&2; exit 1; }
 [[ -x "$PHP_BIN" && -x "$NODE_BIN_DIR/node" && -x "$NODE_BIN_DIR/npm" && -x "$COMPOSER_BIN" ]] || { echo "Runtime applicatif introuvable." >&2; exit 1; }
-[[ -f "$APP_HELPER" && ! -L "$APP_HELPER" ]] || { echo "Script applicatif absent ou invalide." >&2; exit 1; }
+[[ -f "$APP_HELPER_SOURCE" && ! -L "$APP_HELPER_SOURCE" ]] || { echo "Script applicatif absent ou invalide." >&2; exit 1; }
 [[ "$(stat -c '%U' "$APP_DIR")" == "www" ]] || { echo "Le projet doit appartenir à www." >&2; exit 1; }
 
 for cmd in runuser flock mysqldump gzip curl awk; do
@@ -49,6 +50,11 @@ done
 mkdir -p "$BACKUP_DIR" /var/log/c2me /var/cache/c2me
 chown root:root "$BACKUP_DIR" /var/log/c2me /var/cache/c2me
 chmod 750 "$BACKUP_DIR" /var/log/c2me /var/cache/c2me
+install -d -o root -g www -m 750 /var/cache/c2me/deploy-scripts
+APP_HELPER_RUN="$(mktemp /var/cache/c2me/deploy-scripts/app.XXXXXX)"
+cp -- "$APP_HELPER_SOURCE" "$APP_HELPER_RUN"
+chown root:www "$APP_HELPER_RUN"
+chmod 0440 "$APP_HELPER_RUN"
 install -d -o www -g www -m 700 "$DEPLOY_HOME"
 LOG_FILE="/var/log/c2me/deploy-$(date +%Y%m%d-%H%M%S).log"
 touch "$LOG_FILE"
@@ -65,7 +71,7 @@ run_www() {
         APP_DIR="$APP_DIR" DEPLOY_BRANCH="$DEPLOY_BRANCH" \
         PHP_BIN="$PHP_BIN" COMPOSER_BIN="$COMPOSER_BIN" \
         NODE_BIN_DIR="$NODE_BIN_DIR" DEPLOY_HOME="$DEPLOY_HOME" \
-        bash "$APP_HELPER" "$1"
+        bash "$APP_HELPER_RUN" "$1"
 }
 
 MAINTENANCE=0
@@ -78,6 +84,7 @@ finish() {
             run_www up || log "ERREUR : impossible de désactiver le mode maintenance."
         fi
     fi
+    [[ -z "$APP_HELPER_RUN" ]] || rm -f -- "$APP_HELPER_RUN"
     log "Fin du déploiement (code $status)."
     exit "$status"
 }
