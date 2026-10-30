@@ -79,12 +79,15 @@ run_www() {
 }
 
 MAINTENANCE=0
+SERVICES_STOPPED=0
 finish() {
     status=$?
     if (( status != 0 )); then
         log "Déploiement interrompu (code $status)."
-        "$SUPERVISORCTL" -c "$SUPERVISOR_CONFIG" start "$QUEUE_PROGRAM:*" || log "ERREUR : redémarrage queue impossible."
-        "$SUPERVISORCTL" -c "$SUPERVISOR_CONFIG" start "$REVERB_PROGRAM:*" || log "ERREUR : redémarrage Reverb impossible."
+        if (( SERVICES_STOPPED == 1 )); then
+            "$SUPERVISORCTL" -c "$SUPERVISOR_CONFIG" start "$QUEUE_PROGRAM:*" || log "ERREUR : redémarrage queue impossible."
+            "$SUPERVISORCTL" -c "$SUPERVISOR_CONFIG" start "$REVERB_PROGRAM:*" || log "ERREUR : redémarrage Reverb impossible."
+        fi
         if (( MAINTENANCE == 1 )); then
             log "Tentative de sortie du mode maintenance."
             run_www up || log "ERREUR : impossible de désactiver le mode maintenance."
@@ -137,6 +140,7 @@ run_www down
 MAINTENANCE=1
 
 log "Arrêt des workers et de Reverb avant remplacement du code."
+SERVICES_STOPPED=1
 "$SUPERVISORCTL" -c "$SUPERVISOR_CONFIG" stop "$QUEUE_PROGRAM:*"
 "$SUPERVISORCTL" -c "$SUPERVISOR_CONFIG" stop "$REVERB_PROGRAM:*"
 
@@ -145,6 +149,7 @@ run_www update
 log "Redémarrage des processus Supervisor aaPanel C2ME."
 "$SUPERVISORCTL" -c "$SUPERVISOR_CONFIG" start "$QUEUE_PROGRAM:*"
 "$SUPERVISORCTL" -c "$SUPERVISOR_CONFIG" start "$REVERB_PROGRAM:*"
+SERVICES_STOPPED=0
 
 for program in "$QUEUE_PROGRAM" "$REVERB_PROGRAM"; do
     STATUS="$("$SUPERVISORCTL" -c "$SUPERVISOR_CONFIG" status "$program:*")"
