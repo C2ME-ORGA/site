@@ -69,7 +69,7 @@ chown root:root "$LOG_FILE"
 chmod 600 "$LOG_FILE"
 exec >>"$LOG_FILE" 2>&1
 
-log() { printf '[%s] %s\\n' "$(date '+%F %T%z')" "$*"; }
+log() { printf '[%s] %s\n' "$(date '+%F %T%z')" "$*"; }
 run_www() {
     runuser -u www -- env \
         APP_DIR="$APP_DIR" DEPLOY_BRANCH="$DEPLOY_BRANCH" \
