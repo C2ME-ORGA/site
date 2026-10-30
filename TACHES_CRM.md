@@ -1,7 +1,7 @@
 # CRM C2ME — Liste de tâches
 
-> État au 23/10/2026 — branche `feature/crm`.
-> Qualité : Pint OK · PHPStan niveau 7 (0 erreur, tests inclus via `pest-plugin-phpstan`). 213 tests / 873 assertions.
+> État au 30/10/2026 — branche `feature/crm`.
+> Qualité : Pint OK · PHPStan niveau 7 (0 erreur, tests inclus via `pest-plugin-phpstan`). 256 tests / 1058 assertions.
 
 ## A Faire
 
@@ -129,6 +129,18 @@
 - [x] Entrée de thème ajoutée à `vite.config.js` et `->viteTheme()` sur le panel : le panel charge désormais le CSS compilé par Vite, ce qui stylise aussi les utilitaires déjà utilisés dans les vues métier (`mb-4`, `text-sm`, etc.).
 - [x] Tests d'accès (admin, commercial, visiteur anonyme, journal inexistant, entrée de navigation) et de l'enregistrement du plugin/thème ; Pint, PHPStan et suite complète au vert.
 
+### 13. Journal d'audit des modifications sensibles
+
+- [x] Table append-only `audit_logs` : auteur, événement, élément (type, identifiant, libellé), changements JSON, IP et date ; index sur l'élément, l'événement et la date.
+- [x] Enum `AuditEvent` (`Modification`, `Suppression`, `Suppression définitive`, `Restauration`, `Envoi`) avec libellés et couleurs Filament.
+- [x] `AuditObserver` enregistré globalement : statut des devis, étape/probabilité/montant des affaires, statut des comptes, rôle/activation des utilisateurs, activation/propriétaire des boîtes e-mail.
+- [x] Suppressions et restaurations journalisées pour les devis, affaires, comptes, contacts, activités, e-mails, boîtes, étiquettes et utilisateurs (une seule entrée par `forceDelete`).
+- [x] Envois d'e-mails tracés depuis `MailboxMailer` (destinataires, copie, objet) après création du message sortant.
+- [x] Les créations et les modifications non sensibles ne sont pas journalisées ; les exécutions console (`ExpireQuotes`…) n'attribuent ni utilisateur ni IP.
+- [x] Page `/admin/journal-audit` (groupe « Système », tri 96) : table en lecture seule, filtres événement/type/auteur/période et modale de détail avant/après.
+- [x] Accès réservé aux administrateurs (`canAccess` et navigation masquée pour les commerciaux).
+- [x] Tests des statuts, suppressions/restaurations, rôles, envois, accès admin/commercial et visiteur anonyme ; Pint, PHPStan et suite complète au vert.
+
 ## Proposition de développement supplémentaire
 
 - [ ] **Amélioration du mode terrain** : édition hors ligne, création d'activités, actions rapides, conflits de synchronisation, photos et tournée — détail en section 7.
@@ -139,7 +151,7 @@
 - [x] Notifications temps réel (broadcast) pour les nouveaux e-mails — implémenté (voir section 11).
 - [x] Visionneuse de logs dans le panel pour le suivi technique — implémenté (voir section 12).
 - [x] Gestion dédiée des tags (création/renommage/fusion) avec couleurs, badges, filtres par carnet et outils de nettoyage des doublons.
-- [ ] Journal d'audit des modifications sensibles (statuts, suppressions, envois).
+- [x] Journal d'audit des modifications sensibles (statuts, suppressions, envois) — implémenté (voir section 13).
 - [ ] Signatures e-mail configurables par utilisateur.
 - [ ] Support OAuth Microsoft 365 / Google Workspace en plus d'IMAP par mot de passe.
 - [ ] Sauvegarde/restauration documentée de la base et des fichiers.

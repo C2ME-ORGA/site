@@ -3,6 +3,7 @@
 namespace App\Providers;
 
 use App\Contracts\InboundFetcher;
+use App\Observers\AuditObserver;
 use App\Services\Mail\ImapInboundFetcher;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\Date;
@@ -26,6 +27,10 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         $this->configureDefaults();
+
+        foreach (array_keys(AuditObserver::AUDITED) as $model) {
+            $model::observe(AuditObserver::class);
+        }
     }
 
     /**

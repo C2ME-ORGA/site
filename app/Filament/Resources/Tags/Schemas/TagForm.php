@@ -5,9 +5,9 @@ namespace App\Filament\Resources\Tags\Schemas;
 use App\Enums\CrmTagColor;
 use App\Models\CrmTag;
 use App\Rules\UniqueTagName;
-use Filament\Forms\Components\Component;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
+use Filament\Schemas\Components\Component;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
 
@@ -25,7 +25,7 @@ class TagForm
     }
 
     /**
-     * @return array<int, \Filament\Forms\Components\Component>
+     * @return array<int, Component>
      */
     public static function fields(): array
     {
