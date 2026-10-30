@@ -55,6 +55,24 @@ test('un visiteur est redirigé vers la connexion', function (): void {
     $this->get('/admin/contact-requests')->assertRedirect();
 });
 
+test('une demande de contact dispose d une fiche détaillée avec ses actions', function (): void {
+    $contact = seedContactRequest();
+
+    $this->actingAs(adminUser())
+        ->get("/admin/contact-requests/{$contact->id}")
+        ->assertOk()
+        ->assertSee('Demande')
+        ->assertSee('Jean Dupont')
+        ->assertSee('Charpentes Dupont')
+        ->assertSee('jean@dupont.fr')
+        ->assertSee('Demande de devis pour 40 pièces découpées.')
+        ->assertSee('Non traitée')
+        ->assertSee('Répondre')
+        ->assertSee('Créer dans le CRM')
+        ->assertSee('Marquer comme traitée')
+        ->assertSee('Modifier');
+});
+
 test('une demande peut être ouverte pour modification', function (): void {
     $contact = seedContactRequest();
 
