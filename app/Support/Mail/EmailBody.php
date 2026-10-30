@@ -59,6 +59,27 @@ class EmailBody
     }
 
     /**
+     * Convertit les liens et images relatifs en URLs absolues, afin qu'ils
+     * restent accessibles dans la boîte du destinataire.
+     */
+    public static function absoluteUrls(string $html): string
+    {
+        return preg_replace_callback(
+            '/\b(src|href)\s*=\s*(["\'])(.*?)\2/i',
+            function (array $matches): string {
+                $url = html_entity_decode(trim($matches[3]), ENT_QUOTES | ENT_HTML5, 'UTF-8');
+
+                if ($url === '' || preg_match('~^(?:[a-z][a-z0-9+.-]*:|//|\#)~i', $url)) {
+                    return $matches[0];
+                }
+
+                return $matches[1].'='.$matches[2].e(url($url)).$matches[2];
+            },
+            $html,
+        ) ?? $html;
+    }
+
+    /**
      * Décode un en-tête MIME (objet, nom d'expéditeur) encodé en RFC 2047.
      */
     public static function decodeHeader(string $value): string

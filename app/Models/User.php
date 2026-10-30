@@ -27,13 +27,14 @@ use Illuminate\Support\Str;
  * @property UserRole $role
  * @property string|null $phone
  * @property string|null $job_title
+ * @property string|null $email_signature
  * @property bool $is_active
  * @property CarbonImmutable|null $last_login_at
  * @property string|null $remember_token
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  */
-#[Fillable(['name', 'email', 'password', 'role', 'phone', 'job_title', 'is_active'])]
+#[Fillable(['name', 'email', 'password', 'role', 'phone', 'job_title', 'email_signature', 'is_active'])]
 #[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable implements FilamentUser
 {

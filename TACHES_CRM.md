@@ -141,6 +141,14 @@
 - [x] Accès réservé aux administrateurs (`canAccess` et navigation masquée pour les commerciaux).
 - [x] Tests des statuts, suppressions/restaurations, rôles, envois, accès admin/commercial et visiteur anonyme ; Pint, PHPStan et suite complète au vert.
 
+### 14. Signatures e-mail configurables par utilisateur
+
+- [x] Colonne `email_signature` (texte, nullable) sur `users`, ajoutée aux champs modifiables du modèle.
+- [x] Champ « Signature e-mail » en éditeur enrichi sur `/admin/profile` : mise en forme (gras, listes, liens…) et insertion d'images jusqu'à 5 Mo, stockées sur le disque public dans `email-signatures`.
+- [x] Signature HTML insérée automatiquement dans le corps des nouveaux messages et au-dessus du texte cité des réponses ; l'éditeur de composition accepte lui aussi la mise en forme et les images.
+- [x] Corps laissé intact lorsque la signature est vide ; images et liens relatifs convertis en URLs absolues au moment de l'envoi.
+- [x] Tests du profil, du préremplissage (nouveau message, réponse, absence de signature) et de l'absolutisation des URLs ; Pint, PHPStan et suite complète au vert.
+
 ## Proposition de développement supplémentaire
 
 - [ ] **Amélioration du mode terrain** : édition hors ligne, création d'activités, actions rapides, conflits de synchronisation, photos et tournée — détail en section 7.
@@ -152,7 +160,7 @@
 - [x] Visionneuse de logs dans le panel pour le suivi technique — implémenté (voir section 12).
 - [x] Gestion dédiée des tags (création/renommage/fusion) avec couleurs, badges, filtres par carnet et outils de nettoyage des doublons.
 - [x] Journal d'audit des modifications sensibles (statuts, suppressions, envois) — implémenté (voir section 13).
-- [ ] Signatures e-mail configurables par utilisateur.
+- [x] Signatures e-mail configurables par utilisateur — implémenté (voir section 14).
 - [ ] Support OAuth Microsoft 365 / Google Workspace en plus d'IMAP par mot de passe.
 - [ ] Sauvegarde/restauration documentée de la base et des fichiers.
 - [ ] Accessibilité et revue RGPD finale avant mise en production.

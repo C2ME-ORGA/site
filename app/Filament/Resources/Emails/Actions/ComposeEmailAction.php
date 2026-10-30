@@ -6,11 +6,13 @@ use App\Models\CrmAccount;
 use App\Models\CrmContact;
 use App\Models\EmailMailbox;
 use App\Models\EmailMessage;
+use App\Models\User;
 use App\Services\Mail\MailboxMailer;
+use App\Support\Mail\EmailBody;
 use Filament\Actions\Action;
 use Filament\Forms\Components\FileUpload;
+use Filament\Forms\Components\RichEditor;
 use Filament\Forms\Components\Select;
-use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Notifications\Notification;
 use Illuminate\Database\Eloquent\Builder;
@@ -31,7 +33,7 @@ class ComposeEmailAction
                 'mailbox_id' => $message->email_mailbox_id,
                 'to' => $message->from_email,
                 'subject' => self::replySubject((string) $message->subject),
-                'body' => self::quotedBody($message),
+                'body' => EmailBody::replyQuote($message),
             ],
             $message,
         );
@@ -55,6 +57,13 @@ class ComposeEmailAction
 
         $recipient = $defaults['to'] ?? ($account !== null ? $account->email : $contact?->email);
         $isReply = $replyTo !== null;
+
+        $defaultBody = $defaults['body'] ?? null;
+        $body = self::bodyWithSignature(
+            is_string($defaultBody) ? $defaultBody : null,
+            self::signature(),
+            $isReply,
+        );
 
         return Action::make($isReply ? 'reply' : 'compose')
             ->label($isReply ? 'Répondre' : 'Nouveau message')
@@ -85,10 +94,13 @@ class ComposeEmailAction
                     ->required()
                     ->maxLength(255),
 
-                Textarea::make('body')
+                RichEditor::make('body')
                     ->label('Message')
-                    ->default($defaults['body'] ?? null)
-                    ->rows(8)
+                    ->default($body)
+                    ->fileAttachmentsDisk('public')
+                    ->fileAttachmentsDirectory('mail-body')
+                    ->fileAttachmentsVisibility('public')
+                    ->fileAttachmentsMaxSize(10240)
                     ->required(),
 
                 FileUpload::make('attachments')
@@ -106,7 +118,7 @@ class ComposeEmailAction
                     $mailbox,
                     self::emails((string) $data['to']),
                     (string) $data['subject'],
-                    nl2br(htmlspecialchars((string) $data['body'], ENT_QUOTES)),
+                    EmailBody::absoluteUrls((string) $data['body']),
                     self::emails((string) ($data['cc'] ?? '')),
                     $replyTo?->message_id,
                     $account?->id,
@@ -170,29 +182,44 @@ class ComposeEmailAction
         )));
     }
 
+    /**
+     * Signature HTML de l'utilisateur connecté.
+     */
+    private static function signature(): ?string
+    {
+        $user = auth()->user();
+
+        if (! $user instanceof User) {
+            return null;
+        }
+
+        $signature = trim((string) $user->email_signature);
+
+        return $signature === '' ? null : $signature;
+    }
+
+    /**
+     * Insère la signature avant le texte cité d'une réponse, ou à la fin d'un
+     * message existant. Sans signature, le corps reste inchangé.
+     */
+    private static function bodyWithSignature(?string $body, ?string $signature, bool $isReply): ?string
+    {
+        if ($signature === null) {
+            return $body;
+        }
+
+        if ($body === null || trim(strip_tags($body)) === '') {
+            return $signature;
+        }
+
+        return $isReply ? $signature.$body : $body.$signature;
+    }
+
     private static function replySubject(string $subject): string
     {
         return str_starts_with(mb_strtolower($subject), 're:')
             ? $subject
             : 'Re: '.$subject;
-    }
-
-    private static function quotedBody(EmailMessage $message): string
-    {
-        $text = $message->body_text !== null && $message->body_text !== ''
-            ? $message->body_text
-            : strip_tags((string) $message->body_html);
-
-        $header = sprintf(
-            'Le %s, %s a écrit :',
-            $message->received_at?->format('d/m/Y H:i') ?? '',
-            $message->from_name ?? $message->from_email,
-        );
-
-        $lines = preg_split('/\r\n|\r|\n/', trim($text)) ?: [];
-        $quoted = implode("\n", array_map(fn (string $line): string => '> '.$line, $lines));
-
-        return "\n\n".$header."\n".$quoted;
     }
 
     /**
