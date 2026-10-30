@@ -113,10 +113,11 @@ Créer un environnement GitHub nommé `production`, avec approbation manuelle si
 4. Précontrôles Git exécutés sous www.
 5. Sauvegarde SQL gzip et vérification de l'archive.
 6. Activation maintenance sous www.
-7. Git fast-forward, Composer, npm ci/build, migrations et caches sous www.
-8. Redémarrage et vérification de `c2mequeue` et `c2mereverb` via Supervisor aaPanel.
-9. Sortie de maintenance et contrôle HTTP de `https://c2me.fr/up`.
-10. Conservation locale des sauvegardes SQL pendant 14 jours.
+7. Arrêt de `c2mequeue` et `c2mereverb` avant remplacement du code.
+8. Git fast-forward, Composer, npm ci/build, migrations et caches sous www.
+9. Redémarrage et vérification de `c2mequeue` et `c2mereverb` via Supervisor aaPanel.
+10. Sortie de maintenance et contrôle HTTP de `https://c2me.fr/up`.
+11. Conservation locale des sauvegardes SQL pendant 14 jours.
 
 Le service `batistack` n'est jamais redémarré.
 
