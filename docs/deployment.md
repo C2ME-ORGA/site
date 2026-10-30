@@ -2,8 +2,8 @@
 
 ## Architecture
 
-- Les Pull Requests vers `master` exécutent les contrôles PHP, Pest et le build frontend.
-- Un push sur `master` déclenche les contrôles, puis le déploiement SSH si les contrôles réussissent.
+- Les Pull Requests vers `master` exécutent les contrôles PHP, Pest et le build frontend. Le déploiement est réservé aux push sur `production`.
+- Un push sur `production` déclenche les contrôles, puis le déploiement SSH si les contrôles réussissent. Les PR vers `master` exécutent uniquement la CI ; elles ne déploient jamais.
 - GitHub Actions se connecte avec le compte SSH dédié `deploy` et le secret `DEPLOY_PASSWORD`.
 - `deploy` peut uniquement lancer `sudo -n /usr/local/sbin/c2me-deploy`.
 - Le script privilégié est installé et détenu par root. Il sauvegarde la base, orchestre le déploiement sous `www` et contrôle Supervisor aaPanel.
@@ -32,7 +32,7 @@ Créer `/etc/c2me/deploy.conf`, appartenant à root et non modifiable par deploy
 
 ```bash
 APP_DIR="/www/wwwroot/c2me.ovh"
-DEPLOY_BRANCH="master"
+DEPLOY_BRANCH="production"
 HEALTH_URL="https://c2me.fr/up"
 BACKUP_DIR="/www/backup/c2me/database"
 PHP_BIN="/www/server/php/84/bin/php"
@@ -100,7 +100,7 @@ Dans Settings > Secrets and variables > Actions, idéalement dans l'environnemen
 
 Le workflow impose `DEPLOY_USER=deploy`, vérifie la clé d'hôte et utilise sshpass via `SSHPASS`. Ne jamais afficher ni écrire le mot de passe dans les logs.
 
-Créer un environnement GitHub nommé `production`, avec approbation manuelle si souhaitée. Restreindre les déploiements à la branche `master`.
+Créer un environnement GitHub nommé `production`, avec approbation manuelle si souhaitée. Restreindre les déploiements à la branche `production`.
 
 ## Déroulement
 
