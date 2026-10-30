@@ -98,8 +98,9 @@ class ComposeEmailAction
                     ->label('Message')
                     ->default($body)
                     ->fileAttachmentsDisk('public')
-                    ->fileAttachmentsDirectory('mail-body')
+                    ->fileAttachmentsDirectory(fn (): string => 'mail-body/'.(auth()->id() ?? 'partage'))
                     ->fileAttachmentsVisibility('public')
+                    ->fileAttachmentsAcceptedFileTypes(['image/jpeg', 'image/png', 'image/gif', 'image/webp'])
                     ->fileAttachmentsMaxSize(10240)
                     ->required(),
 

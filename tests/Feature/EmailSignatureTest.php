@@ -7,6 +7,7 @@ use App\Models\EmailMessage;
 use App\Models\User;
 use App\Support\Mail\EmailBody;
 use Filament\Facades\Filament;
+use Filament\Forms\Components\RichEditor;
 use Livewire\Livewire;
 
 /**
@@ -51,6 +52,32 @@ test('le profil expose un éditeur enrichi pour la signature e-mail', function (
         ->assertSee('fi-fo-rich-editor', escape: false);
 });
 
+test('les images de signature sont limitées aux images et isolées par utilisateur', function (): void {
+    $user = signatureUser();
+
+    $this->actingAs($user);
+
+    $page = Livewire::test(EditProfile::class)->instance();
+
+    if (! $page instanceof EditProfile) {
+        throw new RuntimeException('La page de profil n’a pas pu être montée.');
+    }
+
+    $component = $page->getSchema('form')?->getComponent('email_signature');
+
+    if (! $component instanceof RichEditor) {
+        throw new RuntimeException('Le champ de signature n’est pas un éditeur enrichi.');
+    }
+
+    expect($component->getFileAttachmentsDirectory())->toBe('email-signatures/'.$user->id)
+        ->and($component->getFileAttachmentsAcceptedFileTypes())->toBe([
+            'image/jpeg',
+            'image/png',
+            'image/gif',
+            'image/webp',
+        ]);
+});
+
 test('la signature e-mail enrichie est enregistrée depuis le profil', function (): void {
     $user = signatureUser();
     $signature = signatureHtml();
@@ -67,6 +94,41 @@ test('la signature e-mail enrichie est enregistrée depuis le profil', function 
     expect($saved)->toContain('<strong>Cordialement,</strong>')
         ->and($saved)->toContain('<img')
         ->and($saved)->toContain('/storage/email-signatures/logo.png');
+});
+
+test('les images du corps sont limitées aux images et isolées par utilisateur', function (): void {
+    $user = signatureUser();
+    $message = signatureMessage();
+
+    $test = Livewire::actingAs($user)
+        ->test(ViewEmailMessage::class, ['record' => $message->id])
+        ->mountAction('compose');
+
+    $instance = $test->instance();
+
+    if (! $instance instanceof ViewEmailMessage) {
+        throw new RuntimeException('La page du message n’a pas pu être montée.');
+    }
+
+    $schemaName = $instance->getMountedActionSchemaName();
+
+    if ($schemaName === null) {
+        throw new RuntimeException('L’action de composition n’a pas été montée.');
+    }
+
+    $component = $instance->getSchema($schemaName)?->getComponent('body');
+
+    if (! $component instanceof RichEditor) {
+        throw new RuntimeException('Le corps du message n’est pas un éditeur enrichi.');
+    }
+
+    expect($component->getFileAttachmentsDirectory())->toBe('mail-body/'.$user->id)
+        ->and($component->getFileAttachmentsAcceptedFileTypes())->toBe([
+            'image/jpeg',
+            'image/png',
+            'image/gif',
+            'image/webp',
+        ]);
 });
 
 test('un nouveau message est prérempli avec la signature enrichie', function (): void {

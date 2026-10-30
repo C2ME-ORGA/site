@@ -144,10 +144,10 @@
 ### 14. Signatures e-mail configurables par utilisateur
 
 - [x] Colonne `email_signature` (texte, nullable) sur `users`, ajoutée aux champs modifiables du modèle.
-- [x] Champ « Signature e-mail » en éditeur enrichi sur `/admin/profile` : mise en forme (gras, listes, liens…) et insertion d'images jusqu'à 5 Mo, stockées sur le disque public dans `email-signatures`.
+- [x] Champ « Signature e-mail » en éditeur enrichi sur `/admin/profile` : mise en forme (gras, listes, liens…) et insertion d'images jusqu'à 5 Mo, limitées aux types MIME JPEG, PNG, GIF et WebP, stockées par utilisateur dans `email-signatures/{user_id}`.
 - [x] Signature HTML insérée automatiquement dans le corps des nouveaux messages et au-dessus du texte cité des réponses ; l'éditeur de composition accepte lui aussi la mise en forme et les images.
 - [x] Corps laissé intact lorsque la signature est vide ; images et liens relatifs convertis en URLs absolues au moment de l'envoi.
-- [x] Tests du profil, du préremplissage (nouveau message, réponse, absence de signature) et de l'absolutisation des URLs ; Pint, PHPStan et suite complète au vert.
+- [x] Tests du profil, du préremplissage (nouveau message, réponse, absence de signature), des restrictions d'upload et de l'absolutisation des URLs ; Pint, PHPStan et suite complète au vert.
 
 ## Proposition de développement supplémentaire
 
