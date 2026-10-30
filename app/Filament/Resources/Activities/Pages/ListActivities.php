@@ -26,7 +26,7 @@ class ListActivities extends ListRecords
 
                     return response()->streamDownload(
                         fn () => print $content,
-                        'c2me-relances-'.now()->format('Y-m-d').'.ics',
+                        'c2me-agenda-'.now()->format('Y-m-d').'.ics',
                         ['Content-Type' => 'text/calendar; charset=utf-8'],
                     );
                 }),

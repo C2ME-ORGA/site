@@ -31,11 +31,12 @@ use Illuminate\Support\Str;
  * @property bool $is_active
  * @property CarbonImmutable|null $last_login_at
  * @property string|null $remember_token
+ * @property string|null $calendar_token
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  */
 #[Fillable(['name', 'email', 'password', 'role', 'phone', 'job_title', 'email_signature', 'is_active'])]
-#[Hidden(['password', 'remember_token'])]
+#[Hidden(['password', 'remember_token', 'calendar_token'])]
 class User extends Authenticatable implements FilamentUser
 {
     /** @use HasFactory<UserFactory> */
@@ -85,6 +86,36 @@ class User extends Authenticatable implements FilamentUser
     public function isCommercial(): bool
     {
         return $this->role === UserRole::Commercial;
+    }
+
+    /**
+     * Jeton d'abonnement au calendrier. Il vaut mot de passe : le flux est
+     * accessible sans session, uniquement avec cette URL non devinable.
+     */
+    public function ensureCalendarToken(): string
+    {
+        if ($this->calendar_token === null || $this->calendar_token === '') {
+            $this->regenerateCalendarToken();
+        }
+
+        return (string) $this->calendar_token;
+    }
+
+    public function regenerateCalendarToken(): string
+    {
+        $this->forceFill(['calendar_token' => Str::random(48)])->save();
+
+        return (string) $this->calendar_token;
+    }
+
+    public function calendarFeedUrl(): string
+    {
+        return route('calendar.feed', ['token' => $this->ensureCalendarToken()]);
+    }
+
+    public function calendarWebcalUrl(): string
+    {
+        return (string) preg_replace('#^https?://#', 'webcal://', $this->calendarFeedUrl());
     }
 
     /**

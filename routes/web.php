@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\CalendarFeedController;
 use App\Http\Controllers\EmailAttachmentController;
 use App\Http\Controllers\FieldModeController;
 use App\Http\Controllers\PrintController;
@@ -82,6 +83,16 @@ Route::view('/confidentialite', 'pages.legal.confidentialite')
 | dès le retour de la connexion.
 |
 */
+
+/*
+| Flux calendrier privé : l'URL porte un jeton secret, car les clients
+| calendrier (Google, Outlook, Apple) ne peuvent pas s'authentifier par session.
+*/
+
+Route::get('/calendrier/{token}.ics', CalendarFeedController::class)
+    ->middleware('throttle:60,1')
+    ->where('token', '[A-Za-z0-9]{40,64}')
+    ->name('calendar.feed');
 
 Route::middleware('auth')->group(function (): void {
     Route::view('/terrain', 'field.index')->name('field.index');
