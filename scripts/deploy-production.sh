@@ -64,11 +64,7 @@ fi
 
 git fetch --prune origin "$DEPLOY_BRANCH" --tags
 git merge-base --is-ancestor HEAD "origin/$DEPLOY_BRANCH" || die "La branche locale diverge de origin/$DEPLOY_BRANCH"
-git pull --ff-only origin "$DEPLOY_BRANCH"
 
-DEPLOY_COMMIT="$(git rev-parse --short=12 HEAD)"
-APP_VERSION="$(git describe --tags --exact-match HEAD 2>/dev/null || git describe --tags --abbrev=0 2>/dev/null || printf 'commit-%s' "$DEPLOY_COMMIT")"
-log "Commit : $DEPLOY_COMMIT — version : $APP_VERSION"
 
 # Lecture sûre des paramètres DB depuis .env avec le parseur PHP Dotenv.
 mapfile -t DB_VALUES < <(php -r '
@@ -99,7 +95,18 @@ gzip -t "$BACKUP_FILE" || die "La sauvegarde SQL est invalide."
 chmod 640 "$BACKUP_FILE"
 log "Sauvegarde SQL vérifiée."
 
-# Installation et compilation avant la fenêtre de maintenance.
+# Le répertoire est servi directement par aaPanel : toute modification du code
+# doit donc être faite sous maintenance pour éviter un mélange de fichiers.
+log "Activation du mode maintenance."
+php artisan down --retry=60
+MAINTENANCE_ENABLED=1
+
+log "Mise à jour du code depuis origin/$DEPLOY_BRANCH."
+git pull --ff-only origin "$DEPLOY_BRANCH"
+DEPLOY_COMMIT="$(git rev-parse --short=12 HEAD)"
+APP_VERSION="$(git describe --tags --exact-match HEAD 2>/dev/null || git describe --tags --abbrev=0 2>/dev/null || printf 'commit-%s' "$DEPLOY_COMMIT")"
+log "Commit : $DEPLOY_COMMIT — version : $APP_VERSION"
+
 log "Installation des dépendances PHP."
 composer install --no-interaction --prefer-dist --optimize-autoloader --no-dev
 
@@ -114,10 +121,6 @@ if grep -q '^APP_VERSION=' .env; then
 else
     printf '\nAPP_VERSION=%s\n' "$APP_VERSION" >> .env
 fi
-
-log "Activation du mode maintenance."
-php artisan down --retry=60
-MAINTENANCE_ENABLED=1
 
 log "Exécution des migrations."
 php artisan migrate --force
