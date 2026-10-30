@@ -55,17 +55,14 @@ Ne pas placer de secrets GitHub ni de mot de passe SSH dans ce fichier. Les iden
 
 ### Installer le script privilégié
 
-Après fusion du PR, depuis le répertoire du dépôt :
+Après fusion du PR, avant d’autoriser le premier déploiement automatique, installer les deux scripts depuis le dépôt présent sur le serveur. Cette étape est indispensable : le script root vérifie la présence du helper avant de lancer la mise à jour Git.
+
+Depuis le répertoire du dépôt :
 
 ```bash
 install -o root -g root -m 0750 scripts/deploy-production-root.sh /usr/local/sbin/c2me-deploy
-```
-
-Le helper applicatif reste dans le dépôt et appartient à `www` :
-
-```bash
-chown www:www /www/wwwroot/c2me.ovh/scripts/deploy-production-app.sh
-chmod 0750 /www/wwwroot/c2me.ovh/scripts/deploy-production-app.sh
+chown www:www scripts/deploy-production-app.sh
+chmod 0750 scripts/deploy-production-app.sh
 ```
 
 Le script root exécute ce helper avec `runuser -u www`. Le helper étant exécuté sous www, son contenu ne doit jamais être exécuté en root.
@@ -123,7 +120,7 @@ Le service `batistack` n'est jamais redémarré.
 
 ## Sauvegardes et limites
 
-La sauvegarde SQL est locale dans `/www/backup/c2me/database`. Elle ne remplace pas une copie chiffrée hors serveur. Les fichiers utilisateurs de `storage/app` doivent également être sauvegardés séparément.
+Les sauvegardes SQL et `storage/app` sont locales dans `/www/backup/c2me/database` (les fichiers sont placés dans le sous-répertoire `storage`). Les archives sont conservées 14 jours. Elles ne remplacent pas une copie chiffrée hors serveur. Vérifier régulièrement leur transfert hors serveur et tester leur restauration.
 
 Le déploiement est « in-place » : aucun rollback automatique du code ou de la base n'est effectué. Une restauration SQL doit être décidée explicitement et coordonnée avec la version du code.
 
