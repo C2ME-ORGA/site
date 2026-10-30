@@ -4,7 +4,7 @@ set -Eeuo pipefail
 umask 027
 
 APP_DIR="${APP_DIR:-/www/wwwroot/c2me.ovh}"
-DEPLOY_BRANCH="${DEPLOY_BRANCH:-master}"
+DEPLOY_BRANCH="${DEPLOY_BRANCH:-production}"
 PHP_BIN="${PHP_BIN:-/www/server/php/84/bin/php}"
 COMPOSER_BIN="${COMPOSER_BIN:-/usr/bin/composer}"
 NODE_BIN_DIR="${NODE_BIN_DIR:-/www/server/nodejs/v22.17.1/bin}"
