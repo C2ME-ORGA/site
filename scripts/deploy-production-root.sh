@@ -3,8 +3,32 @@
 set -Eeuo pipefail
 umask 077
 
-CONFIG="/etc/c2me/deploy.conf"
-APP_HELPER_SOURCE="/www/wwwroot/c2me.ovh/scripts/deploy-production-app.sh"
+TARGET="${1:-}"
+case "$TARGET" in
+    preproduction)
+        CONFIG="/etc/c2me/preproduction.conf"
+        DEFAULT_APP_DIR="/www/wwwroot/c2me.ovh"
+        DEFAULT_BRANCH="master"
+        DEFAULT_HEALTH_URL="https://c2me.ovh/up"
+        DEFAULT_BACKUP_DIR="/www/backup/c2me/preproduction"
+        DEFAULT_QUEUE_PROGRAM="c2mequeue"
+        DEFAULT_REVERB_PROGRAM="c2mereverb"
+        ;;
+    production)
+        CONFIG="/etc/c2me/production.conf"
+        DEFAULT_APP_DIR="/www/wwwroot/c2me.fr"
+        DEFAULT_BRANCH="production"
+        DEFAULT_HEALTH_URL="https://c2me.fr/up"
+        DEFAULT_BACKUP_DIR="/www/backup/c2me/production"
+        DEFAULT_QUEUE_PROGRAM="c2meprodqueue"
+        DEFAULT_REVERB_PROGRAM="c2meprodreverb"
+        ;;
+    *)
+        echo "Usage: $0 {preproduction|production}" >&2
+        exit 2
+        ;;
+esac
+APP_HELPER_SOURCE=""
 APP_HELPER_RUN=""
 DEFAULT_SUPERVISORCTL="/www/server/panel/pyenv/bin/supervisorctl"
 DEFAULT_SUPERVISOR_CONFIG="/etc/supervisor/supervisord.conf"
@@ -14,7 +38,7 @@ DEFAULT_COMPOSER_BIN="/usr/bin/composer"
 DEPLOY_HOME="/var/cache/c2me/deploy-home"
 
 [[ $EUID -eq 0 ]] || { echo "Ce script doit être lancé via sudo." >&2; exit 1; }
-[[ $# -eq 0 ]] || { echo "Ce script n’accepte aucun argument." >&2; exit 2; }
+[[ $# -eq 1 ]] || { echo "Un seul environnement doit être indiqué." >&2; exit 2; }
 [[ -f "$CONFIG" && ! -L "$CONFIG" ]] || { echo "Configuration absente ou invalide : $CONFIG" >&2; exit 1; }
 [[ "$(stat -c '%U' "$CONFIG")" == "root" ]] || { echo "$CONFIG doit appartenir à root." >&2; exit 1; }
 if find "$CONFIG" -maxdepth 0 -perm /022 | grep -q .; then
@@ -24,20 +48,26 @@ fi
 # shellcheck disable=SC1090
 source "$CONFIG"
 
-APP_DIR="${APP_DIR:-/www/wwwroot/c2me.ovh}"
-DEPLOY_BRANCH="${DEPLOY_BRANCH:-production}"
-HEALTH_URL="${HEALTH_URL:-https://c2me.fr/up}"
-BACKUP_DIR="${BACKUP_DIR:-/www/backup/c2me/database}"
+APP_DIR="${APP_DIR:-$DEFAULT_APP_DIR}"
+DEPLOY_BRANCH="${DEPLOY_BRANCH:-$DEFAULT_BRANCH}"
+HEALTH_URL="${HEALTH_URL:-$DEFAULT_HEALTH_URL}"
+BACKUP_DIR="${BACKUP_DIR:-$DEFAULT_BACKUP_DIR}"
 PHP_BIN="${PHP_BIN:-$DEFAULT_PHP_BIN}"
 NODE_BIN_DIR="${NODE_BIN_DIR:-$DEFAULT_NODE_BIN_DIR}"
 COMPOSER_BIN="${COMPOSER_BIN:-$DEFAULT_COMPOSER_BIN}"
-QUEUE_PROGRAM="${QUEUE_PROGRAM:-c2mequeue}"
-REVERB_PROGRAM="${REVERB_PROGRAM:-c2mereverb}"
+QUEUE_PROGRAM="${QUEUE_PROGRAM:-$DEFAULT_QUEUE_PROGRAM}"
+REVERB_PROGRAM="${REVERB_PROGRAM:-$DEFAULT_REVERB_PROGRAM}"
+APP_HELPER_SOURCE="$APP_DIR/scripts/deploy-production-app.sh"
 SUPERVISORCTL="${SUPERVISORCTL:-$DEFAULT_SUPERVISORCTL}"
 SUPERVISOR_CONFIG="${SUPERVISOR_CONFIG:-$DEFAULT_SUPERVISOR_CONFIG}"
 
-[[ "$APP_DIR" == "/www/wwwroot/c2me.ovh" ]] || { echo "APP_DIR non autorisé." >&2; exit 1; }
-[[ "$QUEUE_PROGRAM" == "c2mequeue" && "$REVERB_PROGRAM" == "c2mereverb" ]] || { echo "Programmes Supervisor non autorisés." >&2; exit 1; }
+if [[ "$TARGET" == "preproduction" ]]; then
+    [[ "$APP_DIR" == "/www/wwwroot/c2me.ovh" && "$DEPLOY_BRANCH" == "master" ]] || { echo "Configuration préproduction non autorisée." >&2; exit 1; }
+    [[ "$QUEUE_PROGRAM" == "c2mequeue" && "$REVERB_PROGRAM" == "c2mereverb" ]] || { echo "Programmes Supervisor préproduction non autorisés." >&2; exit 1; }
+else
+    [[ "$APP_DIR" == "/www/wwwroot/c2me.fr" && "$DEPLOY_BRANCH" == "production" ]] || { echo "Configuration production non autorisée." >&2; exit 1; }
+    [[ "$QUEUE_PROGRAM" == "c2meprodqueue" && "$REVERB_PROGRAM" == "c2meprodreverb" ]] || { echo "Programmes Supervisor production non autorisés." >&2; exit 1; }
+fi
 [[ -x "$SUPERVISORCTL" && -f "$SUPERVISOR_CONFIG" ]] || { echo "Supervisor aaPanel introuvable." >&2; exit 1; }
 [[ -x "$PHP_BIN" && -x "$NODE_BIN_DIR/node" && -x "$NODE_BIN_DIR/npm" && -x "$COMPOSER_BIN" ]] || { echo "Runtime applicatif introuvable." >&2; exit 1; }
 [[ -f "$APP_HELPER_SOURCE" && ! -L "$APP_HELPER_SOURCE" ]] || { echo "Script applicatif absent ou invalide. Effectuer le bootstrap documenté avant le premier déploiement." >&2; exit 1; }
