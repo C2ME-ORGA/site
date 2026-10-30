@@ -142,7 +142,7 @@ run_www preflight
 DB_ENV_OUTPUT="$(runuser -u www -- env APP_DIR="$APP_DIR" PHP_BIN="$PHP_BIN" "$PHP_BIN" -r '
 chdir(getenv("APP_DIR"));
 require "vendor/autoload.php";
-$env = Dotenv\\Dotenv::parse(file_get_contents(".env"));
+$env = Dotenv\Dotenv::parse(file_get_contents(".env"));
 foreach (["DB_HOST", "DB_PORT", "DB_DATABASE", "DB_USERNAME", "DB_PASSWORD"] as $key) {
     echo base64_encode((string) ($env[$key] ?? "")), PHP_EOL;
 }
