@@ -1,4 +1,4 @@
-const VERSION = 'c2me-v2';
+const VERSION = 'c2me-v3';
 const STATIC_CACHE = `${VERSION}-static`;
 const PAGE_CACHE = `${VERSION}-pages`;
 const OFFLINE_URL = '/offline.html';

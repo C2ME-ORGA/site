@@ -1,6 +1,6 @@
 # Plan de développement : amélioration du mode terrain
 
-> **État : phase 1 implémentée (30/10/2026). Phases 2 à 4 planifiées.**
+> **État : phase 2 implémentée (30/10/2026). Phases 3 à 4 planifiées.**
 > Branche cible : `feature/crm`.
 > Périmètre retenu : priorités 1 et 2, avec photos rattachées aux activités et tournée manuelle.
 > Décisions validées : résolution manuelle des conflits, photos compressées localement puis synchronisées, tournée ordonnée manuellement avec itinéraire Google Maps.

@@ -4,6 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
+    <meta name="login-url" content="{{ route('filament.admin.auth.login') }}">
     <meta name="theme-color" content="#0e8577">
     <title>Mode terrain — C2ME</title>
     <link rel="manifest" href="/manifest.webmanifest">
@@ -126,6 +127,53 @@
         .pill--danger { background: #fee2e2; color: #991b1b; }
         .pill--warning { background: #ffedd5; color: #9a3412; }
 
+        .banner {
+            padding: 0.7rem 1rem;
+            background: #fef2f2;
+            border-bottom: 1px solid #fecaca;
+            color: #991b1b;
+            font-size: 0.875rem;
+        }
+
+        .banner a { color: inherit; font-weight: 700; }
+
+        .conflicts {
+            margin-bottom: 1rem;
+            padding: 0.85rem 1rem;
+            background: #fff1f2;
+            border: 1px solid #fecaca;
+            border-radius: 0.75rem;
+        }
+
+        .conflicts h2 {
+            margin: 0 0 0.5rem;
+            font-size: 0.9rem;
+            text-transform: none;
+            letter-spacing: 0;
+            color: #991b1b;
+        }
+
+        .conflict { padding: 0.75rem 0; border-top: 1px solid rgba(185, 28, 28, 0.2); }
+        .conflict:first-of-type { border-top: 0; padding-top: 0; }
+        .conflict header { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; margin-bottom: 0.4rem; }
+        .conflict__fields { margin: 0.4rem 0; padding-left: 1.1rem; font-size: 0.85rem; }
+        .conflict__fields li { margin-bottom: 0.35rem; }
+        .merge-row label { display: block; margin-top: 0.2rem; }
+
+        .data-panel {
+            margin: 1rem 0 2rem;
+            padding: 0.75rem 1rem;
+            background: #fff;
+            border: 1px solid var(--line);
+            border-radius: 0.75rem;
+        }
+
+        .data-panel summary { cursor: pointer; font-weight: 600; list-style: none; }
+        .data-panel summary::-webkit-details-marker { display: none; }
+        .data-panel__body { margin-top: 0.65rem; }
+        .data-panel__body p { font-size: 0.85rem; color: var(--muted); }
+        .data-panel__body .form-actions { margin-top: 0.65rem; }
+
         .inline-form {
             margin: 0.75rem 0;
             padding: 0.85rem;
@@ -222,9 +270,12 @@
         @media (prefers-color-scheme: dark) {
             :root { --bg: #0b1418; --ink: #e2e8f0; --line: #1e2f36; }
             body { background: var(--bg); }
-            header, .summary, .account, .search, textarea, select, input, .inline-form { background: #102229; }
+            header, .summary, .account, .search, textarea, select, input, .inline-form, .data-panel { background: #102229; }
             .pill { background: #0b3b39; color: #7fe0d6; }
             .toast { background: #e2e8f0; color: #0b1418; }
+            .banner { background: #2a1416; border-color: #5b1f26; color: #fecaca; }
+            .conflicts { background: #2a1416; border-color: #5b1f26; }
+            .conflicts h2, .conflict { color: #fecaca; }
         }
     </style>
 </head>
@@ -242,7 +293,6 @@
             </span>
             <span class="status" id="pending">—</span>
             <button type="button" class="primary" id="sync-button">Synchroniser</button>
-            <button type="button" id="clear-button">Effacer les données</button>
             <form method="POST" action="{{ route('filament.admin.auth.logout') }}" id="logout-form">
                 @csrf
                 <button type="submit">Déconnexion</button>
@@ -250,7 +300,14 @@
         </div>
     </header>
 
+    <div class="banner" id="session-banner" hidden role="alert">
+        Session expirée : vos modifications restent sur cet appareil.
+        <a href="{{ route('filament.admin.auth.login') }}">Se reconnecter</a> pour les synchroniser.
+    </div>
+
     <main>
+        <section class="conflicts" id="conflicts" aria-live="polite" hidden></section>
+
         <div class="summary">
             <span id="count">—</span>
             <span id="last-sync">Jamais synchronisé</span>
@@ -294,6 +351,18 @@
         <div id="accounts">
             <p class="empty">Chargement des données locales…</p>
         </div>
+
+        <details class="data-panel" id="data-panel">
+            <summary>Données locales</summary>
+            <div class="data-panel__body">
+                <p id="storage-usage">Espace utilisé : calcul…</p>
+                <p id="queue-summary">Aucune opération locale en attente.</p>
+                <div class="form-actions">
+                    <button type="button" id="export-queue">Exporter la file (JSON)</button>
+                    <button type="button" class="danger" id="clear-button">Vider les données locales</button>
+                </div>
+            </div>
+        </details>
     </main>
 
     <div class="toast" id="toast" role="status" aria-live="polite"></div>

@@ -20,8 +20,21 @@ class FieldModeController extends Controller
     {
         $user = $this->user($request);
 
+        $data = $request->validate([
+            'updated_since' => ['nullable', 'date'],
+        ]);
+
+        $since = isset($data['updated_since']) ? CarbonImmutable::parse($data['updated_since']) : null;
+        $generatedAt = now();
+
         $accounts = CrmAccount::query()
             ->when(! $user->isAdmin(), fn ($query) => $query->ownedBy($user))
+            ->when($since !== null, fn ($query) => $query->where(
+                fn ($query) => $query
+                    ->where('updated_at', '>=', $since)
+                    ->orWhereHas('contacts', fn ($query) => $query->where('updated_at', '>=', $since))
+                    ->orWhereHas('contacts', fn ($query) => $query->onlyTrashed()->where('deleted_at', '>=', $since)),
+            ))
             ->with([
                 'contacts' => fn ($query) => $query->orderByDesc('is_primary')->orderBy('last_name'),
             ])
@@ -29,14 +42,53 @@ class FieldModeController extends Controller
             ->get();
 
         return response()->json([
-            'generated_at' => now()->toIso8601String(),
+            'generated_at' => $generatedAt->toIso8601String(),
+            'cursor' => $generatedAt->toIso8601String(),
+            'full' => $since === null,
             'accounts' => $accounts->map(fn (CrmAccount $account): array => [
                 ...$this->accountPayload($account),
                 'contacts' => $account->contacts
                     ->map(fn (CrmContact $contact): array => $this->contactPayload($contact))
                     ->values(),
             ])->values(),
+            'deleted' => [
+                'accounts' => $since === null ? [] : $this->deletedAccountIds($user, $since),
+                'contacts' => $since === null ? [] : $this->deletedContactIds($user, $since),
+            ],
         ]);
+    }
+
+    /**
+     * @return list<int>
+     */
+    private function deletedAccountIds(User $user, CarbonImmutable $since): array
+    {
+        return CrmAccount::query()
+            ->onlyTrashed()
+            ->when(! $user->isAdmin(), fn ($query) => $query->where('owner_id', $user->id))
+            ->where('deleted_at', '>=', $since)
+            ->pluck('id')
+            ->map(fn ($id): int => (int) $id)
+            ->values()
+            ->all();
+    }
+
+    /**
+     * @return list<int>
+     */
+    private function deletedContactIds(User $user, CarbonImmutable $since): array
+    {
+        return CrmContact::query()
+            ->onlyTrashed()
+            ->when(! $user->isAdmin(), fn ($query) => $query->whereHas(
+                'account',
+                fn ($query) => $query->withTrashed()->where('owner_id', $user->id),
+            ))
+            ->where('deleted_at', '>=', $since)
+            ->pluck('id')
+            ->map(fn ($id): int => (int) $id)
+            ->values()
+            ->all();
     }
 
     public function activities(Request $request): JsonResponse
@@ -46,16 +98,19 @@ class FieldModeController extends Controller
         $data = $request->validate([
             'after_id' => ['nullable', 'integer', 'min:0'],
             'limit' => ['nullable', 'integer', 'min:1', 'max:500'],
+            'updated_since' => ['nullable', 'date'],
         ]);
 
         $limit = (int) ($data['limit'] ?? 200);
         $afterId = (int) ($data['after_id'] ?? 0);
+        $since = isset($data['updated_since']) ? CarbonImmutable::parse($data['updated_since']) : null;
 
         $activities = CrmActivity::query()
             ->when(! $user->isAdmin(), fn ($query) => $query->whereHas(
                 'account',
                 fn ($query) => $query->where('owner_id', $user->id),
             ))
+            ->when($since !== null, fn ($query) => $query->where('updated_at', '>=', $since))
             ->where('id', '>', $afterId)
             ->orderBy('id')
             ->limit($limit + 1)
@@ -195,6 +250,10 @@ class FieldModeController extends Controller
             $existing = CrmActivity::query()->where('client_uuid', $clientUuid)->first();
 
             if ($existing !== null) {
+                if (Gate::denies('update', $existing)) {
+                    return $this->operationError($opId, ['client_uuid' => ['Identifiant d’activité déjà utilisé.']]);
+                }
+
                 return $this->operationOk($opId, 'activity', $existing, $clientUuid);
             }
         }
@@ -239,6 +298,12 @@ class FieldModeController extends Controller
             return $this->operationError($opId, ['activity' => ['Activité inaccessible.']]);
         }
 
+        $conflict = $this->conflictResult($opId, 'activity', $activity, $operation['base_updated_at'] ?? null);
+
+        if ($conflict !== null) {
+            return $conflict;
+        }
+
         $activity->fill($validator->validated())->save();
 
         return $this->operationOk($opId, 'activity', $activity);
@@ -270,6 +335,12 @@ class FieldModeController extends Controller
 
         if ($account === null || Gate::denies('update', $account)) {
             return $this->operationError($opId, ['account' => ['Compte inaccessible.']]);
+        }
+
+        $conflict = $this->conflictResult($opId, 'account', $account, $operation['base_updated_at'] ?? null);
+
+        if ($conflict !== null) {
+            return $conflict;
         }
 
         $account->fill($validator->validated())->save();
@@ -304,6 +375,12 @@ class FieldModeController extends Controller
             return $this->operationError($opId, ['contact' => ['Contact inaccessible.']]);
         }
 
+        $conflict = $this->conflictResult($opId, 'contact', $contact, $operation['base_updated_at'] ?? null);
+
+        if ($conflict !== null) {
+            return $conflict;
+        }
+
         $contact->fill($validator->validated())->save();
 
         return $this->operationOk($opId, 'contact', $contact);
@@ -314,12 +391,6 @@ class FieldModeController extends Controller
      */
     private function operationOk(string $opId, string $entityType, CrmAccount|CrmActivity|CrmContact $entity, ?string $clientUuid = null): array
     {
-        $server = $entity instanceof CrmActivity
-            ? $this->activityPayload($entity)
-            : ($entity instanceof CrmAccount
-                ? $this->accountPayload($entity)
-                : $this->contactPayload($entity));
-
         return [
             'op_id' => $opId,
             'status' => 'ok',
@@ -327,8 +398,52 @@ class FieldModeController extends Controller
             'entity_id' => $entity->getKey(),
             'client_uuid' => $clientUuid,
             'updated_at' => $entity->updated_at?->toIso8601String(),
-            'server' => $server,
+            'server' => $this->entityPayload($entity),
         ];
+    }
+
+    /**
+     * Détecte une modification concurrente en comparant la version connue du
+     * client (`base_updated_at`) à la version serveur actuelle.
+     *
+     * @return array<string, mixed>|null
+     */
+    private function conflictResult(string $opId, string $entityType, CrmAccount|CrmActivity|CrmContact $entity, mixed $baseUpdatedAt): ?array
+    {
+        if (! is_string($baseUpdatedAt) || $baseUpdatedAt === '' || $entity->updated_at === null) {
+            return null;
+        }
+
+        try {
+            $base = CarbonImmutable::parse($baseUpdatedAt);
+        } catch (\Throwable) {
+            return null;
+        }
+
+        if ($base->equalTo($entity->updated_at)) {
+            return null;
+        }
+
+        return [
+            'op_id' => $opId,
+            'status' => 'conflict',
+            'entity_type' => $entityType,
+            'entity_id' => $entity->getKey(),
+            'updated_at' => $entity->updated_at->toIso8601String(),
+            'server' => $this->entityPayload($entity),
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function entityPayload(CrmAccount|CrmActivity|CrmContact $entity): array
+    {
+        return match (true) {
+            $entity instanceof CrmActivity => $this->activityPayload($entity),
+            $entity instanceof CrmAccount => $this->accountPayload($entity),
+            default => $this->contactPayload($entity),
+        };
     }
 
     /**

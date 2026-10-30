@@ -3,18 +3,27 @@
 
     const DB_NAME = 'c2me-field';
     const DB_VERSION = 2;
+    const BACKOFF_STEPS = [5000, 30000, 120000, 600000];
+    const MAX_SYNC_BATCH = 50;
     const csrf = document.querySelector('meta[name="csrf-token"]')?.content ?? '';
+    const loginUrl = document.querySelector('meta[name="login-url"]')?.content ?? '/admin/login';
     const state = {
         snapshot: null,
         activities: [],
+        queue: [],
         pending: 0,
+        conflicts: 0,
+        errors: 0,
         syncing: false,
+        sessionExpired: false,
         search: '',
         filters: { book: '', status: '', followUp: '', overdue: false },
         sort: 'priority',
         editAccountId: null,
         editContactId: null,
         newActivityFor: null,
+        mergeOpId: null,
+        retryTimer: null,
     };
     let db = null;
 
@@ -50,6 +59,41 @@
         (crypto.randomUUID
             ? crypto.randomUUID()
             : `${Date.now()}-${Math.random().toString(16).slice(2)}`);
+
+    const FIELD_LABELS = {
+        body: 'Compte rendu',
+        completed_at: 'Clôture',
+        subject: 'Objet',
+        due_at: 'Échéance',
+        email: 'E-mail',
+        phone: 'Téléphone',
+        mobile: 'Mobile',
+        address_line1: 'Adresse',
+        address_line2: 'Complément',
+        postal_code: 'Code postal',
+        city: 'Commune',
+        notes: 'Notes',
+        first_name: 'Prénom',
+        last_name: 'Nom',
+        job_title: 'Fonction',
+    };
+
+    const isPendingOp = (op) => (op.status ?? 'pending') === 'pending';
+    const isConflictOp = (op) => op.status === 'conflict';
+    const isErrorOp = (op) => op.status === 'error';
+
+    const formatBytes = (bytes) => {
+        if (!Number.isFinite(bytes) || bytes <= 0) {
+            return '0 o';
+        }
+
+        const units = ['o', 'Ko', 'Mo', 'Go'];
+        const exponent = Math.min(Math.floor(Math.log(bytes) / Math.log(1024)), units.length - 1);
+
+        return `${(bytes / (1024 ** exponent)).toFixed(exponent === 0 ? 0 : 1)} ${units[exponent]}`;
+    };
+
+    const emptyValue = (value) => (value === null || value === undefined || value === '' ? '—' : String(value));
 
     const formatDate = (iso) => {
         if (!iso) {
@@ -402,7 +446,11 @@
     function activityRow(activity) {
         const done = Boolean(activity.completed_at);
         const due = formatDate(activity.due_at);
-        const pending = activity._pending ? ' <span class="pill pill--pending">En attente</span>' : '';
+        const pending = activity._conflict
+            ? ' <span class="pill pill--danger">Conflit</span>'
+            : (activity._error
+                ? ' <span class="pill pill--danger">Erreur</span>'
+                : (activity._pending ? ' <span class="pill pill--pending">En attente</span>' : ''));
 
         return `<div class="activity ${done ? 'activity--done' : ''}">
             <div class="activity__head">
@@ -461,9 +509,10 @@
     function quickActions(account) {
         const address = formatAddress(account);
         const actions = [];
+        const phone = account.phone || account.mobile;
 
-        if (account.phone) {
-            actions.push(`<a class="button small" href="tel:${escapeHtml(account.phone)}">Appeler</a>`);
+        if (phone) {
+            actions.push(`<a class="button small" href="tel:${escapeHtml(phone)}">Appeler</a>`);
         }
 
         if (account.mobile) {
@@ -476,6 +525,7 @@
 
         if (address) {
             actions.push(`<a class="button small" href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}" target="_blank" rel="noopener">Plans</a>`);
+            actions.push(`<button type="button" class="small" data-copy-address="${escapeHtml(address)}">Copier l’adresse</button>`);
         }
 
         return actions.length ? `<div class="quick-actions">${actions.join('')}</div>` : '';
@@ -521,7 +571,11 @@
         const counts = activityCounts(account.id);
         const contactsHtml = (account.contacts ?? []).map(contactRow).join('');
         const activitiesHtml = activitiesFor(account.id).map(activityRow).join('');
-        const pendingBadge = account._pending ? ' <span class="pill pill--pending">Modifié localement</span>' : '';
+        const pendingBadge = account._conflict
+            ? ' <span class="pill pill--danger">Conflit</span>'
+            : (account._error
+                ? ' <span class="pill pill--danger">Erreur</span>'
+                : (account._pending ? ' <span class="pill pill--pending">Modifié localement</span>' : ''));
         const overdueBadge = counts.overdue > 0 ? ` <span class="pill pill--danger">${counts.overdue} en retard</span>` : '';
         const todayBadge = counts.today > 0 ? ` <span class="pill pill--warning">${counts.today} aujourd’hui</span>` : '';
         const editingContact = state.editContactId !== null
@@ -620,13 +674,34 @@
 
     function renderStatus() {
         const online = navigator.onLine;
+        const parts = [];
+
+        if (state.syncing) {
+            parts.push('Synchronisation…');
+        }
+
+        if (state.pending > 0) {
+            parts.push(`${state.pending} en attente`);
+        }
+
+        if (state.conflicts > 0) {
+            parts.push(`${state.conflicts} conflit${state.conflicts > 1 ? 's' : ''}`);
+        }
+
+        if (state.errors > 0) {
+            parts.push(`${state.errors} erreur${state.errors > 1 ? 's' : ''}`);
+        }
 
         $('#connection').textContent = online ? 'En ligne' : 'Hors ligne';
         $('#status-dot').classList.toggle('dot--off', !online);
-        $('#pending').textContent = state.syncing
-            ? 'Synchronisation…'
-            : (state.pending > 0 ? `${state.pending} en attente` : 'À jour');
+        $('#pending').textContent = parts.length ? parts.join(' · ') : 'À jour';
         $('#sync-button').disabled = state.syncing || !online;
+
+        const banner = $('#session-banner');
+
+        if (banner) {
+            banner.hidden = !state.sessionExpired;
+        }
     }
 
     function flash(message) {
@@ -639,8 +714,14 @@
     }
 
     async function refreshPending() {
-        state.pending = (await allOps()).length;
+        state.queue = await allOps();
+        state.pending = state.queue.filter(isPendingOp).length;
+        state.conflicts = state.queue.filter(isConflictOp).length;
+        state.errors = state.queue.filter(isErrorOp).length;
+
         renderStatus();
+        renderConflicts();
+        renderStorage();
     }
 
     function localActivityFromOp(op) {
@@ -664,6 +745,24 @@
     }
 
     async function applyQueueToState() {
+        for (const account of accounts()) {
+            account._pending = false;
+            account._conflict = false;
+            account._error = false;
+        }
+
+        for (const contact of contacts()) {
+            contact._pending = false;
+            contact._conflict = false;
+            contact._error = false;
+        }
+
+        for (const activity of state.activities) {
+            activity._pending = false;
+            activity._conflict = false;
+            activity._error = false;
+        }
+
         for (const op of await allOps()) {
             if (op.type === 'update_account') {
                 const account = findAccount(op.entity_id);
@@ -672,6 +771,8 @@
                     Object.assign(account, op.payload ?? {});
                     account.address = formatAddress(account);
                     account._pending = true;
+                    account._conflict = isConflictOp(op);
+                    account._error = isErrorOp(op);
                 }
             }
 
@@ -682,6 +783,8 @@
                     Object.assign(contact, op.payload ?? {});
                     contact.name = [contact.first_name, contact.last_name].filter(Boolean).join(' ');
                     contact._pending = true;
+                    contact._conflict = isConflictOp(op);
+                    contact._error = isErrorOp(op);
                 }
             }
 
@@ -691,6 +794,8 @@
                 if (activity) {
                     Object.assign(activity, op.payload ?? {});
                     activity._pending = true;
+                    activity._conflict = isConflictOp(op);
+                    activity._error = isErrorOp(op);
                 }
             }
 
@@ -705,6 +810,8 @@
                 Object.assign(activity, op.payload ?? {}, {
                     client_uuid: op.client_uuid,
                     _pending: true,
+                    _conflict: isConflictOp(op),
+                    _error: isErrorOp(op),
                 });
 
                 if (Number(activity.id) < 0 && op.local_id) {
@@ -728,7 +835,10 @@
             existing.payload = { ...(existing.payload ?? {}), ...operation.payload };
             existing.queued_at = Date.now();
             existing.status = 'pending';
+            existing.attempts = 0;
+            existing.next_attempt_at = 0;
             existing.last_error = null;
+            delete existing.server;
             await putOp(existing);
 
             return existing;
@@ -745,6 +855,7 @@
             base_updated_at: operation.base_updated_at ?? null,
             queued_at: Date.now(),
             attempts: 0,
+            next_attempt_at: 0,
             status: 'pending',
             last_error: null,
         };
@@ -968,15 +1079,105 @@
         await putActivity({ ...updated, _pending: false });
     }
 
-    async function flushQueue() {
-        if (!navigator.onLine || state.syncing) {
+    function backoffDelay(attempts) {
+        return BACKOFF_STEPS[Math.min(Math.max(attempts - 1, 0), BACKOFF_STEPS.length - 1)];
+    }
+
+    function scheduleRetry() {
+        window.clearTimeout(state.retryTimer);
+
+        if (!navigator.onLine || state.sessionExpired) {
             return;
         }
 
-        const queue = await allOps();
+        const upcoming = state.queue
+            .filter(isPendingOp)
+            .map((op) => Number(op.next_attempt_at ?? 0))
+            .filter((value) => value > 0);
+
+        if (upcoming.length === 0) {
+            return;
+        }
+
+        const delay = Math.max(0, Math.min(...upcoming) - Date.now());
+        state.retryTimer = window.setTimeout(() => flushQueue(), delay + 250);
+    }
+
+    function failAttempt(op) {
+        op.attempts = (op.attempts ?? 0) + 1;
+        op.status = 'pending';
+        op.next_attempt_at = Date.now() + backoffDelay(op.attempts);
+
+        return op;
+    }
+
+    function markSessionExpired(expired) {
+        state.sessionExpired = expired;
+        renderStatus();
+
+        if (expired) {
+            flash('Session expirée. Vos modifications restent sur cet appareil : reconnectez-vous pour les synchroniser.');
+        }
+    }
+
+    async function applyServerResult(op, result) {
+        if (!result.server) {
+            return;
+        }
+
+        if (result.entity_type === 'activity') {
+            await applyServerActivity(result.server);
+
+            if (op.local_id) {
+                state.activities = state.activities.filter((activity) => Number(activity.id) !== Number(op.local_id));
+                await idb('activities', 'readwrite', (store) => store.delete(op.local_id));
+            }
+        }
+
+        if (result.entity_type === 'account') {
+            const account = findAccount(result.entity_id);
+
+            if (account) {
+                Object.assign(account, result.server, {
+                    _pending: false,
+                    _conflict: false,
+                    _error: false,
+                });
+                account.contacts = account.contacts ?? [];
+            }
+        }
+
+        if (result.entity_type === 'contact') {
+            const contact = findContact(result.entity_id);
+
+            if (contact) {
+                Object.assign(contact, result.server, {
+                    _pending: false,
+                    _conflict: false,
+                    _error: false,
+                });
+            }
+        }
+    }
+
+    async function flushQueue({ force = false } = {}) {
+        if (state.syncing || !navigator.onLine) {
+            return;
+        }
+
+        if (state.sessionExpired && !force) {
+            return;
+        }
+
+        const now = Date.now();
+        const queue = state.queue
+            .filter((op) => isPendingOp(op) && (force || Number(op.next_attempt_at ?? 0) <= now))
+            .slice(0, MAX_SYNC_BATCH);
 
         if (queue.length === 0) {
+            scheduleRetry();
             renderStatus();
+
             return;
         }
 
@@ -1005,7 +1206,7 @@
             });
 
             if (response.status === 401 || response.status === 419) {
-                flash('Session expirée. Vos modifications restent sur cet appareil : reconnectez-vous pour les synchroniser.');
+                markSessionExpired(true);
 
                 return;
             }
@@ -1015,6 +1216,9 @@
             }
 
             const data = await response.json();
+            markSessionExpired(false);
+
+            const handled = new Set();
 
             for (const result of data.results ?? []) {
                 const op = queue.find((item) => item.op_id === result.op_id);
@@ -1023,55 +1227,234 @@
                     continue;
                 }
 
+                handled.add(op.op_id);
+
                 if (result.status === 'ok') {
-                    if (result.entity_type === 'activity' && result.server) {
-                        await applyServerActivity(result.server);
-
-                        if (op.local_id) {
-                            state.activities = state.activities.filter((activity) => Number(activity.id) !== Number(op.local_id));
-                            await idb('activities', 'readwrite', (store) => store.delete(op.local_id));
-                        }
-                    }
-
-                    if (result.entity_type === 'account' && result.server) {
-                        const account = findAccount(result.entity_id);
-
-                        if (account) {
-                            Object.assign(account, result.server, { _pending: false });
-                            account.contacts = account.contacts ?? [];
-                        }
-                    }
-
-                    if (result.entity_type === 'contact' && result.server) {
-                        const contact = findContact(result.entity_id);
-
-                        if (contact) {
-                            Object.assign(contact, result.server, { _pending: false });
-                        }
-                    }
+                    await applyServerResult(op, result);
 
                     const current = await idb('ops', 'readonly', (store) => store.get(op.op_id));
 
                     if (current && (current.queued_at ?? 0) <= startedAt) {
                         await deleteOp(op.op_id);
                     }
+                } else if (result.status === 'conflict') {
+                    op.status = 'conflict';
+                    op.server = result.server ?? null;
+                    op.server_updated_at = result.updated_at ?? null;
+                    op.last_error = null;
+                    op.attempts = (op.attempts ?? 0) + 1;
+                    op.next_attempt_at = 0;
+                    await putOp(op);
                 } else {
                     op.status = 'error';
                     op.last_error = JSON.stringify(result.errors ?? {});
                     op.attempts = (op.attempts ?? 0) + 1;
+                    op.next_attempt_at = 0;
                     await putOp(op);
                 }
             }
 
+            for (const op of queue) {
+                if (!handled.has(op.op_id)) {
+                    await putOp(failAttempt(op));
+                }
+            }
+
             await putSnapshot(state.snapshot);
-            flash('Modifications synchronisées.');
+
+            const blocked = (await allOps()).some((op) => !isPendingOp(op));
+
+            flash(blocked
+                ? 'Synchronisation partielle : des opérations demandent votre attention.'
+                : 'Modifications synchronisées.');
         } catch {
-            flash('Synchronisation impossible. Les modifications restent dans la file.');
+            for (const op of queue) {
+                const current = await idb('ops', 'readonly', (store) => store.get(op.op_id));
+
+                if (current) {
+                    await putOp(failAttempt(current));
+                }
+            }
+
+            flash('Synchronisation impossible. Nouvelle tentative planifiée automatiquement.');
         } finally {
             state.syncing = false;
+            await applyQueueToState();
             await refreshPending();
             render();
+            scheduleRetry();
         }
+    }
+
+    function entityForOp(op) {
+        if (op.entity_type === 'account') {
+            return findAccount(op.entity_id);
+        }
+
+        if (op.entity_type === 'contact') {
+            return findContact(op.entity_id);
+        }
+
+        return findActivity(op.entity_id);
+    }
+
+    function entityLabel(op) {
+        const entity = entityForOp(op);
+
+        if (!entity) {
+            return `Élément #${op.entity_id ?? '—'}`;
+        }
+
+        if (op.entity_type === 'activity') {
+            return entity.subject || `Activité #${op.entity_id}`;
+        }
+
+        return entity.name || `Élément #${op.entity_id}`;
+    }
+
+    function diffFields(op) {
+        const local = op.payload ?? {};
+        const server = op.server ?? {};
+
+        return Object.keys(local).filter((key) => String(local[key] ?? '') !== String(server[key] ?? ''));
+    }
+
+    function displayFieldValue(field, value) {
+        if (field === 'completed_at' || field === 'due_at') {
+            return value ? formatDate(value) : '—';
+        }
+
+        return emptyValue(value);
+    }
+
+    function conflictCard(op) {
+        const fields = diffFields(op);
+        const merging = state.mergeOpId === op.op_id;
+
+        const rows = fields.map((field) => {
+            const label = FIELD_LABELS[field] ?? field;
+
+            if (!merging) {
+                return `<li><strong>${escapeHtml(label)}</strong> : local « ${escapeHtml(displayFieldValue(field, op.payload?.[field]))} » · serveur « ${escapeHtml(displayFieldValue(field, op.server?.[field]))} »</li>`;
+            }
+
+            const name = escapeHtml(`merge-${op.op_id}-${field}`);
+
+            return `<li class="merge-row">
+                <strong>${escapeHtml(label)}</strong>
+                <label><input type="radio" name="${name}" value="local" checked> Local : ${escapeHtml(displayFieldValue(field, op.payload?.[field]))}</label>
+                <label><input type="radio" name="${name}" value="server"> Serveur : ${escapeHtml(displayFieldValue(field, op.server?.[field]))}</label>
+            </li>`;
+        }).join('');
+
+        const mergeActions = fields.length
+            ? (merging
+                ? `<button type="button" class="small primary" data-conflict-apply-merge="${op.op_id}">Appliquer la fusion</button>
+                   <button type="button" class="small" data-conflict-cancel-merge="${op.op_id}">Annuler</button>`
+                : `<button type="button" class="small" data-conflict-merge="${op.op_id}">Fusionner champ par champ</button>`)
+            : '';
+
+        return `<article class="conflict" data-conflict="${op.op_id}">
+            <header>
+                <strong>${escapeHtml(entityLabel(op))}</strong>
+                <span class="pill pill--danger">Conflit</span>
+                <span class="muted">Version serveur du ${escapeHtml(formatDate(op.server_updated_at) || '—')}</span>
+            </header>
+            ${fields.length
+                ? `<ul class="conflict__fields">${rows}</ul>`
+                : '<p class="muted">Aucun champ différent : vous pouvez conserver votre version.</p>'}
+            <div class="form-actions">
+                <button type="button" class="small primary" data-conflict-keep-local="${op.op_id}">Garder ma version</button>
+                <button type="button" class="small" data-conflict-keep-server="${op.op_id}">Prendre la version serveur</button>
+                ${mergeActions}
+            </div>
+        </article>`;
+    }
+
+    function errorCard(op) {
+        let message = op.last_error ?? 'Erreur inconnue';
+
+        try {
+            const parsed = JSON.parse(message);
+            message = Object.values(parsed).flat().join(' ');
+        } catch {
+            // Le message d'erreur est déjà lisible.
+        }
+
+        return `<article class="conflict conflict--error" data-error="${op.op_id}">
+            <header>
+                <strong>${escapeHtml(entityLabel(op))}</strong>
+                <span class="pill pill--danger">Erreur</span>
+            </header>
+            <p class="muted">${escapeHtml(message)}</p>
+            <div class="form-actions">
+                <button type="button" class="small" data-error-retry="${op.op_id}">Réessayer</button>
+                <button type="button" class="small danger" data-error-discard="${op.op_id}">Abandonner</button>
+            </div>
+        </article>`;
+    }
+
+    function renderConflicts() {
+        const container = $('#conflicts');
+
+        if (!container) {
+            return;
+        }
+
+        const conflicts = state.queue.filter(isConflictOp);
+        const errors = state.queue.filter(isErrorOp);
+
+        container.hidden = conflicts.length === 0 && errors.length === 0;
+        container.innerHTML = [
+            conflicts.length ? `<h2>Conflits de synchronisation (${conflicts.length})</h2>${conflicts.map(conflictCard).join('')}` : '',
+            errors.length ? `<h2>Opérations en erreur (${errors.length})</h2>${errors.map(errorCard).join('')}` : '',
+        ].join('');
+    }
+
+    async function retryWithPayload(op, payload) {
+        op.payload = payload;
+        op.base_updated_at = op.server_updated_at ?? op.base_updated_at;
+        op.status = 'pending';
+        op.attempts = 0;
+        op.next_attempt_at = 0;
+        op.last_error = null;
+        delete op.server;
+        delete op.server_updated_at;
+
+        await putOp(op);
+        state.mergeOpId = null;
+        await refreshPending();
+        await flushQueue({ force: true });
+    }
+
+    async function keepServerVersion(op) {
+        if (op.server) {
+            await applyServerResult(op, {
+                entity_type: op.entity_type,
+                entity_id: op.entity_id,
+                server: op.server,
+            });
+            await putSnapshot(state.snapshot);
+        }
+
+        await deleteOp(op.op_id);
+        await applyQueueToState();
+        await refreshPending();
+        render();
+        flash('Version serveur appliquée.');
+    }
+
+    async function applyMerge(op) {
+        const merged = { ...(op.payload ?? {}) };
+
+        for (const field of diffFields(op)) {
+            const selected = document.querySelector(`input[name="merge-${op.op_id}-${field}"]:checked`)?.value ?? 'local';
+            merged[field] = selected === 'server'
+                ? (op.server?.[field] ?? null)
+                : (op.payload?.[field] ?? null);
+        }
+
+        await retryWithPayload(op, merged);
     }
 
     async function fetchActivities() {
@@ -1084,6 +1467,12 @@
                 headers: { Accept: 'application/json' },
                 cache: 'no-store',
             });
+
+            if (response.status === 401 || response.status === 419) {
+                markSessionExpired(true);
+
+                return;
+            }
 
             if (!response.ok) {
                 return;
@@ -1125,43 +1514,192 @@
         }
     }
 
+    function mergeSnapshot(data) {
+        if (data.full || !state.snapshot || !Array.isArray(state.snapshot.accounts)) {
+            state.snapshot = {
+                ...data,
+                cursor: data.cursor ?? data.generated_at ?? null,
+            };
+
+            return;
+        }
+
+        const deletedAccounts = new Set((data.deleted?.accounts ?? []).map(Number));
+        const deletedContacts = new Set((data.deleted?.contacts ?? []).map(Number));
+        const byId = new Map(accounts().map((account) => [Number(account.id), account]));
+
+        for (const id of deletedAccounts) {
+            byId.delete(id);
+        }
+
+        for (const incoming of data.accounts ?? []) {
+            const current = byId.get(Number(incoming.id));
+            const contactMap = new Map();
+
+            for (const contact of current?.contacts ?? []) {
+                if (!deletedContacts.has(Number(contact.id))) {
+                    contactMap.set(Number(contact.id), contact);
+                }
+            }
+
+            for (const contact of incoming.contacts ?? []) {
+                contactMap.set(Number(contact.id), contact);
+            }
+
+            byId.set(Number(incoming.id), {
+                ...(current ?? {}),
+                ...incoming,
+                contacts: [...contactMap.values()],
+            });
+        }
+
+        if (deletedContacts.size > 0) {
+            for (const account of byId.values()) {
+                account.contacts = (account.contacts ?? []).filter(
+                    (contact) => !deletedContacts.has(Number(contact.id)),
+                );
+            }
+        }
+
+        state.snapshot = {
+            ...state.snapshot,
+            generated_at: data.generated_at ?? state.snapshot.generated_at,
+            cursor: data.cursor ?? data.generated_at ?? state.snapshot.cursor ?? null,
+            accounts: [...byId.values()],
+        };
+    }
+
     async function fetchSnapshot() {
         if (!navigator.onLine) {
             return;
         }
 
         try {
-            const response = await fetch('/terrain/snapshot', {
+            const cursor = state.snapshot?.cursor ?? null;
+            const url = cursor
+                ? `/terrain/snapshot?updated_since=${encodeURIComponent(cursor)}`
+                : '/terrain/snapshot';
+
+            const response = await fetch(url, {
                 headers: { Accept: 'application/json' },
                 cache: 'no-store',
             });
+
+            if (response.status === 401 || response.status === 419) {
+                markSessionExpired(true);
+
+                return;
+            }
 
             if (!response.ok) {
                 return;
             }
 
-            state.snapshot = await response.json();
+            markSessionExpired(false);
+            mergeSnapshot(await response.json());
             await fetchActivities();
             await applyQueueToState();
             await putSnapshot(state.snapshot);
             populateFilters();
             render();
+            await refreshPending();
             await flushQueue();
         } catch {
             flash('Récupération des données impossible.');
         }
     }
 
+    async function renderStorage() {
+        const usage = $('#storage-usage');
+        const summary = $('#queue-summary');
+
+        if (summary) {
+            summary.textContent = state.queue.length === 0
+                ? 'Aucune opération locale en attente.'
+                : `${state.queue.length} opération(s) locale(s) : ${state.pending} en attente, ${state.conflicts} conflit(s), ${state.errors} erreur(s).`;
+        }
+
+        if (!usage) {
+            return;
+        }
+
+        try {
+            const estimate = await navigator.storage?.estimate?.();
+
+            if (!estimate || estimate.usage === undefined || estimate.usage === null) {
+                usage.textContent = 'Espace utilisé : non disponible.';
+
+                return;
+            }
+
+            usage.textContent = `Espace utilisé : ${formatBytes(estimate.usage)}`
+                + (estimate.quota ? ` sur ${formatBytes(estimate.quota)} disponibles.` : '.');
+        } catch {
+            usage.textContent = 'Espace utilisé : non disponible.';
+        }
+    }
+
+    async function exportQueue() {
+        const operations = await allOps();
+        const blob = new Blob([JSON.stringify({
+            exported_at: new Date().toISOString(),
+            operations,
+        }, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+
+        link.href = url;
+        link.download = `file-terrain-${new Date().toISOString().slice(0, 10)}.json`;
+        link.click();
+
+        window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+        flash('File d’opérations exportée.');
+    }
+
+    async function clearLocalData() {
+        const operations = await allOps();
+
+        if (operations.length > 0) {
+            const exportFirst = window.confirm(
+                `${operations.length} opération(s) ne sont pas encore synchronisées.\n\n`
+                + 'Voulez-vous exporter la file en JSON avant de vider les données ?',
+            );
+
+            if (exportFirst) {
+                await exportQueue();
+            }
+
+            if (!window.confirm(
+                'Suppression DÉFINITIVE des données locales (snapshot, activités et file d’opérations).\n\n'
+                + 'Ces modifications seront perdues. Confirmer ?',
+            )) {
+                return;
+            }
+        } else if (!window.confirm('Vider les données locales de cet appareil ? Elles seront rechargées au prochain passage en ligne.')) {
+            return;
+        }
+
+        if (db) {
+            db.close();
+            db = null;
+        }
+
+        indexedDB.deleteDatabase(DB_NAME);
+        window.location.reload();
+    }
+
     function bindEvents() {
-        document.addEventListener('click', (event) => {
+        document.addEventListener('click', async (event) => {
             const target = event.target.closest('button');
 
             if (!target) {
                 return;
             }
 
+            const linkedOp = (opId) => state.queue.find((item) => item.op_id === opId);
+
             if (target.dataset.saveActivity) {
-                saveActivity(Number(target.dataset.saveActivity));
+                await saveActivity(Number(target.dataset.saveActivity));
             } else if (target.dataset.editAccount) {
                 state.editAccountId = Number(target.dataset.editAccount);
                 render();
@@ -1169,7 +1707,7 @@
                 state.editAccountId = null;
                 render();
             } else if (target.dataset.saveAccount) {
-                saveAccount(Number(target.dataset.saveAccount));
+                await saveAccount(Number(target.dataset.saveAccount));
             } else if (target.dataset.editContact) {
                 state.editContactId = Number(target.dataset.editContact);
                 render();
@@ -1177,7 +1715,7 @@
                 state.editContactId = null;
                 render();
             } else if (target.dataset.saveContact) {
-                saveContact(Number(target.dataset.saveContact));
+                await saveContact(Number(target.dataset.saveContact));
             } else if (target.dataset.newActivity) {
                 state.newActivityFor = Number(target.dataset.newActivity);
                 state.editAccountId = null;
@@ -1186,7 +1724,58 @@
                 state.newActivityFor = null;
                 render();
             } else if (target.dataset.saveNewActivity) {
-                saveNewActivity(Number(target.dataset.saveNewActivity));
+                await saveNewActivity(Number(target.dataset.saveNewActivity));
+            } else if (target.dataset.conflictKeepLocal) {
+                const op = linkedOp(target.dataset.conflictKeepLocal);
+
+                if (op) {
+                    await retryWithPayload(op, { ...(op.payload ?? {}) });
+                }
+            } else if (target.dataset.conflictKeepServer) {
+                const op = linkedOp(target.dataset.conflictKeepServer);
+
+                if (op) {
+                    await keepServerVersion(op);
+                }
+            } else if (target.dataset.conflictMerge) {
+                state.mergeOpId = target.dataset.conflictMerge;
+                renderConflicts();
+            } else if (target.dataset.conflictCancelMerge) {
+                state.mergeOpId = null;
+                renderConflicts();
+            } else if (target.dataset.conflictApplyMerge) {
+                const op = linkedOp(target.dataset.conflictApplyMerge);
+
+                if (op) {
+                    await applyMerge(op);
+                }
+            } else if (target.dataset.errorRetry) {
+                const op = linkedOp(target.dataset.errorRetry);
+
+                if (op) {
+                    op.status = 'pending';
+                    op.attempts = 0;
+                    op.next_attempt_at = 0;
+                    await putOp(op);
+                    await refreshPending();
+                    await flushQueue({ force: true });
+                }
+            } else if (target.dataset.errorDiscard) {
+                const op = linkedOp(target.dataset.errorDiscard);
+
+                if (op && window.confirm('Abandonner cette modification locale ?')) {
+                    await deleteOp(op.op_id);
+                    await applyQueueToState();
+                    await refreshPending();
+                    render();
+                }
+            } else if (target.dataset.copyAddress) {
+                try {
+                    await navigator.clipboard.writeText(target.dataset.copyAddress);
+                    flash('Adresse copiée.');
+                } catch {
+                    flash('Copie impossible sur cet appareil.');
+                }
             }
         });
 
@@ -1221,30 +1810,27 @@
         });
 
         $('#sync-button').addEventListener('click', async () => {
+            await flushQueue({ force: true });
             await fetchSnapshot();
-            await flushQueue();
         });
 
-        $('#clear-button').addEventListener('click', async () => {
-            const pending = (await allOps()).length;
-            const message = pending > 0
-                ? `${pending} modification(s) ne sont pas encore synchronisées. Tout effacer quand même ?`
-                : 'Effacer les données locales de cet appareil ?';
+        $('#export-queue').addEventListener('click', exportQueue);
 
-            if (!window.confirm(message)) {
-                return;
-            }
+        $('#clear-button').addEventListener('click', clearLocalData);
 
-            indexedDB.deleteDatabase(DB_NAME);
-            window.location.reload();
-        });
-
-        window.addEventListener('online', () => {
+        window.addEventListener('online', async () => {
             renderStatus();
-            fetchSnapshot();
+            await fetchSnapshot();
+            await flushQueue({ force: true });
         });
 
         window.addEventListener('offline', renderStatus);
+
+        document.addEventListener('visibilitychange', () => {
+            if (document.visibilityState === 'visible' && navigator.onLine) {
+                flushQueue();
+            }
+        });
     }
 
     async function init() {
@@ -1269,6 +1855,7 @@
         populateFilters();
         bindEvents();
         render();
+        scheduleRetry();
 
         if (navigator.onLine) {
             await fetchSnapshot();

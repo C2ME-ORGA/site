@@ -55,12 +55,14 @@
 > Phase 1 livrée le 30/10/2026 : snapshot v2 (comptes/contacts séparés des activités), endpoint paginé des activités, file d'opérations IndexedDB, `client_uuid` idempotent, création d'activité et édition compte/contact hors ligne, actions rapides, filtres et tri prioritaire. Tests : `FieldModeTest` (13 tests).
 
 **Priorité 2 — fiabilité de la synchronisation**
-- [ ] Détecter les conflits : exploiter `base_updated_at` (envoyé mais actuellement ignoré) et signaler les modifications concurrentes.
-- [ ] Synchronisation incrémentale (`updated_since`) au lieu de recharger tout le snapshot.
+- [x] Détecter les conflits : `base_updated_at` est comparé à la version serveur, réponse `conflict` avec la version serveur.
+- [x] Synchronisation incrémentale (`updated_since`) des comptes/contacts avec curseur et liste des suppressions.
 - [x] Suppression de la limite arbitraire de 50 activités par compte via l'endpoint paginé `/terrain/activities`.
-- [ ] Reprise automatique (retry avec backoff) et conservation des erreurs de synchronisation par élément.
-- [ ] Gérer l'expiration de session hors ligne : conserver le snapshot et la file sans perte, puis reconnecter.
-- [ ] Bouton « Vider le cache » avec confirmation et affichage de l'espace utilisé.
+- [x] Reprise automatique (backoff 5 s, 30 s, 2 min, 10 min) et conservation des erreurs de synchronisation par opération.
+- [x] Gestion de l'expiration de session hors ligne : bandeau de reconnexion, snapshot et file conservés.
+- [x] Panneau « Données locales » : espace utilisé, export JSON de la file, suppression avec confirmation renforcée.
+
+> Phase 2 livrée le 30/10/2026 : détection et résolution manuelle des conflits (garder local, prendre serveur, fusion champ par champ), reprise automatique avec backoff, erreurs par opération, session expirée sans perte, snapshot incrémental et panneau de gestion du cache. Tests : `FieldModeTest` (17 tests).
 
 **Priorité 3 — richesse fonctionnelle**
 - [ ] Photos et pièces jointes prises sur le terrain, stockées localement puis envoyées à la synchronisation.
