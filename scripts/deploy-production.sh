@@ -103,7 +103,7 @@ MAINTENANCE_ENABLED=1
 log "Mise à jour du code depuis origin/$DEPLOY_BRANCH."
 git pull --ff-only origin "$DEPLOY_BRANCH"
 DEPLOY_COMMIT="$(git rev-parse --short=12 HEAD)"
-APP_VERSION="$(git describe --tags --exact-match HEAD 2>/dev/null || git describe --tags --abbrev=0 2>/dev/null || printf 'commit-%s' "$DEPLOY_COMMIT")"
+APP_VERSION="$(git describe --tags --exact-match HEAD 2>/dev/null || printf 'commit-%s' "$DEPLOY_COMMIT")"
 log "Commit : $DEPLOY_COMMIT — version : $APP_VERSION"
 
 log "Installation des dépendances PHP."
