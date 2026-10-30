@@ -97,16 +97,16 @@ jobs:
           test -n "$DEPLOY_KNOWN_HOSTS" || { echo "Secret DEPLOY_KNOWN_HOSTS manquant"; exit 1; }
 
           install -m 700 -d ~/.ssh
-          printf '%s\\n' "$DEPLOY_KNOWN_HOSTS" > ~/.ssh/known_hosts
+          printf '%s\n' "$DEPLOY_KNOWN_HOSTS" > ~/.ssh/known_hosts
           chmod 600 ~/.ssh/known_hosts
 
           DEPLOY_PORT="${DEPLOY_PORT:-22}"
-          sshpass -e ssh \\
-            -p "$DEPLOY_PORT" \\
-            -o PreferredAuthentications=password \\
-            -o PubkeyAuthentication=no \\
-            -o BatchMode=no \\
-            -o StrictHostKeyChecking=yes \\
-            -o ConnectTimeout=15 \\
-            "$DEPLOY_USER@$DEPLOY_HOST" \\
+          sshpass -e ssh \
+            -p "$DEPLOY_PORT" \
+            -o PreferredAuthentications=password \
+            -o PubkeyAuthentication=no \
+            -o BatchMode=no \
+            -o StrictHostKeyChecking=yes \
+            -o ConnectTimeout=15 \
+            "$DEPLOY_USER@$DEPLOY_HOST" \
             "sudo -n /usr/local/sbin/c2me-deploy"
