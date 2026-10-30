@@ -3,105 +3,144 @@
 ## Architecture
 
 - Les Pull Requests vers `master` exécutent les contrôles PHP, Pest et le build frontend.
-- Un push sur `master` déclenche les mêmes contrôles, puis le déploiement SSH uniquement si les contrôles réussissent.
-- Le serveur exécute `scripts/deploy-production.sh`.
-- Les secrets SSH restent dans les GitHub Actions Secrets ; aucun secret de production ne doit être commité.
+- Un push sur `master` déclenche les contrôles, puis le déploiement SSH si les contrôles réussissent.
+- GitHub Actions se connecte avec le compte SSH dédié `deploy` et le secret `DEPLOY_PASSWORD`.
+- `deploy` peut uniquement lancer `sudo -n /usr/local/sbin/c2me-deploy`.
+- Le script privilégié est installé et détenu par root. Il sauvegarde la base, orchestre le déploiement sous `www` et contrôle Supervisor aaPanel.
+- Le script applicatif du dépôt s'exécute uniquement sous `www`; il ne reçoit aucun privilège root.
 
-## Pré-requis serveur aaPanel
+## Environnement confirmé sur le serveur C2ME
 
-Le script suppose le chemin actuel `/www/wwwroot/c2me.ovh` et un déploiement dans ce répertoire (pas encore un système de releases/symlinks).
+- Application : `/www/wwwroot/c2me.ovh`, propriétaire `www:www`.
+- PHP : `/www/server/php/84/bin/php` (8.4.27).
+- Composer : `/usr/bin/composer`.
+- Node/npm : `/www/server/nodejs/v22.17.1/bin` (Node 22.17.1).
+- Supervisor aaPanel : `/www/server/panel/pyenv/bin/supervisorctl`.
+- Configuration Supervisor : `/etc/supervisor/supervisord.conf`.
+- Processus C2ME : `c2mequeue:c2mequeue_00` et `c2mereverb:c2mereverb_00`.
+- Le processus BATISTACK `batistack` est explicitement exclu du déploiement.
 
-Installer/valider sur le serveur :
-- PHP CLI compatible avec le projet (PHP 8.4 recommandé ici), extensions Laravel nécessaires.
-- Composer 2.
-- Node correspondant à `.nvmrc` et npm.
-- Git, curl, gzip, mysqldump (client MariaDB/MySQL).
-- Supervisor et `supervisorctl`.
-- Un compte SSH de déploiement dédié, avec accès au dépôt et droits limités au projet, au répertoire de sauvegarde et aux commandes nécessaires.
+## Pré-requis serveur
 
 Le Document Root aaPanel doit rester `/www/wwwroot/c2me.ovh/public`.
 
-## Configuration serveur
+Installer/valider les commandes `git`, `runuser`, `flock`, `curl`, `gzip`, `mysqldump` et `sudo`. `sshpass` est installé sur le runner GitHub, pas sur le serveur.
 
-Créer `/etc/c2me/deploy.conf` :
+### Configuration root
+
+Créer `/etc/c2me/deploy.conf`, appartenant à root et non modifiable par deploy/www :
 
 ```bash
 APP_DIR="/www/wwwroot/c2me.ovh"
 DEPLOY_BRANCH="master"
 HEALTH_URL="https://c2me.fr/up"
 BACKUP_DIR="/www/backup/c2me/database"
-SUPERVISOR_PROGRAM="laravel-worker:*"
-RELEASE_LOG_DIR="/www/wwwroot/c2me.ovh/storage/logs/deploy"
+PHP_BIN="/www/server/php/84/bin/php"
+COMPOSER_BIN="/usr/bin/composer"
+NODE_BIN_DIR="/www/server/nodejs/v22.17.1/bin"
+QUEUE_PROGRAM="c2mequeue"
+REVERB_PROGRAM="c2mereverb"
+SUPERVISORCTL="/www/server/panel/pyenv/bin/supervisorctl"
+SUPERVISOR_CONFIG="/etc/supervisor/supervisord.conf"
 ```
 
-Adapter impérativement `SUPERVISOR_PROGRAM` au nom exact de la section `[program:...]` réellement configurée dans Supervisor. Vérifier avec `sudo supervisorctl status`.
-
-Protéger le fichier :
+Puis :
 
 ```bash
-sudo chown root:root /etc/c2me/deploy.conf
-sudo chmod 640 /etc/c2me/deploy.conf
+chown root:root /etc/c2me/deploy.conf
+chmod 600 /etc/c2me/deploy.conf
 ```
 
-Le compte SSH de déploiement doit pouvoir lire ce fichier.
+Ne pas placer de secrets GitHub ni de mot de passe SSH dans ce fichier. Les identifiants SQL restent dans le `.env` de l'application.
 
-Le compte doit aussi pouvoir écrire dans le dépôt, `storage/`, `bootstrap/cache/`, créer les sauvegardes SQL et accéder au serveur MySQL avec les identifiants de `.env`. Ne pas donner un accès sudo général au compte de déploiement.
+### Installer le script privilégié
 
-## Secrets et variables GitHub
+Après fusion du PR, depuis le répertoire du dépôt :
 
-Dans Settings > Secrets and variables > Actions :
-
-**Secrets (idéalement dans l'environnement GitHub `production`)**
-- `DEPLOY_HOST` : DNS ou IP du serveur.
-- `DEPLOY_USER` : compte SSH dédié.
-- `DEPLOY_PORT` : port SSH (facultatif, défaut 22).
-- `DEPLOY_SSH_KEY` : clé privée SSH dédiée.
-- `DEPLOY_KNOWN_HOSTS` : clé d'hôte SSH vérifiée hors bande.
-
-**Environment variable**
-- `DEPLOY_PATH` : `/www/wwwroot/c2me.ovh`.
-
-Créer un environnement GitHub nommé `production`, avec approbation manuelle si souhaitée.
-
-## Sauvegardes SQL
-
-Le script exécute `mysqldump --single-transaction`, compresse le dump et vérifie l'archive avec `gzip -t`. Les sauvegardes locales sont conservées 14 jours dans `/www/backup/c2me/database`.
-
-Cette sauvegarde locale ne suffit pas : prévoir une copie chiffrée hors du serveur, avec politique de rétention et tests réguliers de restauration. Les fichiers utilisateurs de `storage/app` doivent également être sauvegardés séparément : le dump SQL ne contient pas les pièces jointes et documents du CRM.
-
-## Vérifications post-déploiement
-
-- Le endpoint Laravel `/up` doit répondre HTTP 2xx sans authentification.
-- Le worker Supervisor doit être RUNNING.
-- Les logs du déploiement sont écrits dans `storage/logs/deploy/`.
-- Laravel conserve ses logs applicatifs dans `storage/logs/`.
-
-Le scheduler Laravel doit avoir un cron système actif :
-
-```cron
-* * * * * cd /www/wwwroot/c2me.ovh && php artisan schedule:run >> /dev/null 2>&1
+```bash
+install -o root -g root -m 0750 scripts/deploy-production-root.sh /usr/local/sbin/c2me-deploy
 ```
 
-Vérifier également le cron configuré dans aaPanel : ne pas installer un doublon.
+Le helper applicatif reste dans le dépôt et appartient à `www` :
 
-## Déroulement et limites
+```bash
+chown www:www /www/wwwroot/c2me.ovh/scripts/deploy-production-app.sh
+chmod 0750 /www/wwwroot/c2me.ovh/scripts/deploy-production-app.sh
+```
 
-Le script sauvegarde avant migration, installe les dépendances, compile les assets, active le mode maintenance, migre, reconstruit les caches, redémarre logiquement les workers, vérifie Supervisor et l'endpoint HTTP.
+Le script root exécute ce helper avec `runuser -u www`. Le helper étant exécuté sous www, son contenu ne doit jamais être exécuté en root.
 
-Le déploiement est actuellement « in-place » : le rollback applicatif n'est pas automatique. Une restauration SQL doit être décidée explicitement et coordonnée avec la version du code. Ne pas restaurer automatiquement une base après une migration échouée sans diagnostic.
+### Autorisation sudo limitée
 
-Avant activation en production :
-1. Vérifier le nom du worker Supervisor.
-2. Tester une sauvegarde et une restauration SQL sur une base de test.
-3. Vérifier les permissions du compte SSH.
-4. Vérifier le Document Root aaPanel.
-5. Ajouter les secrets GitHub.
-6. Lancer un premier déploiement contrôlé en fenêtre de maintenance.
+Créer `/etc/sudoers.d/c2me-deploy` :
+
+```sudoers
+deploy ALL=(root) NOPASSWD: /usr/local/sbin/c2me-deploy
+```
+
+Puis :
+
+```bash
+chown root:root /etc/sudoers.d/c2me-deploy
+chmod 0440 /etc/sudoers.d/c2me-deploy
+visudo -cf /etc/sudoers.d/c2me-deploy
+sudo -l -U deploy
+```
+
+Ne jamais ajouter `deploy` aux groupes `sudo` ou `www`. Ne pas lui donner d'accès en écriture au dépôt, au fichier de configuration, au script root ou au répertoire de sauvegarde.
+
+Le script root valide les chemins et noms des programmes Supervisor et n'accepte aucun argument.
+
+## Secrets GitHub
+
+Dans Settings > Secrets and variables > Actions, idéalement dans l'environnement `production` :
+
+- `DEPLOY_HOST` : adresse IP ou DNS du serveur.
+- `DEPLOY_USER` : `deploy`.
+- `DEPLOY_PASSWORD` : mot de passe SSH du compte deploy.
+- `DEPLOY_PORT` : port SSH, facultatif (22 par défaut).
+- `DEPLOY_KNOWN_HOSTS` : entrée de clé hôte SSH vérifiée indépendamment.
+
+Le workflow impose `DEPLOY_USER=deploy`, vérifie la clé d'hôte et utilise sshpass via `SSHPASS`. Ne jamais afficher ni écrire le mot de passe dans les logs.
+
+Créer un environnement GitHub nommé `production`, avec approbation manuelle si souhaitée. Restreindre les déploiements à la branche `master`.
+
+## Déroulement
+
+1. Contrôles et tests sur GitHub.
+2. Connexion SSH avec `deploy`.
+3. Exécution de l'unique commande sudo autorisée.
+4. Précontrôles Git exécutés sous www.
+5. Sauvegarde SQL gzip et vérification de l'archive.
+6. Activation maintenance sous www.
+7. Git fast-forward, Composer, npm ci/build, migrations et caches sous www.
+8. Redémarrage et vérification de `c2mequeue` et `c2mereverb` via Supervisor aaPanel.
+9. Sortie de maintenance et contrôle HTTP de `https://c2me.fr/up`.
+10. Conservation locale des sauvegardes SQL pendant 14 jours.
+
+Le service `batistack` n'est jamais redémarré.
+
+## Sauvegardes et limites
+
+La sauvegarde SQL est locale dans `/www/backup/c2me/database`. Elle ne remplace pas une copie chiffrée hors serveur. Les fichiers utilisateurs de `storage/app` doivent également être sauvegardés séparément.
+
+Le déploiement est « in-place » : aucun rollback automatique du code ou de la base n'est effectué. Une restauration SQL doit être décidée explicitement et coordonnée avec la version du code.
+
+## Vérifications avant activation
+
+1. Confirmer le Document Root aaPanel.
+2. Vérifier `/etc/c2me/deploy.conf`, ses permissions et les chemins PHP/Node.
+3. Installer le script privilégié.
+4. Valider sudoers avec `visudo), puis tester `sudo -l -U deploy`.
+5. Vérifier que `deploy` ne peut pas modifier le dépôt, le script root ou la configuration.
+6. Ajouter les secrets GitHub et vérifier `DEPLOY_KNOWN_HOSTS`.
+7. Tester une sauvegarde/restauration sur une base de test.
+8. Faire un premier déploiement contrôlé avec approbation manuelle.
 
 ## Dépannage
 
-- Logs déploiement : `storage/logs/deploy/`.
-- État workers : `sudo supervisorctl status`.
-- Scheduler : `php artisan schedule:list`.
+- Logs privilégiés : `/var/log/c2me/`.
+- Logs applicatifs : `storage/logs/`.
+- État workers : `/www/server/panel/pyenv/bin/supervisorctl -c /etc/supervisor/supervisord.conf status`.
 - Santé HTTP : `curl -i https://c2me.fr/up`.
 - Sauvegardes : `ls -lh /www/backup/c2me/database`.
