@@ -25,7 +25,6 @@ LOG_FILE="$RELEASE_LOG_DIR/deploy-$(date +%Y%m%d-%H%M%S).log"
 exec > >(tee -a "$LOG_FILE") 2>&1
 
 MAINTENANCE_ENABLED=0
-DEPLOY_OK=0
 
 log() { printf '[%s] %s\n' "$(date '+%F %T%z')" "$*"; }
 die() { log "ERREUR: $*"; exit 1; }
@@ -64,7 +63,7 @@ fi
 
 git fetch --prune origin "$DEPLOY_BRANCH" --tags
 git merge-base --is-ancestor HEAD "origin/$DEPLOY_BRANCH" || die "La branche locale diverge de origin/$DEPLOY_BRANCH"
-
+CURRENT_COMMIT="$(git rev-parse --short=12 HEAD)"
 
 # Lecture sûre des paramètres DB depuis .env avec le parseur PHP Dotenv.
 mapfile -t DB_VALUES < <(php -r '
@@ -84,7 +83,7 @@ DB_PASSWORD="$(printf '%s' "${DB_VALUES[4]}" | base64 -d)"
 unset DB_VALUES
 
 # Sauvegarde avant toute migration. Le dump est vérifié avant de poursuivre.
-BACKUP_FILE="$BACKUP_DIR/${DB_DATABASE}_$(date +%Y%m%d-%H%M%S)_${DEPLOY_COMMIT}.sql.gz"
+BACKUP_FILE="$BACKUP_DIR/${DB_DATABASE}_$(date +%Y%m%d-%H%M%S)_${CURRENT_COMMIT}.sql.gz"
 log "Sauvegarde SQL : $BACKUP_FILE"
 MYSQL_PWD="$DB_PASSWORD" mysqldump \
     --host="$DB_HOST" --port="$DB_PORT" --user="$DB_USERNAME" \
@@ -139,7 +138,7 @@ php artisan queue:restart
 log "Vérification des workers Supervisor : $SUPERVISOR_PROGRAM"
 WORKER_STATUS="$(supervisorctl status "$SUPERVISOR_PROGRAM")"
 printf '%s\n' "$WORKER_STATUS"
-grep -q 'RUNNING' <<< "$WORKER_STATUS" || die "Aucun worker Supervisor RUNNING pour $SUPERVISOR_PROGRAM."
+awk 'NF && $2 != "RUNNING" { failed=1 } END { exit (NR == 0 || failed) }' <<< "$WORKER_STATUS" || die "Au moins un worker Supervisor n'est pas RUNNING pour $SUPERVISOR_PROGRAM."
 
 log "Sortie du mode maintenance."
 php artisan up
@@ -160,5 +159,4 @@ done
 # Conservation des sauvegardes SQL pendant 14 jours (adapter selon la politique de sauvegarde).
 find "$BACKUP_DIR" -type f -name '*.sql.gz' -mtime +14 -delete
 
-DEPLOY_OK=1
 log "SUCCÈS : version $APP_VERSION ($DEPLOY_COMMIT) déployée."
