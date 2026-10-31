@@ -60,12 +60,8 @@
                             </span>
 
                             <div class="c2me-cal__events">
-                                @foreach ($day['activities'] as $activity)
-                                    <div @class(['c2me-cal__event', 'c2me-cal__event--late' => $activity['overdue']])
-                                        title="{{ $activity['time'].' — '.$activity['label'].' : '.$activity['subject'] }}">
-                                        <span class="c2me-cal__event-time">{{ $activity['time'] }}</span>
-                                        {{ $activity['subject'] }}
-                                    </div>
+                                @foreach ($day['entries'] as $entry)
+                                    @include('filament.pages.partials.calendar-entry', ['entry' => $entry])
                                 @endforeach
                             </div>
                         </div>
@@ -86,14 +82,10 @@
                 @foreach ($weekDays as $day)
                     <div class="c2me-cal__day c2me-cal__day--tall">
                         <div class="c2me-cal__events">
-                            @forelse ($day['activities'] as $activity)
-                                <div @class(['c2me-cal__event', 'c2me-cal__event--late' => $activity['overdue']])
-                                    title="{{ $activity['time'].' — '.$activity['label'].' : '.$activity['subject'] }}">
-                                    <span class="c2me-cal__event-time">{{ $activity['time'] }}</span>
-                                    {{ $activity['subject'] }}
-                                </div>
+                            @forelse ($day['entries'] as $entry)
+                                @include('filament.pages.partials.calendar-entry', ['entry' => $entry])
                             @empty
-                                <span class="c2me-cal__empty">—</span>
+                                <span class="c2me-cal__empty">-</span>
                             @endforelse
                         </div>
                     </div>
@@ -101,19 +93,45 @@
             </div>
         @else
             <div class="c2me-cal__day-view">
-                @forelse ($this->dayActivities() as $activity)
-                    <div class="c2me-cal__day-row">
-                        <div class="c2me-cal__day-time">{{ $activity['time'] }}</div>
+                @forelse ($this->dayEntries() as $entry)
+                    <div @class(['c2me-cal__day-row', 'c2me-cal__day-row--personal' => $entry['kind'] === 'event'])>
+                        <div class="c2me-cal__day-time">{{ $entry['time'] }}</div>
                         <div class="c2me-cal__day-body">
                             <div class="c2me-cal__day-subject">
-                                {{ $activity['subject'] }}
-                                @if ($activity['overdue'])
+                                {{ $entry['subject'] }}
+                                @if ($entry['overdue'])
                                     <span class="c2me-cal__tag c2me-cal__tag--late">En retard</span>
+                                @endif
+                                @if ($entry['kind'] === 'event' && $entry['shared'])
+                                    <span class="c2me-cal__tag">Partagé</span>
                                 @endif
                             </div>
                             <div class="c2me-cal__day-meta">
-                                {{ $activity['label'] }}@if ($activity['account']) · {{ $activity['account'] }}@endif
+                                {{ $entry['label'] }}@if ($entry['account']) · {{ $entry['account'] }}@endif
+                                @if ($entry['kind'] === 'event' && $entry['shared'] && $entry['owner'])
+                                    · {{ $entry['owner'] }}
+                                @endif
                             </div>
+
+                            @if ($entry['kind'] === 'event' && $entry['editable'])
+                                <div class="c2me-cal__day-actions">
+                                    <button
+                                        type="button"
+                                        class="c2me-cal__link"
+                                        wire:click="editCalendarEvent({{ $entry['id'] }})"
+                                    >
+                                        Modifier
+                                    </button>
+                                    <button
+                                        type="button"
+                                        class="c2me-cal__link c2me-cal__link--danger"
+                                        wire:click="deleteCalendarEvent({{ $entry['id'] }})"
+                                        wire:confirm="Supprimer cet événement ?"
+                                    >
+                                        Supprimer
+                                    </button>
+                                </div>
+                            @endif
                         </div>
                     </div>
                 @empty
@@ -298,10 +316,91 @@
             border-radius: 9999px;
             font-size: 0.65rem;
             font-weight: 600;
+            background: rgba(107, 114, 128, 0.12);
+            color: #4b5563;
         }
 
         .c2me-cal__tag--late {
             background: rgba(220, 38, 38, 0.12);
+            color: #b91c1c;
+        }
+
+        .c2me-cal__event--personal {
+            position: relative;
+            padding: 0;
+            background: rgba(37, 99, 235, 0.12);
+            color: #1d4ed8;
+        }
+
+        .c2me-cal__event--shared {
+            padding: 0.125rem 0.375rem;
+        }
+
+        .c2me-cal__event-main {
+            display: block;
+            width: 100%;
+            padding: 0.125rem 1.4rem 0.125rem 0.375rem;
+            border: 0;
+            background: transparent;
+            color: inherit;
+            font: inherit;
+            line-height: 1.25rem;
+            text-align: left;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            cursor: pointer;
+        }
+
+        .c2me-cal__event-delete {
+            position: absolute;
+            top: 0;
+            right: 0;
+            bottom: 0;
+            width: 1.3rem;
+            padding: 0;
+            border: 0;
+            background: transparent;
+            color: inherit;
+            font-size: 0.9rem;
+            line-height: 1;
+            cursor: pointer;
+            opacity: 0.6;
+        }
+
+        .c2me-cal__event-delete:hover {
+            opacity: 1;
+        }
+
+        .c2me-cal__event--personal .c2me-cal__tag {
+            background: rgba(37, 99, 235, 0.16);
+            color: #1d4ed8;
+            padding: 0 0.3rem;
+            font-size: 0.55rem;
+        }
+
+        .c2me-cal__day-row--personal {
+            background: rgba(37, 99, 235, 0.04);
+        }
+
+        .c2me-cal__day-actions {
+            display: flex;
+            gap: 0.75rem;
+            margin-top: 0.3rem;
+        }
+
+        .c2me-cal__link {
+            padding: 0;
+            border: 0;
+            background: transparent;
+            color: #0b6a5e;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-decoration: underline;
+            cursor: pointer;
+        }
+
+        .c2me-cal__link--danger {
             color: #b91c1c;
         }
 
@@ -328,6 +427,38 @@
         .dark .c2me-cal__event--late {
             background: rgba(248, 113, 113, 0.18);
             color: #fecaca;
+        }
+
+        .dark .c2me-cal__tag {
+            background: rgba(156, 163, 175, 0.18);
+            color: #d1d5db;
+        }
+
+        .dark .c2me-cal__tag--late {
+            background: rgba(248, 113, 113, 0.18);
+            color: #fecaca;
+        }
+
+        .dark .c2me-cal__event--personal {
+            background: rgba(96, 165, 250, 0.18);
+            color: #bfdbfe;
+        }
+
+        .dark .c2me-cal__event--personal .c2me-cal__tag {
+            background: rgba(96, 165, 250, 0.25);
+            color: #dbeafe;
+        }
+
+        .dark .c2me-cal__day-row--personal {
+            background: rgba(96, 165, 250, 0.06);
+        }
+
+        .dark .c2me-cal__link {
+            color: #5eead4;
+        }
+
+        .dark .c2me-cal__link--danger {
+            color: #fca5a5;
         }
     </style>
 </x-filament-panels::page>

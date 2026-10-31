@@ -113,6 +113,16 @@ Toute évolution de structure impose d'incrémenter `DB_VERSION` dans `field-mod
 - Thème clair/sombre : préférence système par défaut, bascule manuelle mémorisée dans `localStorage` (`c2me-field-theme`).
 - Invite PWA via `beforeinstallprompt`, avec report de 14 jours (`c2me-field-install-dismissed`).
 
+## Calendrier
+
+- Flux ICS privé par utilisateur : `GET /calendrier/{token}.ics`, jeton stocké dans `users.calendar_token`.
+- Le jeton et l'URL sont des secrets porteurs : ne pas les journaliser, permettre leur régénération.
+- `App\Services\IcsCalendar` exporte les activités planifiées non terminées, les relances de comptes et les événements personnels, avec rappels, lieu et lien CRM.
+- Événements personnels : modèle `CalendarEvent`, privés par défaut, partageables avec tous ou une sélection d'utilisateurs (lecture seule pour les destinataires), récurrence hebdomadaire/mensuelle simple.
+- Actions Filament sur `/admin/calendar` : nouvel événement, édition au clic, suppression, s'abonner, exporter, régénérer.
+- Tests : `tests/Feature/CalendarFeedTest.php` et `tests/Feature/CalendarEventTest.php`.
+- Le flux ne doit jamais être mis en cache par le service worker ni par un proxy partagé.
+
 ## Conventions
 
 - Ne pas committer, pousser ou ouvrir de pull request sans demande explicite.
