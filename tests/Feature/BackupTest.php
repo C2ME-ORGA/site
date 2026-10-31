@@ -2,6 +2,8 @@
 
 use Spatie\Backup\Notifications\Notifications\BackupHasFailedNotification;
 use Spatie\Backup\Notifications\Notifications\BackupWasSuccessfulNotification;
+use Spatie\Backup\Notifications\Notifications\CleanupHasFailedNotification;
+use Spatie\Backup\Notifications\Notifications\UnhealthyBackupWasFoundNotification;
 
 test('seule la base de données est incluse dans les archives', function (): void {
     expect(config('backup.backup.source.databases'))->toBe(['mysql'])
@@ -26,9 +28,12 @@ test('le chiffrement des archives dépend du mot de passe', function (): void {
 
 test('seuls les échecs de sauvegarde sont notifiés', function (): void {
     $notifications = config('backup.notifications.notifications');
+    $expected = config('backup.notifications.mail.to') === [] ? [] : ['mail'];
 
     expect($notifications)->toHaveCount(6)
-        ->and($notifications[BackupHasFailedNotification::class])->toBe(['mail'])
+        ->and($notifications[BackupHasFailedNotification::class])->toBe($expected)
+        ->and($notifications[CleanupHasFailedNotification::class])->toBe($expected)
+        ->and($notifications[UnhealthyBackupWasFoundNotification::class])->toBe($expected)
         ->and($notifications[BackupWasSuccessfulNotification::class])->toBe([]);
 });
 

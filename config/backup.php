@@ -23,6 +23,18 @@ use Spatie\Backup\Tasks\Monitor\HealthChecks\MaximumStorageInMegabytes;
 |
 */
 
+/*
+ * Destinataire des alertes. Aucune adresse n'est codée en dur :
+ * BACKUP_NOTIFICATION_EMAIL, puis ADMIN_EMAIL, puis l'expéditeur des
+ * e-mails (MAIL_FROM_ADDRESS). Sans adresse configurée, les alertes
+ * sont désactivées plutôt qu'envoyées à une boîte arbitraire.
+ */
+$notificationEmail = env('BACKUP_NOTIFICATION_EMAIL')
+    ?: env('ADMIN_EMAIL')
+    ?: env('MAIL_FROM_ADDRESS');
+
+$notificationChannels = $notificationEmail ? ['mail'] : [];
+
 return [
 
     /*
@@ -135,8 +147,9 @@ return [
 
     /*
      * Seuls les échecs sont notifiés : un succès quotidien ne doit pas
-     * encombrer la boîte de réception. Les notifications partent vers
-     * BACKUP_NOTIFICATION_EMAIL, ADMIN_EMAIL par défaut.
+     * encombrer la boîte de réception. Les alertes partent vers
+     * BACKUP_NOTIFICATION_EMAIL (voir la résolution ci-dessus) et sont
+     * désactivées si aucune adresse n'est configurée.
      */
     'notifications' => [
 
@@ -146,9 +159,9 @@ return [
          * tableau vide désactive l'envoi correspondant.
          */
         'notifications' => [
-            BackupHasFailedNotification::class => ['mail'],
-            UnhealthyBackupWasFoundNotification::class => ['mail'],
-            CleanupHasFailedNotification::class => ['mail'],
+            BackupHasFailedNotification::class => $notificationChannels,
+            UnhealthyBackupWasFoundNotification::class => $notificationChannels,
+            CleanupHasFailedNotification::class => $notificationChannels,
             BackupWasSuccessfulNotification::class => [],
             HealthyBackupWasFoundNotification::class => [],
             CleanupWasSuccessfulNotification::class => [],
@@ -157,7 +170,7 @@ return [
         'notifiable' => Notifiable::class,
 
         'mail' => [
-            'to' => env('BACKUP_NOTIFICATION_EMAIL', env('ADMIN_EMAIL', 'admin@c2me.fr')),
+            'to' => $notificationEmail ?: [],
 
             'from' => [
                 'address' => env('MAIL_FROM_ADDRESS', 'contact@c2me.fr'),

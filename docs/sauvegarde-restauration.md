@@ -61,8 +61,8 @@ Variables `.env` (voir `.env.example`) :
 | --- | --- | --- |
 | `BACKUP_ENABLED` | active les tâches planifiées | `true` |
 | `BACKUP_DISK` | disque de destination (`config/filesystems.php`) | `backups` |
-| `BACKUP_ARCHIVE_PASSWORD` | chiffrement AES du ZIP | vide (non chiffré) |
-| `BACKUP_NOTIFICATION_EMAIL` | destinataire des alertes d'échec | `ADMIN_EMAIL` |
+| `BACKUP_ARCHIVE_PASSWORD` | chiffrement AES du ZIP | non défini (non chiffré) |
+| `BACKUP_NOTIFICATION_EMAIL` | destinataire des alertes d'échec | `ADMIN_EMAIL`, puis `MAIL_FROM_ADDRESS` |
 | `DB_DUMP_BINARY_PATH` | chemin vers `mysqldump` (utile en local) | vide (PATH) |
 
 Le disque `backups` pointe sur `storage/app/backups` (les archives sont
@@ -71,13 +71,16 @@ n'est téléchargeable depuis le web.
 
 ### Chiffrement : obligatoire en production
 
+La variable est **commentée** dans `.env.example` pour qu'elle soit activée
+consciemment, jamais par oubli :
+
 ```dotenv
-BACKUP_ARCHIVE_PASSWORD="mot-de-passe-de-32-caracteres-minimum"
+# BACKUP_ARCHIVE_PASSWORD="mot-de-passe-de-32-caracteres-minimum"
 ```
 
-L'archive contient des données personnelles (comptes, contacts, e-mails,
-journal d'audit). Sans mot de passe, `encryption` passe automatiquement à
-`none` : pratique en local, **interdit en production**.
+Décommenter et renseigner sur le serveur. L'archive contient des données
+personnelles (comptes, contacts, e-mails, journal d'audit) : sans mot de passe,
+`encryption` passe à `none` — pratique en local, **interdit en production**.
 
 Conservez le mot de passe dans un gestionnaire de secrets, séparément des
 archives. Un mot de passe perdu rend les archives définitivement illisibles.
