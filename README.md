@@ -76,6 +76,7 @@ C2ME is a Laravel Livewire-based CRM application managing clients industriels, p
 
 ### 5. RGPD / Rétention
 
+- Registre des traitements et procédure des droits : `docs/rgpd-registre.md`
 - Commandes de purge selon `config/crm.retention.*` (prospects, activités, e-mails)
 - Planification via tâche cron (non incluse dans cette démo, à ajouter en production)
 - Anonymisation des données personnelles à la suppression
@@ -130,7 +131,7 @@ C2ME is a Laravel Livewire-based CRM application managing clients industriels, p
 - Journal d'audit des modifications sensibles
 - Signatures e-mail configurables par utilisateur
 - Support OAuth Microsoft 365 / Google Workspace en plus d'IMAP par mot de passe
-- Accessibilité et revue RGPD finale avant mise en production
+- Revue d'accessibilité du back-office Filament et du mode terrain
 
 ### 9. Recherche globale inter-carnets
 
@@ -202,6 +203,14 @@ système (voir la procédure).
 - **Rétention** : 7 jours intégraux, 30 jours en quotidien, 12 semaines, 6 mois, 2 ans, plafond 2 Go.
 - **Configuration** : `config/backup.php`, disque `backups` de `config/filesystems.php`.
 - **Procédure complète** (sauvegarde des fichiers, restauration, exercice trimestriel, dépannage) : `docs/sauvegarde-restauration.md`.
+
+### 14. Accessibilité et RGPD
+
+- **Accessibilité** : lien d'évitement, `<main id="main">`, focus visible global, menus `aria-expanded`/`aria-controls` fermables par `Échap`, formulaires avec `aria-required`/`aria-invalid`/`aria-describedby` et résumé d'erreurs `role="alert"`, galerie en boutons `aria-pressed`, visionneuse avec restitution du focus. Contrastes texte ≥ 4,5:1 (texte atténué `ink-700/70`, `brand-600` assombri en `#0b7c7c`, boutons en `brand-600`). Audit et limites connues : `docs/accessibilite.md`.
+- **RGPD** : registre des traitements, sous-traitants, cookies et procédure des droits dans `docs/rgpd-registre.md` ; durées de purge dans `docs/crm-rgpd.md`.
+- **Droits des personnes** : sur la fiche compte, onglet Contacts (administrateurs), boutons « Exporter les données (RGPD) » (JSON : contact, compte, affaires, devis, activités, e-mails) et « Anonymiser » (nom, coordonnées et notes effacés, historique conservé). Les deux opérations sont journalisées dans le journal d'audit.
+- **Mention formulaires** : `x-ui.privacy-notice` affiche la finalité et le lien vers la politique de confidentialité sous les formulaires de contact et de devis.
+- **Tests** : `tests/Feature/AccessibilityTest.php`, `tests/Feature/ContactPrivacyTest.php`.
 
 ---
 

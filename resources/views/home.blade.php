@@ -143,7 +143,7 @@
     {{-- CTA --}}
     <section class="bg-mist-100 py-20 lg:py-24">
         <div class="container-site">
-            <div class="overflow-hidden rounded-3xl bg-brand-500 px-8 py-14 text-center text-white sm:px-16">
+            <div class="overflow-hidden rounded-3xl bg-brand-600 px-8 py-14 text-center text-white sm:px-16">
                 <h2 class="mx-auto max-w-2xl font-display text-3xl font-extrabold tracking-tight sm:text-4xl">
                     Un projet de construction métallique ou de découpe ?
                 </h2>

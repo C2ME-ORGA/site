@@ -7,11 +7,10 @@
     class="space-y-10"
 >
     {{-- Filtres --}}
-    <div class="flex flex-wrap gap-2" role="tablist" aria-label="Filtrer par chantier">
+    <div class="flex flex-wrap gap-2" role="group" aria-label="Filtrer par chantier">
         <button
             type="button"
-            role="tab"
-            :aria-selected="filter === null"
+            :aria-pressed="filter === null"
             @click="filter = null"
             class="rounded-full px-4 py-2 text-sm font-bold transition"
             :class="filter === null ? 'bg-ink-900 text-white' : 'border border-mist-300 bg-white text-ink-900 hover:border-brand-400 hover:text-brand-600'"
@@ -22,10 +21,9 @@
         @foreach ($projects as $project)
             <button
                 type="button"
-                role="tab"
-                :aria-selected="filter === @js($project['slug'])"
+                :aria-pressed="filter === @js($project['slug'])"
                 @click="filter = @js($project['slug'])"
-                :class="filter === @js($project['slug']) ? 'bg-brand-500 text-white' : 'border border-mist-300 bg-white text-ink-900 hover:border-brand-400 hover:text-brand-600'"
+                :class="filter === @js($project['slug']) ? 'bg-brand-600 text-white' : 'border border-mist-300 bg-white text-ink-900 hover:border-brand-400 hover:text-brand-600'"
                 class="rounded-full px-4 py-2 text-sm font-bold transition"
             >
                 {{ $project['name'] }} · {{ count($project['photos']) }}
@@ -38,7 +36,7 @@
         <template x-for="(photo, index) in visible" :key="photo.src">
             <button
                 type="button"
-                @click="open(index)"
+                @click="open(index, $event)"
                 class="group relative block aspect-[4/3] overflow-hidden rounded-xl bg-mist-100"
             >
                 <img
@@ -69,6 +67,8 @@
         x-cloak
         x-show="lightbox"
         x-transition.opacity
+        x-ref="dialog"
+        tabindex="-1"
         class="fixed inset-0 z-50 flex items-center justify-center bg-ink-950/95 p-4"
         @keydown.escape.window="close()"
         @keydown.arrow-left.window.prevent="prev()"
@@ -79,11 +79,12 @@
     >
         <button
             type="button"
+            x-ref="closeButton"
             @click="close()"
             class="absolute right-4 top-4 grid h-11 w-11 place-items-center rounded-full border border-white/25 text-white transition hover:bg-white/10"
             aria-label="Fermer"
         >
-            <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" />
             </svg>
         </button>
@@ -94,7 +95,7 @@
             class="absolute left-4 top-1/2 grid h-11 w-11 -translate-y-1/2 place-items-center rounded-full border border-white/25 text-white transition hover:bg-white/10"
             aria-label="Photo précédente"
         >
-            <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" />
             </svg>
         </button>
@@ -105,7 +106,7 @@
             class="absolute right-4 top-1/2 grid h-11 w-11 -translate-y-1/2 place-items-center rounded-full border border-white/25 text-white transition hover:bg-white/10"
             aria-label="Photo suivante"
         >
-            <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
             </svg>
         </button>
@@ -135,6 +136,7 @@
                 filter: null,
                 lightbox: false,
                 index: 0,
+                trigger: null,
 
                 init() {
                     this.$watch('filter', () => {
@@ -162,15 +164,19 @@
                     return `${this.index + 1} / ${this.visible.length}`;
                 },
 
-                open(index) {
+                open(index, event) {
+                    // Conserve le bouton d'origine pour y rendre le focus.
+                    this.trigger = event?.currentTarget ?? null;
                     this.index = index;
                     this.lightbox = true;
                     document.body.style.overflow = 'hidden';
+                    queueMicrotask(() => this.$refs.closeButton?.focus());
                 },
 
                 close() {
                     this.lightbox = false;
                     document.body.style.overflow = '';
+                    queueMicrotask(() => this.trigger?.focus());
                 },
 
                 next() {

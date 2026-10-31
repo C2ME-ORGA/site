@@ -109,7 +109,7 @@
                         </ul>
                     </div>
 
-                    <p class="text-sm text-ink-700/60">
+                    <p class="text-sm text-ink-700/70">
                         Les champs non marqués comme obligatoires restent facultatifs. Aucune donnée n’est collectée
                         par le biais d’un compte utilisateur : le site ne demande aucune inscription.
                     </p>
@@ -121,9 +121,9 @@
                         <table class="w-full min-w-[34rem] border-collapse text-left align-top">
                             <thead>
                                 <tr class="border-b border-ink-900/15">
-                                    <th class="py-2.5 pr-4 text-xs font-bold uppercase tracking-[0.1em] text-ink-700/60">Traitement</th>
-                                    <th class="py-2.5 pr-4 text-xs font-bold uppercase tracking-[0.1em] text-ink-700/60">Finalité</th>
-                                    <th class="py-2.5 text-xs font-bold uppercase tracking-[0.1em] text-ink-700/60">Base légale</th>
+                                    <th scope="col" class="py-2.5 pr-4 text-xs font-bold uppercase tracking-[0.1em] text-ink-700/70">Traitement</th>
+                                    <th scope="col" class="py-2.5 pr-4 text-xs font-bold uppercase tracking-[0.1em] text-ink-700/70">Finalité</th>
+                                    <th scope="col" class="py-2.5 text-xs font-bold uppercase tracking-[0.1em] text-ink-700/70">Base légale</th>
                                 </tr>
                             </thead>
                             <tbody class="divide-y divide-mist-200">
@@ -272,7 +272,7 @@
                             cnil.fr
                         </a>.
                     </p>
-                    <p class="text-sm text-ink-700/60">
+                    <p class="text-sm text-ink-700/70">
                         Dernière mise à jour : <time datetime="2026-10-17">17 octobre 2026</time>.
                     </p>
                 </x-ui.legal-section>

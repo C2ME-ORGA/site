@@ -36,7 +36,7 @@
                 <dl class="mt-8 divide-y divide-mist-200 border-y border-mist-200">
                     @foreach ($company['locations'] as $location)
                         <div class="flex items-baseline justify-between gap-6 py-3.5">
-                            <dt class="shrink-0 text-sm font-bold uppercase tracking-[0.1em] text-ink-700/60">
+                            <dt class="shrink-0 text-sm font-bold uppercase tracking-[0.1em] text-ink-700/70">
                                 {{ $location['label'] }}
                             </dt>
                             <dd class="text-right text-sm font-semibold text-ink-900">
@@ -52,7 +52,7 @@
                         ['label' => 'Zone d’intervention', 'value' => $company['zone']],
                     ] as $row)
                         <div class="flex items-baseline justify-between gap-6 py-3.5">
-                            <dt class="text-sm font-bold uppercase tracking-[0.1em] text-ink-700/60">{{ $row['label'] }}</dt>
+                            <dt class="text-sm font-bold uppercase tracking-[0.1em] text-ink-700/70">{{ $row['label'] }}</dt>
                             <dd class="text-right text-sm font-semibold text-ink-900">{{ $row['value'] }}</dd>
                         </div>
                     @endforeach

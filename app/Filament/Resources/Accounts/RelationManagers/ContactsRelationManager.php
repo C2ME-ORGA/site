@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Accounts\RelationManagers;
 
+use App\Filament\Actions\ContactPrivacyActions;
 use App\Models\CrmContact;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\CreateAction;
@@ -119,6 +120,8 @@ class ContactsRelationManager extends RelationManager
             ])
             ->recordActions([
                 EditAction::make(),
+                ContactPrivacyActions::export(),
+                ContactPrivacyActions::anonymize(),
                 DeleteAction::make(),
             ])
             ->toolbarActions([
