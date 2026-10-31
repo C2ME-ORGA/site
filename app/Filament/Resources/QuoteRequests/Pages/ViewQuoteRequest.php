@@ -7,9 +7,12 @@ use App\Filament\Resources\QuoteRequests\QuoteRequestResource;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\EditAction;
 use Filament\Resources\Pages\ViewRecord;
+use MortalKiller\FilamentPageHeader\Concerns\HasPageHeader;
 
 class ViewQuoteRequest extends ViewRecord
 {
+    use HasPageHeader;
+
     protected static string $resource = QuoteRequestResource::class;
 
     protected function getHeaderActions(): array

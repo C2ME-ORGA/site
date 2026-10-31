@@ -31,3 +31,19 @@
     aspect-ratio: auto;
     height: 300px;
 }
+
+/*
+ * En-têtes de pages (mortalkiller/filament-page-header).
+ *
+ * Filament limite la largeur des badges à 100 % de leur colonne ; dans
+ * l'en-tête, cette colonne est réduite par les actions de page, ce qui
+ * tronquait « Client » en « Clie… » sur les écrans de 1280 px. Les badges
+ * conservent leur largeur naturelle et passent à la ligne si besoin.
+ */
+.fph-badges .fi-badge {
+    max-width: none;
+}
+
+.fph-badges .fi-in-text-item {
+    flex-wrap: wrap;
+}

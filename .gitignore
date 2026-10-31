@@ -2,11 +2,13 @@
 /node_modules
 /public/build
 /public/css/filament
+/public/css/mortalkiller
 /public/fonts-manifest.dev.json
 /public/fonts/filament
 /public/hot
 /public/js/filament
 /public/js/elemind
+/public/js/mortalkiller
 /public/storage
 /storage/*.key
 /storage/pail

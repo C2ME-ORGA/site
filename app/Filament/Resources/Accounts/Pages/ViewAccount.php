@@ -8,10 +8,13 @@ use Filament\Actions\DeleteAction;
 use Filament\Actions\EditAction;
 use Filament\Resources\Pages\ViewRecord;
 use Illuminate\Contracts\Support\Htmlable;
+use MortalKiller\FilamentPageHeader\Concerns\HasPageHeader;
 use TinusG\FilamentCompanyLogoColumn\CompanyLogoColumn;
 
 abstract class ViewAccount extends ViewRecord
 {
+    use HasPageHeader;
+
     protected function getHeaderActions(): array
     {
         return [

@@ -206,6 +206,14 @@
 - [x] Service complété : `revenueByMonth()`, `activitiesByType()`, `topAccountsByPipeline()`.
 - [x] Tests de calcul (`DashboardMetricsTest`) et de rendu des widgets (`DashboardPageTest`) ; Pint, PHPStan et suite complète au vert.
 
+### 19. En-têtes de pages (Page Header)
+
+- [x] Plugin `mortalkiller/filament-page-header` `^2.4` installé, assets publiés et enregistré dans `AdminPanelProvider` en mode `compact()`.
+- [x] Trait `HasPageHeader` ajouté aux pages de vue et d'édition : comptes (3 carnets), devis, activités, demandes de contact et de devis, e-mails, utilisateurs, boîtes e-mail, étiquettes.
+- [x] Schémas partagés par ressource (`Schemas/{Modèle}Header.php`) : titre, description, initiales ou logo, badges de statut colorés, métadonnées avec icônes et actions natives.
+- [x] Configuration compacte par en-tête (`whenCompact`) : identité, badges, actions et quelques métadonnées clés restent visibles.
+- [x] Tests de découverte des schémas et de rendu (`tests/Feature/PageHeaderTest.php`) ; Pint, PHPStan et suite complète au vert.
+
 ## Proposition de développement supplémentaire
 
 - [x] **Amélioration du mode terrain** : édition hors ligne, création d'activités, actions rapides, conflits de synchronisation, photos et tournée — détail en section 7.
@@ -222,4 +230,4 @@
 - [x] Accessibilité et revue RGPD finale avant mise en production — lien d’évitement, formulaires ARIA, contrastes AA, registre des traitements, export et anonymisation RGPD d’un contact (sections 16 et 17).
 - [x] Ajouter support Calendrier avec synchronisation/export pour Outlook, Google Calendar, etc. — flux WebCal privé par utilisateur, export ICS, activités et relances, événements personnels partageables (voir `plan_calendrier.md`).
 - [x] Prise en charge des Graphiques visuelle avec Apache Echart (https://filamentphp.com/plugins/elemind-echarts) — cinq graphiques sur le tableau de bord (voir section 18).
-- [ ] Utiliser https://filamentphp.com/plugins/pedro-monteiro-page-header pour mettre en forme les vues des différents affichages.
+- [x] Utiliser https://filamentphp.com/plugins/pedro-monteiro-page-header pour mettre en forme les vues des différents affichages — `mortalkiller/filament-page-header` `^2.4`, en-têtes compacts sur les fiches (voir section 19).
