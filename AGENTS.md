@@ -156,6 +156,7 @@ Toute évolution de structure impose d'incrémenter `DB_VERSION` dans `field-mod
 ## Conventions
 
 - Graphiques : widgets `Elemind\FilamentECharts\Widgets\EChartWidget` dans `app/Filament/Widgets`, options renvoyées par `getOptions()`, formatage des montants via `extraJsOptions()` (`RawJs`). `$pollingInterval` est une propriété **d'instance** (`protected ?string $pollingInterval = null;`), pas `static`.
+- En-têtes de pages : `mortalkiller/filament-page-header` en mode compact, schémas partagés dans `app/Filament/Resources/{Ressource}/Schemas/{Modèle}Header.php` et trait `HasPageHeader` sur les pages de vue/édition.
 - Ne pas committer, pousser ou ouvrir de pull request sans demande explicite.
 - Tests PHP en Pest, assertions en français lorsque c'est pertinent.
 - Factories : `CrmActivityFactory` crée un contact (et donc éventuellement un compte) si `crm_contact_id` n'est pas forcé à `null`.

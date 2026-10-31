@@ -10,10 +10,13 @@ use Filament\Actions\Action;
 use Filament\Actions\DeleteAction;
 use Filament\Resources\Pages\EditRecord;
 use Illuminate\Support\Facades\Storage;
+use MortalKiller\FilamentPageHeader\Concerns\HasPageHeader;
 use RuntimeException;
 
 class EditQuote extends EditRecord
 {
+    use HasPageHeader;
+
     protected static string $resource = QuoteResource::class;
 
     protected function getHeaderActions(): array

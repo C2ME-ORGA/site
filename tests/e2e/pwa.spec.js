@@ -19,5 +19,5 @@ test('invite d’installation PWA et version du cache hors ligne', async ({ page
     await expect(page.locator('#install-banner')).toBeHidden();
     await expect(page.locator('#install-button')).toBeVisible();
 
-    await expect(page.locator('#app-version')).toContainText('c2me-v6', { timeout: 20_000 });
+    await expect(page.locator('#app-version')).toContainText('c2me-v7', { timeout: 20_000 });
 });

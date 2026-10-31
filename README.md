@@ -211,6 +211,17 @@ système (voir la procédure).
 - **Configuration** : `config/backup.php`, disque `backups` de `config/filesystems.php`.
 - **Procédure complète** (sauvegarde des fichiers, restauration, exercice trimestriel, dépannage) : `docs/sauvegarde-restauration.md`.
 
+### 15. En-têtes de pages (Page Header)
+
+- **Plugin** : `mortalkiller/filament-page-header` `^2.4`, enregistré dans `AdminPanelProvider` en mode **compact** (l'en-tête se réduit au défilement et reste épinglé).
+- **Schémas partagés** dans `app/Filament/Resources/{Ressource}/Schemas/{Modèle}Header.php`, découverts automatiquement par le trait `HasPageHeader` :
+  - `CrmAccountHeader` couvre les trois carnets (les ressources filles héritent d'`AccountResource`) ;
+  - `QuoteHeader`, `CrmActivityHeader`, `ContactRequestHeader`, `QuoteRequestHeader`, `EmailMessageHeader`, `UserHeader`, `EmailMailboxHeader`, `CrmTagHeader`.
+- **Contenu** : titre, description, initiales ou logo d'entreprise (comptes), badges de statut avec couleurs, métadonnées avec icônes (commercial, coordonnées, dates) et actions natives existantes (modifier, supprimer, imprimer, transitions de devis…).
+- **Compact** : avatar, titre, badges et actions restent visibles ; seules les métadonnées clés (commercial, prochaine relance, montant, échéance) sont conservées.
+- **Pages concernées** : vue et édition des fiches (comptes, devis, activités, demandes de contact et de devis, e-mails, utilisateurs, boîtes e-mail, étiquettes).
+- **Tests** : `tests/Feature/PageHeaderTest.php`.
+
 ### 14. Accessibilité et RGPD
 
 - **Accessibilité** : lien d'évitement, `<main id="main">`, focus visible global, menus `aria-expanded`/`aria-controls` fermables par `Échap`, formulaires avec `aria-required`/`aria-invalid`/`aria-describedby` et résumé d'erreurs `role="alert"`, galerie en boutons `aria-pressed`, visionneuse avec restitution du focus. Contrastes texte ≥ 4,5:1 (texte atténué `ink-700/70`, `brand-600` assombri en `#0b7c7c`, boutons en `brand-600`). Audit et limites connues : `docs/accessibilite.md`.
