@@ -62,6 +62,14 @@ return [
             'options' => extension_loaded('pdo_mysql') ? array_filter([
                 Mysql::ATTR_SSL_CA => env('MYSQL_ATTR_SSL_CA'),
             ]) : [],
+            /*
+             * Dump cohérent sans verrouiller les tables InnoDB : mysqldump
+             * lit les tables dans une même transaction (spatie/laravel-backup).
+             */
+            'dump' => [
+                'useSingleTransaction' => true,
+                'dump_binary_path' => env('DB_DUMP_BINARY_PATH', ''),
+            ],
         ],
 
         'mariadb' => [

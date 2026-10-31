@@ -116,3 +116,36 @@ Schedule::command('crm:send-follow-up-reminders --stage=due-day')
     ->when(fn (): bool => (bool) config('crm.follow_ups.enabled', true))
     ->withoutOverlapping()
     ->onOneServer();
+
+/*
+|--------------------------------------------------------------------------
+| Sauvegarde de la base de données
+|--------------------------------------------------------------------------
+|
+| `backup:run --only-db` crée une archive chiffrée dans
+| storage/app/backups, puis `backup:clean` applique la rétention et
+| `backup:monitor` alerte si la dernière sauvegarde est trop ancienne.
+| Le nettoyage passe avant la sauvegarde pour ne jamais manquer de place.
+|
+| Les fichiers (plans, photos, pièces jointes) sont sauvegardés
+| séparément : voir docs/sauvegarde-restauration.md.
+|
+*/
+
+Schedule::command('backup:clean')
+    ->dailyAt('01:15')
+    ->when(fn (): bool => (bool) config('backup.enabled', true))
+    ->withoutOverlapping()
+    ->onOneServer();
+
+Schedule::command('backup:run --only-db')
+    ->dailyAt('01:30')
+    ->when(fn (): bool => (bool) config('backup.enabled', true))
+    ->withoutOverlapping()
+    ->onOneServer();
+
+Schedule::command('backup:monitor')
+    ->dailyAt('02:00')
+    ->when(fn (): bool => (bool) config('backup.enabled', true))
+    ->withoutOverlapping()
+    ->onOneServer();
