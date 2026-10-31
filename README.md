@@ -172,6 +172,13 @@ Le tableau de bord (`/admin`) est une page Filament personnalisée (`App\Filamen
 - **Taux de conversion** : devis acceptés parmi les devis dont `sent_at` est dans la période. Affiche `—` si aucun devis n'a été envoyé.
 - **Panier moyen** : CA devis / nombre de devis acceptés, avec le panier moyen des affaires gagnées en description.
 - **Pipeline par carnet** : affaires ouvertes uniquement (`nouveau`, `qualifie`, `etude`, `devis_envoye`, `negociation`), en brut et pondéré par probabilité. Le graphique indique le nombre d'affaires et la part de chaque carnet.
+- **Graphiques Apache ECharts** (`elemind/filament-echarts`, plugin enregistré dans le panel) :
+  - **CA sur 12 derniers mois** : barres des devis acceptés et courbe des affaires gagnées, mois par mois ;
+  - **Pipeline par carnet** : barres groupées brut/pondéré ;
+  - **Top 5 comptes par pipeline** : barres horizontales, montants formatés en euros ;
+  - **Taux de conversion des devis** : jauge 0–100 % sur la période sélectionnée ;
+  - **Activités par type** : anneau des activités enregistrées sur la période.
+  - Les montants sont formatés en français (`Intl.NumberFormat`), les axes et infobulles sont harmonisés et chaque graphique gère son état vide.
 - **Top 5 des affaires ouvertes** : triées par montant décroissant, avec lien vers la fiche compte.
 - **Devis à relancer ou expirés** : devis `sent` dont `valid_until` arrive dans les 7 jours, devis `sent` dépassés et devis `expired`, avec lien vers la fiche devis.
 - **Objectif mensuel** : compare le CA devis du mois en cours à `CRM_DASHBOARD_MONTHLY_TARGET`. Une valeur à `0` masque la jauge et affiche « Objectif non défini ».

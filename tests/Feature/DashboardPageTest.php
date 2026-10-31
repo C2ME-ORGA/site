@@ -7,10 +7,14 @@ use App\Enums\OpportunityStage;
 use App\Enums\QuoteDocumentStatus;
 use App\Enums\UserRole;
 use App\Filament\Pages\Dashboard;
+use App\Filament\Widgets\ActivitiesByTypeChart;
 use App\Filament\Widgets\CommercialStatsOverview;
 use App\Filament\Widgets\MonthlyTargetOverview;
 use App\Filament\Widgets\PipelineByBookChart;
+use App\Filament\Widgets\QuoteConversionGauge;
 use App\Filament\Widgets\QuotesToFollowUp;
+use App\Filament\Widgets\RevenueTrendChart;
+use App\Filament\Widgets\TopAccountsPipelineChart;
 use App\Filament\Widgets\TopOpenOpportunities;
 use App\Models\CrmAccount;
 use App\Models\CrmOpportunity;
@@ -143,6 +147,66 @@ test('les tableaux du tableau de bord appliquent le scoping commercial', functio
     Livewire::actingAs($admin)
         ->test(TopOpenOpportunities::class)
         ->assertCanSeeTableRecords([$ownOpportunity, $otherOpportunity]);
+});
+
+test('les graphiques ECharts sont montés sur le tableau de bord', function (): void {
+    $admin = dashboardPageAdmin();
+
+    /** @var array<class-string, string> $widgets */
+    $widgets = [
+        RevenueTrendChart::class => 'Chiffre d’affaires — 12 derniers mois',
+        PipelineByBookChart::class => 'Pipeline par carnet',
+        TopAccountsPipelineChart::class => 'Top 5 comptes par pipeline',
+        QuoteConversionGauge::class => 'Taux de conversion des devis',
+        ActivitiesByTypeChart::class => 'Activités par type',
+    ];
+
+    foreach ($widgets as $widget => $heading) {
+        Livewire::actingAs($admin)
+            ->test($widget)
+            ->assertSee($heading)
+            ->assertSeeHtml('filament-echarts-chart');
+    }
+});
+
+test('le graphique de CA affiche un état vide sans chiffre d’affaires', function (): void {
+    $admin = dashboardPageAdmin();
+
+    Livewire::actingAs($admin)
+        ->test(RevenueTrendChart::class)
+        ->assertSee('Aucun CA signé ou gagné sur les 12 derniers mois');
+
+    $account = dashboardPageAccount($admin);
+
+    Quote::factory()->create([
+        'crm_account_id' => $account->id,
+        'owner_id' => $admin->id,
+        'status' => QuoteDocumentStatus::Accepted,
+        'issued_at' => '2026-10-01',
+        'valid_until' => '2026-10-31',
+        'sent_at' => '2026-10-02',
+        'accepted_at' => '2026-10-10',
+        'amount_ht' => 12000,
+    ]);
+
+    Livewire::actingAs($admin)
+        ->test(RevenueTrendChart::class)
+        ->assertSee('Devis acceptés')
+        ->assertDontSee('Aucun CA signé ou gagné sur les 12 derniers mois');
+});
+
+test('la jauge de conversion suit la période du tableau de bord', function (): void {
+    $admin = dashboardPageAdmin();
+
+    Livewire::actingAs($admin)
+        ->test(QuoteConversionGauge::class, [
+            'pageFilters' => [
+                'period' => 'month',
+                'year' => '2026',
+                'month' => 10,
+            ],
+        ])
+        ->assertSee('Octobre 2026');
 });
 
 test('le filtre de période met à jour les indicateurs des widgets', function (): void {
