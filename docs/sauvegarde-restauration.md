@@ -1,300 +1,880 @@
-# Sauvegarde et restauration
+# C2ME — Procédure de sauvegarde et de restauration
 
-Ce document décrit la sauvegarde quotidienne de la base de données et la
-sauvegarde des fichiers, puis la procédure de restauration. Il sert de runbook
-en cas d'incident : chaque commande est prévue pour un serveur Linux
-(VPS ou dédié) disposant de PHP, `mysqldump`, `tar` et `zip`.
+**Entreprise :** SARL C2ME  
+**Application :** c2me.ovh  
+**Environnement :** Ubuntu 24.04 / aaPanel / Laravel 13  
+**Base de données :** MariaDB 10.11  
+**Stockage distant :** OVH Object Storage — Région Paris  
+**Classification :** Document interne — Procédure technique
 
-## Ce qui est sauvegardé
+---
 
-| Donnée | Emplacement | Moyen | Fréquence |
-| --- | --- | --- | --- |
-| Base MySQL | serveur MySQL | `spatie/laravel-backup` | quotidienne (01:30) |
-| Fichiers privés | `storage/app/private` | `tar` + `gzip` | quotidienne (cron système) |
-| Images publiques | `storage/app/public` | `tar` + `gzip` | quotidienne (cron système) |
-| Code, `.env`, `APP_KEY` | dépôt Git / coffre-fort | hors archive | à la demande |
+## 1. Objectif et périmètre
 
-L'archive de base ne contient **que** le dump SQL. Les fichiers sont
-volontairement séparés : ils représentent un volume bien plus important, se
-restaurent indépendamment et n'ont pas la même rétention.
+Ce document décrit le dispositif de sauvegarde de l'application C2ME et les procédures permettant de restaurer ses données après une panne, une corruption ou une indisponibilité du serveur.
 
-Ne sont jamais sauvegardés dans l'archive applicative :
+Les objectifs sont :
 
-- `vendor/` et `node_modules/` (réinstallables) ;
-- `storage/framework/` (cache, sessions) ;
-- `.env` (secrets : à conserver dans un coffre-fort, jamais dans une archive
-  déposée sur un serveur distant) ;
-- `storage/app/backups/` et `storage/app/backup-temp/` (l'archive ne doit pas
-  se contenir elle-même).
+- Conserver une copie quotidienne de la base de données.
+- Conserver une copie quotidienne des fichiers de l'application.
+- Disposer de sauvegardes mensuelles supplémentaires.
+- Stocker les archives hors du VPS de production.
+- Chiffrer les sauvegardes avant leur transfert.
+- Pouvoir reconstruire l'application sur un nouveau serveur.
 
-## Prérequis sur le serveur
+### 1.1 Environnement de production
 
-```bash
-mysqldump --version    # paquet mysql-client ou default-mysql-client
-php -m | grep -i zip   # extension ZIP de PHP
-tar --version
-gzip --version
-unzip -v               # restauration des archives chiffrées
-```
+| Élément | Configuration |
+|---|---|
+| Système | Ubuntu 24.04 LTS |
+| Panneau d'administration | aaPanel 8.0.7 |
+| PHP | 8.4.27 |
+| Laravel | 13.38.0 |
+| MariaDB | 10.11.10 |
+| Application | `/www/wwwroot/c2me.ovh` |
+| Base de données | `c2me_ovh` |
+| Utilisateur applicatif | `c2me_ovh` |
+| Serveur web | Nginx / PHP-FPM |
 
-Le planificateur Laravel doit tourner toutes les minutes :
+### 1.2 Architecture des sauvegardes
 
-```cron
-* * * * * cd /var/www/c2me && php artisan schedule:run >> /dev/null 2>&1
-```
+Deux mécanismes de sauvegarde coexistent :
 
-Les tâches sont déclarées dans `routes/console.php` :
+1. **Sauvegardes aaPanel** : sauvegardes locales historiques, conservées sans modification.
+2. **Sauvegardes distantes C2ME** : scripts dédiés, chiffrement GPG et transfert vers OVH Object Storage.
 
-| Heure | Commande | Rôle |
-| --- | --- | --- |
-| 01:15 | `backup:clean` | applique la rétention avant de créer l'archive du jour |
-| 01:30 | `backup:run --only-db` | crée `c2me-AAAA-MM-JJ-HH-MM-SS.zip` |
-| 02:00 | `backup:monitor` | alerte si la dernière archive a plus de 2 jours |
+Les deux mécanismes sont complémentaires.
 
-`BACKUP_ENABLED=false` suspend les trois tâches sans toucher au cron.
+---
 
-## Configuration
+## 2. Stockage distant OVH
 
-Variables `.env` (voir `.env.example`) :
+### 2.1 Configuration
 
-| Variable | Rôle | Défaut |
-| --- | --- | --- |
-| `BACKUP_ENABLED` | active les tâches planifiées | `true` |
-| `BACKUP_DISK` | disque de destination (`config/filesystems.php`) | `backups` |
-| `BACKUP_ARCHIVE_PASSWORD` | chiffrement AES du ZIP | non défini (non chiffré) |
-| `BACKUP_NOTIFICATION_EMAIL` | destinataire des alertes d'échec | `ADMIN_EMAIL`, puis `MAIL_FROM_ADDRESS` |
-| `DB_DUMP_BINARY_PATH` | chemin vers `mysqldump` (utile en local) | vide (PATH) |
+| Paramètre | Valeur |
+|---|---|
+| Fournisseur | OVHcloud |
+| Service | Object Storage S3 |
+| Bucket | `c2me-backup` |
+| Région | `eu-west-par` |
+| Localisation | Paris |
+| Endpoint | `https://s3.eu-west-par.io.cloud.ovh.net/` |
+| Chiffrement serveur | SSE-OMK |
+| Versioning | Activé |
+| Object Lock | Désactivé |
 
-Le disque `backups` pointe sur `storage/app/backups` (les archives sont
-rangées dans le sous-dossier `c2me/`), hors du dossier public : aucune archive
-n'est téléchargeable depuis le web.
+Le stockage utilise un compte technique dédié, limité au bucket de sauvegarde.
 
-### Chiffrement : obligatoire en production
-
-La variable est **commentée** dans `.env.example` pour qu'elle soit activée
-consciemment, jamais par oubli :
-
-```dotenv
-# BACKUP_ARCHIVE_PASSWORD="mot-de-passe-de-32-caracteres-minimum"
-```
-
-Décommenter et renseigner sur le serveur. L'archive contient des données
-personnelles (comptes, contacts, e-mails, journal d'audit) : sans mot de passe,
-`encryption` passe à `none` — pratique en local, **interdit en production**.
-
-Conservez le mot de passe dans un gestionnaire de secrets, séparément des
-archives. Un mot de passe perdu rend les archives définitivement illisibles.
-
-## Rétention
-
-| Période | Conservation |
-| --- | --- |
-| 7 derniers jours | toutes les archives |
-| 30 jours | une archive par jour |
-| 12 semaines | une archive par semaine |
-| 6 mois | une archive par mois |
-| 2 ans | une archive par an |
-
-Garde-fou : au-delà de 2 Go, les archives les plus anciennes sont supprimées
-en priorité. La rétention est définie dans `config/backup.php`.
-
-## Commandes courantes
-
-```bash
-# Créer une archive immédiate (base uniquement)
-php artisan backup:run --only-db
-
-# Vérifier le contenu du disque de sauvegarde
-php artisan backup:list
-
-# Contrôler la santé (âge et volume)
-php artisan backup:monitor
-
-# Appliquer la rétention manuellement
-php artisan backup:clean
-
-# Vérifier la planification
-php artisan schedule:list
-```
-
-Les archives sont écrites dans `storage/app/backups/c2me/` :
+### 2.2 Organisation du bucket
 
 ```text
-c2me-2026-10-31-01-30-00.zip
-└── db-dumps/mysql-c2me.sql   # dump complet (DROP TABLE puis CREATE)
+c2me-backup/
+│
+├── database/
+│   ├── daily/
+│   └── monthly/
+│
+├── files/
+│   ├── daily/
+│   └── monthly/
+│
+└── test/
 ```
 
-## Sauvegarde des fichiers
+Le répertoire `test/` contient des fichiers témoins utilisés lors des tests de fonctionnement.
 
-À ajouter dans le cron système (par exemple à 01:45), ou à lancer avant une
-opération risquée :
+Ne pas supprimer ces éléments sans vérification préalable.
 
-```bash
-cd /var/www/c2me
+### 2.3 Accès distant
 
-tar --create --gzip \
-  --file="/var/backups/c2me/files-$(date +%F-%H%M).tar.gz" \
-  --exclude='app/backups' \
-  --exclude='app/backup-temp' \
-  -C storage app/private app/public
+L'accès au stockage est configuré avec rclone.
 
-sha256sum /var/backups/c2me/files-*.tar.gz > /var/backups/c2me/files.sha256
+Fichier de configuration :
+
+```text
+/root/.config/rclone/rclone.conf
 ```
 
-Contenu attendu de `storage/app/private` :
+Remote :
 
-- `crm-activity-attachments/` : photos du mode terrain ;
-- `quote-requests/` : plans joints aux demandes de devis ;
-- `quotes/` : PDF de devis générés ;
-- `mail-attachments/` : pièces jointes des e-mails entrants et sortants.
-
-`storage/app/public` contient les images insérées dans les signatures e-mail.
-
-### Copie hors site
-
-Une sauvegarde sur le même serveur ne protège ni d'une panne matérielle ni
-d'un rançongiciel. Copiez chaque nuit l'ensemble des archives vers un
-emplacement distant :
-
-```bash
-rclone copy /var/backups/c2me remote:c2me-backups --checksum
-# ou
-scp /var/backups/c2me/*.zip backup@autre-serveur:/srv/backups/c2me/
+```text
+ovh-c2me
 ```
 
-Objectif 3-2-1 : trois copies, deux supports, une hors site. Vérifiez au
-moins une fois par trimestre qu'une archive distante se restaure.
+Permissions :
 
-## Restauration
-
-### 1. Se mettre en maintenance et sécuriser l'état actuel
-
-```bash
-cd /var/www/c2me
-php artisan down --retry=60
-
-# Toujours sauvegarder l'état courant avant d'écraser quoi que ce soit.
-php artisan backup:run --only-db
+```text
+Répertoire : 700
+Configuration : 600
 ```
 
-### 2. Vérifier l'archive
+Vérification de l'accès :
 
 ```bash
-cd /var/backups/c2me
-sha256sum -c files.sha256
-unzip -t -P "$BACKUP_ARCHIVE_PASSWORD" c2me-2026-10-31-01-30-00.zip   # intégrité
+rclone lsd ovh-c2me:
 ```
 
-### 3. Décompresser
+Vérification du bucket :
 
 ```bash
-mkdir -p /tmp/c2me-restore
-unzip -P "$BACKUP_ARCHIVE_PASSWORD" \
-  c2me-2026-10-31-01-30-00.zip -d /tmp/c2me-restore
+rclone lsf ovh-c2me:c2me-backup
 ```
 
-`unzip -P` (Info-ZIP) et `7z x -p…` lisent le chiffrement ZIP produit par
-PHP. L'outil « Archive Utility » de macOS ne le prend pas en charge.
+Les identifiants S3 ne doivent jamais être inscrits dans un script, un dépôt Git ou une documentation accessible publiquement.
 
-### 4. Restaurer la base
+---
 
-Le dump contient `DROP TABLE IF EXISTS` : l'import écrase les tables
-existantes de la base ciblée.
+## 3. Chiffrement des sauvegardes
 
-```bash
-mysql -h 127.0.0.1 -u c2me -p c2me < /tmp/c2me-restore/db-dumps/mysql-c2me.sql
+### 3.1 Principe
+
+Toutes les archives produites par les scripts C2ME sont chiffrées avec GPG avant leur transfert vers OVH.
+
+Le chiffrement repose sur une clé asymétrique RSA 4096 bits.
+
+Empreinte de la clé :
+
+```text
+ACD892F7B9AFFEED4C86798FBFFA52F9F2FCF87E
 ```
 
-Pour tester sans toucher à la production, importez dans une base jetable :
+Sous-clé de chiffrement :
 
-```bash
-mysql -h 127.0.0.1 -u root -p -e \
-  "CREATE DATABASE c2me_restore CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
-mysql -h 127.0.0.1 -u root -p c2me_restore < /tmp/c2me-restore/db-dumps/mysql-c2me.sql
+```text
+F0B1ABBBB29F28A4
 ```
 
-### 5. Restaurer les fichiers
+Identité :
 
-```bash
-tar -xzf /var/backups/c2me/files-2026-10-31-0145.tar.gz -C /var/www/c2me/storage
-chown -R www-data:www-data /var/www/c2me/storage/app
+```text
+C2ME - Sauvegardes
+contact@c2me.ovh
 ```
 
-### 6. Finaliser
+### 3.2 Emplacement de la clé
+
+La clé privée est conservée sur le VPS dans :
+
+```text
+/root/.gnupg
+```
+
+Une copie externe de secours a également été exportée et vérifiée.
+
+La passphrase doit rester conservée séparément dans un gestionnaire de mots de passe sécurisé.
+
+**La perte de la clé privée ou de sa passphrase rendrait les sauvegardes chiffrées irrécupérables.**
+
+### 3.3 Vérification de la clé
 
 ```bash
-cd /var/www/c2me
+gpg --list-keys
+```
+
+Vérification de l'empreinte :
+
+```bash
+gpg --fingerprint contact@c2me.ovh
+```
+
+Ne jamais supprimer la clé privée tant que des archives chiffrées dépendant de cette clé doivent être conservées.
+
+---
+
+## 4. Sauvegarde de la base de données
+
+### 4.1 Script
+
+Emplacement :
+
+```text
+/usr/local/sbin/c2me-db-backup.sh
+```
+
+Permissions :
+
+```text
+root:root 700
+```
+
+Le script accepte deux paramètres :
+
+```bash
+c2me-db-backup.sh daily
+c2me-db-backup.sh monthly
+```
+
+### 4.2 Fonctionnement
+
+Le script :
+
+1. Vérifie le type de sauvegarde.
+2. Acquiert un verrou pour empêcher les exécutions simultanées.
+3. Effectue un dump MariaDB.
+4. Chiffre le flux SQL avec GPG.
+5. Transfère l'archive sur OVH.
+6. Vérifie le transfert avec rclone.
+7. Supprime les fichiers temporaires.
+8. Enregistre le résultat dans un journal.
+
+Options principales du dump :
+
+```text
+--single-transaction
+--quick
+--routines
+--triggers
+--events
+--hex-blob
+--default-character-set=utf8mb4
+```
+
+Le compte de connexion est défini dans :
+
+```text
+/root/.my.cnf
+```
+
+Permissions :
+
+```text
+root:root 600
+```
+
+Ne jamais afficher ni transmettre le contenu de ce fichier.
+
+### 4.3 Destination
+
+Sauvegardes quotidiennes :
+
+```text
+ovh-c2me:c2me-backup/database/daily/
+```
+
+Sauvegardes mensuelles :
+
+```text
+ovh-c2me:c2me-backup/database/monthly/
+```
+
+Format des fichiers :
+
+```text
+c2me_ovh-YYYYMMDD_HHMMSS.sql.gpg
+```
+
+### 4.4 Planification
+
+| Fréquence | Horaire | Commande |
+|---|---|---|
+| Quotidienne | 03:00 | `c2me-db-backup.sh` |
+| Mensuelle | Le 1er à 04:00 | `c2me-db-backup.sh monthly` |
+
+---
+
+## 5. Sauvegarde des fichiers de l'application
+
+### 5.1 Script
+
+Emplacement :
+
+```text
+/usr/local/sbin/c2me-files-backup.sh
+```
+
+Permissions :
+
+```text
+root:root 700
+```
+
+Paramètres :
+
+```bash
+c2me-files-backup.sh daily
+c2me-files-backup.sh monthly
+```
+
+### 5.2 Éléments sauvegardés
+
+L'archive comprend :
+
+- Le code source Laravel.
+- Le fichier `.env`.
+- Le fichier `artisan`.
+- Les répertoires `app`, `bootstrap`, `config`, `database`, `public`, `resources` et `routes`.
+- Les images des réalisations.
+- Les documents privés.
+- Les pièces jointes des courriels.
+- Les demandes de devis et leurs documents.
+- Les fichiers publics de stockage.
+- Les autres fichiers du projet présents dans le périmètre de sauvegarde.
+
+### 5.3 Éléments exclus
+
+Les éléments suivants sont volontairement exclus :
+
+| Élément | Motif |
+|---|---|
+| `vendor/` | Dépendances Composer réinstallables |
+| `node_modules/` | Dépendances NPM réinstallables |
+| `storage/framework/` | Données temporaires Laravel |
+| `storage/logs/` | Journaux |
+| `storage/app/backups/` | Éviter une sauvegarde récursive |
+| `storage/app/private/livewire-tmp/` | Fichiers temporaires |
+| `bootstrap/cache/` | Cache régénérable |
+
+### 5.4 Destination
+
+Sauvegardes quotidiennes :
+
+```text
+ovh-c2me:c2me-backup/files/daily/
+```
+
+Sauvegardes mensuelles :
+
+```text
+ovh-c2me:c2me-backup/files/monthly/
+```
+
+Format :
+
+```text
+c2me_files-YYYYMMDD_HHMMSS.tar.gz.gpg
+```
+
+### 5.5 Planification
+
+| Fréquence | Horaire | Commande |
+|---|---|---|
+| Quotidienne | 03:30 | `c2me-files-backup.sh` |
+| Mensuelle | Le 1er à 04:30 | `c2me-files-backup.sh monthly` |
+
+---
+
+## 6. Configuration des tâches cron
+
+Les tâches sont installées dans la crontab de root.
+
+Vérification :
+
+```bash
+crontab -l
+```
+
+Configuration C2ME :
+
+```cron
+0 3 * * * /usr/local/sbin/c2me-db-backup.sh
+30 3 * * * /usr/local/sbin/c2me-files-backup.sh
+
+0 4 1 * * /usr/local/sbin/c2me-db-backup.sh monthly
+30 4 1 * * /usr/local/sbin/c2me-files-backup.sh monthly
+```
+
+Les autres tâches aaPanel sont conservées indépendamment.
+
+**Ne pas remplacer l'intégralité de la crontab lors d'une intervention.**
+
+### 6.1 Journaux
+
+Base de données :
+
+```text
+/var/log/c2me-db-backup.log
+```
+
+Fichiers :
+
+```text
+/var/log/c2me-files-backup.log
+```
+
+Consultation :
+
+```bash
+tail -n 50 /var/log/c2me-db-backup.log
+tail -n 50 /var/log/c2me-files-backup.log
+```
+
+Recherche des erreurs :
+
+```bash
+grep -iE 'error|failed|fatal|critical' \
+  /var/log/c2me-db-backup.log \
+  /var/log/c2me-files-backup.log
+```
+
+Une exécution réussie doit notamment confirmer le transfert et le contrôle rclone sans différence.
+
+---
+
+## 7. Sauvegardes aaPanel conservées
+
+Les sauvegardes historiques aaPanel restent actives.
+
+### 7.1 Sauvegardes SQL
+
+Horaire : 01:30 quotidien.
+
+Répertoire :
+
+```text
+/www/backup/database/mysql/crontab_backup/
+```
+
+Rétention configurée : 3 copies locales.
+
+### 7.2 Sauvegardes des sites
+
+Sauvegarde hebdomadaire, tous les 7 jours, à 01:30.
+
+Répertoire :
+
+```text
+/www/backup/site/
+```
+
+Les archives aaPanel ne sont pas chiffrées individuellement par notre dispositif GPG.
+
+Elles constituent donc une sauvegarde locale complémentaire, mais ne remplacent pas les sauvegardes distantes chiffrées.
+
+---
+
+## 8. Procédure de restauration sur un nouveau VPS
+
+Cette procédure concerne une reconstruction après perte du serveur de production.
+
+### 8.1 Préparation du serveur
+
+Installer et configurer :
+
+- Ubuntu 24.04 LTS.
+- aaPanel.
+- Nginx.
+- PHP 8.4 avec les extensions nécessaires à Laravel.
+- MariaDB 10.11.
+- Composer.
+- Node.js et npm si une reconstruction des ressources frontend est nécessaire.
+- rclone.
+- GPG.
+
+Créer le site :
+
+```text
+/www/wwwroot/c2me.ovh
+```
+
+Vérifier que le serveur dispose de suffisamment d'espace disque.
+
+### 8.2 Récupération des accès
+
+Restaurer les éléments suivants :
+
+1. La configuration rclone.
+2. La clé privée GPG.
+3. La passphrase correspondante, depuis le gestionnaire sécurisé.
+
+Les fichiers de configuration doivent être protégés.
+
+```bash
+chmod 700 /root/.config/rclone
+chmod 600 /root/.config/rclone/rclone.conf
+```
+
+Vérifier la présence de la clé :
+
+```bash
+gpg --list-keys
+```
+
+Vérifier l'accès OVH :
+
+```bash
+rclone lsd ovh-c2me:
+```
+
+### 8.3 Récupération des archives
+
+Lister les sauvegardes :
+
+```bash
+rclone lsf ovh-c2me:c2me-backup/database/daily/
+rclone lsf ovh-c2me:c2me-backup/database/monthly/
+
+rclone lsf ovh-c2me:c2me-backup/files/daily/
+rclone lsf ovh-c2me:c2me-backup/files/monthly/
+```
+
+Choisir les archives correspondant à la date de restauration souhaitée.
+
+Exemple de récupération :
+
+```bash
+mkdir -p /root/c2me-restore
+
+chmod 700 /root/c2me-restore
+```
+
+Télécharger les archives choisies avec `rclone copyto` :
+
+```bash
+rclone copyto \
+  ovh-c2me:c2me-backup/database/daily/NOM_ARCHIVE.sql.gpg \
+  /root/c2me-restore/database.sql.gpg
+
+rclone copyto \
+  ovh-c2me:c2me-backup/files/daily/NOM_ARCHIVE.tar.gz.gpg \
+  /root/c2me-restore/files.tar.gz.gpg
+```
+
+Remplacer les noms d'exemple par les noms réels obtenus avec `rclone lsf`.
+
+### 8.4 Vérification des archives
+
+Avant restauration, vérifier que les fichiers sont présents :
+
+```bash
+ls -lh /root/c2me-restore/
+```
+
+Tester le déchiffrement de la base :
+
+```bash
+gpg --batch --decrypt \
+  /root/c2me-restore/database.sql.gpg \
+  > /dev/null
+```
+
+Tester intégralement la lecture de l'archive des fichiers :
+
+```bash
+set -o pipefail
+
+gpg --batch --decrypt \
+  /root/c2me-restore/files.tar.gz.gpg \
+  | tar -tzf - > /root/c2me-restore/files-list.txt
+
+echo "Code retour : $?"
+```
+
+Le code retour attendu est `0`.
+
+### 8.5 Restauration des fichiers
+
+Créer le répertoire cible :
+
+```bash
+mkdir -p /www/wwwroot/c2me.ovh
+```
+
+Extraire les fichiers :
+
+```bash
+set -o pipefail
+
+gpg --batch --decrypt \
+  /root/c2me-restore/files.tar.gz.gpg \
+  | tar --extract --gzip --file=- \
+      --directory=/www/wwwroot/c2me.ovh \
+      --no-same-owner
+```
+
+L'extraction doit être réalisée dans un environnement isolé ou sur le serveur de remplacement, jamais directement sur une production encore en fonctionnement.
+
+### 8.6 Création de la base MariaDB
+
+Dans aaPanel :
+
+1. Ouvrir Database.
+2. Créer la base `c2me_ovh`.
+3. Créer un utilisateur applicatif dédié.
+4. Générer un mot de passe robuste.
+5. Limiter les droits à cette base.
+6. Configurer les paramètres dans le fichier `.env`.
+
+Ne jamais attribuer des privilèges globaux à l'utilisateur applicatif.
+
+### 8.7 Importation SQL
+
+Une fois la base créée et les identifiants configurés, exécuter :
+
+```bash
+set -o pipefail
+
+gpg --batch --decrypt \
+  /root/c2me-restore/database.sql.gpg \
+  | mariadb \
+      --host=127.0.0.1 \
+      --user=c2me_ovh \
+      --password \
+      c2me_ovh
+
+echo "Code retour : $?"
+```
+
+Saisir le mot de passe lorsque MariaDB le demande.
+
+Le code retour attendu est `0`.
+
+Ne pas lancer de migration Laravel pour remplacer une restauration SQL complète.
+
+### 8.8 Reconstitution des dépendances Laravel
+
+Le répertoire `vendor/` étant exclu, réinstaller les dépendances :
+
+```bash
+cd /www/wwwroot/c2me.ovh
+
+composer install \
+  --no-dev \
+  --prefer-dist \
+  --optimize-autoloader
+```
+
+Le répertoire `node_modules/` étant également exclu, reconstruire les ressources frontend uniquement si nécessaire :
+
+```bash
+npm ci
+npm run build
+```
+
+Vérifier les dépendances et la compatibilité avec la version PHP du serveur.
+
+### 8.9 Recréation des répertoires Laravel
+
+```bash
+cd /www/wwwroot/c2me.ovh
+
+mkdir -p \
+  storage/framework/cache \
+  storage/framework/sessions \
+  storage/framework/views \
+  storage/logs \
+  bootstrap/cache
+```
+
+### 8.10 Restauration des permissions
+
+Utilisateur du serveur web : `www:www`.
+
+Appliquer :
+
+```bash
+chown -R www:www /www/wwwroot/c2me.ovh
+
+chmod 600 /www/wwwroot/c2me.ovh/.env
+
+chmod -R 775 \
+  /www/wwwroot/c2me.ovh/storage \
+  /www/wwwroot/c2me.ovh/bootstrap/cache
+
+chmod 755 /www/wwwroot/c2me.ovh
+chmod 755 /www/wwwroot/c2me.ovh/bootstrap
+```
+
+Vérifier les permissions :
+
+```bash
+stat -c '%U:%G %a %n' \
+  /www/wwwroot/c2me.ovh \
+  /www/wwwroot/c2me.ovh/.env \
+  /www/wwwroot/c2me.ovh/storage \
+  /www/wwwroot/c2me.ovh/bootstrap/cache
+```
+
+### 8.11 Vérifications Laravel
+
+Contrôler les paramètres du `.env` :
+
+- `APP_ENV`
+- `APP_DEBUG`
+- `APP_URL`
+- `APP_KEY`
+- `DB_CONNECTION`
+- `DB_HOST`
+- `DB_PORT`
+- `DB_DATABASE`
+- `DB_USERNAME`
+
+Conserver impérativement l'ancienne valeur `APP_KEY` pour pouvoir déchiffrer les données Laravel déjà chiffrées.
+
+Vérifier que :
+
+```dotenv
+APP_DEBUG=false
+```
+
+Puis exécuter :
+
+```bash
 php artisan optimize:clear
-php artisan storage:link
-php artisan migrate --force   # si le code est plus récent que la sauvegarde
-php artisan up
+php artisan config:cache
+php artisan about
 ```
 
-`APP_KEY` et `.env` ne sont pas dans les archives : ils doivent déjà être en
-place. Changer `APP_KEY` invaliderait les données chiffrées et les chemins
-pseudonymes des images de signature.
+Vérifier également la connexion MariaDB, les sessions, les fichiers privés et les fonctions principales de l'application.
 
-### 7. Vérifier
+Ne remettre le site en service qu'après validation.
 
-- connexion au back-office avec un compte connu ;
-- nombre de comptes, contacts et devis cohérent avec la veille ;
-- ouverture d'une photo d'activité et d'un plan de demande de devis ;
-- téléchargement d'un PDF de devis ;
-- flux calendrier `GET /calendrier/{token}.ics` ;
-- page `/terrain` : snapshot et activités hors ligne ;
-- `php artisan backup:monitor` : aucune alerte.
+---
 
-## Exercice de restauration
+## 9. Politique de rétention
 
-À réaliser une fois par trimestre, sur une machine ou une base dédiée :
+Politique souhaitée :
 
-1. récupérer la dernière archive distante et son mot de passe ;
-2. restaurer dans une base `c2me_restore` et un répertoire `storage` isolé ;
-3. pointer un `.env` de test vers cette base et ce stockage ;
-4. dérouler la liste de vérification ci-dessus ;
-5. noter la durée réelle (objectif : moins d'une heure) et corriger la
-   procédure si une étape a échoué.
+| Type de sauvegarde | Conservation |
+|---|---:|
+| Base quotidienne | 35 jours |
+| Fichiers quotidiens | 35 jours |
+| Base mensuelle | 12 mois |
+| Fichiers mensuels | 12 mois |
+| Anciennes versions S3 | 30 jours |
 
-## Dépannage
+**État de mise en œuvre :**
 
-| Symptôme | Cause probable | Solution |
-| --- | --- | --- |
-| `mysqldump: command not found` | client MySQL absent | installer `mysql-client` / `default-mysql-client` |
-| `The dump process failed with exitcode 2` | identifiants ou socket | vérifier `DB_*` et `DB_SOCKET` |
-| `Disk quota exceeded` | disque plein | lancer `backup:clean`, augmenter le volume |
-| `mysqldump: Error 2020` à la restauration | `max_allowed_packet` trop bas | augmenter la valeur côté serveur MySQL |
-| Archive impossible à ouvrir | mot de passe erroné | vérifier `BACKUP_ARCHIVE_PASSWORD` |
-| `backup:monitor` alerte « unhealthy » | archive trop ancienne | vérifier le cron et `storage/logs/laravel.log` |
-| Aucune alerte reçue en cas d'échec | mail non configuré | tester `MAIL_*`, consulter le log |
+- Le versioning OVH est activé.
+- Object Lock est désactivé.
+- Les règles Lifecycle OVH ne sont pas activées.
+- Les effets de la suppression des anciennes versions n'ont pas encore été validés.
+- La purge automatique conforme à cette politique reste à mettre en place et à tester.
 
-### Développement local (Windows / Docker)
+Ne pas activer de règle Lifecycle sans vérifier son impact sur les versions courantes et non courantes.
 
-En local, MySQL tourne dans un conteneur Docker et `mysqldump` n'est pas
-forcé sur l'hôte. Deux options pour tester :
+---
+
+## 10. Contrôles périodiques
+
+### Contrôle quotidien
+
+Vérifier les journaux :
 
 ```bash
-# Dump direct depuis le conteneur
-docker exec mysql-container mysqldump -uroot -p c2me > c2me-local.sql
-
-# Ou indiquer un binaire accessible (wrapper ou chemin Herd)
-# DB_DUMP_BINARY_PATH="C:/chemin/vers/bin/"
+tail -n 30 /var/log/c2me-db-backup.log
+tail -n 30 /var/log/c2me-files-backup.log
 ```
 
-Le package transmet les identifiants dans un fichier temporaire
-`--defaults-extra-file` : un wrapper Docker doit copier ce fichier dans le
-conteneur avant d'appeler `mysqldump`.
+Vérifier les dernières archives :
 
-Aucune sauvegarde n'est nécessaire en local : `php artisan migrate:fresh` et
-`DemoDataSeeder` reconstituent un environnement de test.
+```bash
+rclone lsf ovh-c2me:c2me-backup/database/daily/
+rclone lsf ovh-c2me:c2me-backup/files/daily/
+```
 
-## Sécurité et RGPD
+### Contrôle mensuel
 
-- Les archives contiennent des données personnelles : chiffrement obligatoire,
-  permissions `600`, répertoire `750`.
-- Ne jamais committer d'archive ni de mot de passe ; `storage/app/backups` est
-  ignoré par Git.
-- Aligner la rétention des archives sur la politique de conservation
-  (`docs/crm-rgpd.md`) : une donnée supprimée en base ne doit pas survivre
-  indéfiniment dans une sauvegarde.
-- À la fin d'un contrat ou sur demande d'effacement, supprimer aussi les
-  archives concernées, y compris hors site.
+Vérifier la présence des archives mensuelles :
+
+```bash
+rclone lsf ovh-c2me:c2me-backup/database/monthly/
+rclone lsf ovh-c2me:c2me-backup/files/monthly/
+```
+
+Vérifier le fonctionnement des scripts et les résultats des transferts.
+
+### Contrôle périodique de restauration
+
+Effectuer un test dans un environnement isolé :
+
+- Déchiffrement d'une archive SQL.
+- Importation dans une base temporaire.
+- Comparaison des volumes de données.
+- Extraction complète de l'archive fichiers.
+- Vérification de la présence des documents privés et des images.
+- Vérification des permissions nécessaires à Laravel.
+
+Une restauration réelle doit être testée périodiquement, idéalement sur un serveur de secours.
+
+---
+
+## 11. Historique des tests réalisés
+
+**Date des tests : 31 octobre 2026**
+
+### Base de données
+
+| Contrôle | Résultat |
+|---|---|
+| Création du dump MariaDB | Réussie |
+| Chiffrement GPG | Réussi |
+| Transfert OVH | Réussi |
+| Contrôle rclone | Réussi |
+| Téléchargement de l'archive | Réussi |
+| Déchiffrement | Réussi |
+| Importation temporaire | Réussie |
+| Présence des tables | 29 tables |
+| Comparaison des données | 7 contrôles identiques |
+
+Base temporaire utilisée :
+
+```text
+c2me_restore_test
+```
+
+### Fichiers
+
+| Contrôle | Résultat |
+|---|---|
+| Création de l'archive TAR | Réussie |
+| Chiffrement GPG | Réussi |
+| Transfert OVH | Réussi |
+| Contrôle rclone | Réussi |
+| Déchiffrement | Réussi |
+| Extraction complète | Réussie |
+| Fichiers restaurés | 709 |
+| Taille extraite | 45 Mo |
+| `.env` | Présent |
+| Code Laravel | Présent |
+| Images des réalisations | Présentes |
+| Documents privés | Présents |
+
+Répertoire temporaire :
+
+```text
+/root/backup-test-gpg/monthly-check/files-restore
+```
+
+### Limites des tests
+
+Les restaurations de la base et des fichiers ont été validées séparément.
+
+En revanche, la reconstruction complète de Laravel sur un nouveau VPS, le démarrage de l'application restaurée et le fonctionnement des services externes n'ont pas encore été testés de bout en bout.
+
+---
+
+## 12. Éléments critiques à protéger
+
+Les éléments suivants sont indispensables à la reprise :
+
+1. La clé privée GPG et sa copie externe.
+2. La passphrase GPG.
+3. Les identifiants S3 OVH.
+4. Les paramètres MariaDB.
+5. Le fichier `.env`.
+6. La valeur originale de `APP_KEY`.
+7. Les scripts de sauvegarde.
+8. La configuration du serveur web et du domaine.
+
+La documentation ne doit jamais contenir de mots de passe, de clés privées ou de secrets d'API.
+
+---
+
+## 13. État général du dispositif
+
+| Composant | État |
+|---|---|
+| Sauvegarde DB quotidienne | Opérationnelle |
+| Sauvegarde fichiers quotidienne | Opérationnelle |
+| Sauvegarde DB mensuelle | Programmée |
+| Sauvegarde fichiers mensuelle | Programmée |
+| Stockage OVH | Opérationnel |
+| Chiffrement GPG | Opérationnel |
+| Versioning S3 | Activé |
+| Restauration DB temporaire | Validée |
+| Restauration fichiers temporaire | Validée |
+| Reconstruction complète du VPS | À tester |
+| Purge automatique des anciennes versions | À mettre en place |
+| Règles Lifecycle OVH | Non activées |
+
+**Conclusion :** C2ME dispose d'un système de sauvegarde distant chiffré et de procédures de restauration testées séparément pour la base de données et les fichiers. Les prochaines améliorations concernent la validation d'une reconstruction complète sur serveur de secours et la mise en place maîtrisée de la politique de rétention.
