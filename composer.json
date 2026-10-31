@@ -7,9 +7,9 @@
     "license": "MIT",
     "require": {
         "php": "^8.3",
-        "barryvdh/laravel-dompdf": "*",
+        "barryvdh/laravel-dompdf": "^3.1",
         "filament/filament": "^5.10",
-        "gboquizosanchez/filament-log-viewer": "*",
+        "gboquizosanchez/filament-log-viewer": "^2.4",
         "laravel/framework": "^13.17",
         "laravel/reverb": "^1.12",
         "laravel/tinker": "^3.0",
@@ -17,9 +17,9 @@
         "livewire/livewire": "^4.1",
         "predis/predis": "^3.7",
         "spatie/laravel-backup": "^10.3",
-        "tinusg/filament-company-logo-column": "*",
-        "vaslv/filament-app-version": "*",
-        "webklex/laravel-imap": "*"
+        "tinusg/filament-company-logo-column": "^1.0",
+        "vaslv/filament-app-version": "^1.2",
+        "webklex/laravel-imap": "^6.2"
     },
     "require-dev": {
         "fakerphp/faker": "^1.24",
