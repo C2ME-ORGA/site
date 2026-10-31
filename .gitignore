@@ -46,3 +46,4 @@ yarn-error.log
 /boost.json
 /opencode.json
 /opencode.jsonc
+.vitest/
