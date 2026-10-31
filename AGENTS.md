@@ -29,6 +29,15 @@ vendor/bin/pint
 vendor/bin/phpstan analyse --memory-limit=1G
 ```
 
+Jeu de démonstration pour les tests manuels :
+
+```bash
+php artisan db:seed --class=DemoDataSeeder   # idempotent, ne supprime rien
+```
+
+- Il crée comptes, contacts, affaires, activités (dont photos privées), devis, relances, e-mails, demandes du site, demandes de devis avec plans et événements de calendrier.
+- Comptes de test : `demo.commercial@c2me.fr` et `demo.be@c2me.fr`, mot de passe `password` (jamais réinitialisé si le compte existe déjà).
+
 ## Tests
 
 ### Tests PHP

@@ -179,3 +179,4 @@
 - [ ] Sauvegarde/restauration documentée de la base et des fichiers.
 - [ ] Accessibilité et revue RGPD finale avant mise en production.
 - [x] Ajouter support Calendrier avec synchronisation/export pour Outlook, Google Calendar, etc. — flux WebCal privé par utilisateur, export ICS, activités et relances, événements personnels partageables (voir `plan_calendrier.md`).
+- [ ] Prise en charge des Graphiques visuelle avec Apache Echart (https://filamentphp.com/plugins/elemind-echarts)
