@@ -88,6 +88,10 @@ C2ME is a Laravel Livewire-based CRM application managing clients industriels, p
 | `php artisan crm:purge-activities` | Purge des activités anciennes selon `crm.retention.activities_months` |
 | `php artisan crm:purge-emails` | Purge des e-mails anciens selon `crm.email.retention_months` |
 | `php artisan crm:send-follow-up-reminders --stage=due-day` | Envoie le digest des relances dues (voir section 10) |
+| `php artisan backup:run --only-db` | Crée une archive chiffrée de la base (voir section 13) |
+| `php artisan backup:list` | Liste les archives présentes sur le disque de sauvegarde |
+| `php artisan backup:monitor` | Vérifie l'âge et le volume des sauvegardes |
+| `php artisan backup:clean` | Applique la politique de rétention |
 
 ### 6. Configuration `.env`
 
@@ -126,7 +130,6 @@ C2ME is a Laravel Livewire-based CRM application managing clients industriels, p
 - Journal d'audit des modifications sensibles
 - Signatures e-mail configurables par utilisateur
 - Support OAuth Microsoft 365 / Google Workspace en plus d'IMAP par mot de passe
-- Documentation de sauvegarde/restauration
 - Accessibilité et revue RGPD finale avant mise en production
 
 ### 9. Recherche globale inter-carnets
@@ -185,6 +188,20 @@ Les exports et impressions respectent le carnet courant, les filtres/recherches 
 - **Fiche affaire** : action « Imprimer » sur chaque ligne d'affaire. La vue A4 inclut l'affaire, le compte, le contact, les devis liés et les activités.
 - **Sécurité** : `GET /admin/print/comptes/{account}` et `GET /admin/print/affaires/{opportunity}` sont protégés par `auth`, l'utilisateur actif et `Gate::authorize('view', …)`.
 - **Code** : `App\Services\CrmCsvExporter`, `App\Http\Controllers\PrintController`, vues `resources/views/print/*`.
+
+### 13. Sauvegarde et restauration
+
+La base est sauvegardée chaque nuit dans `storage/app/backups` avec
+`spatie/laravel-backup` ; les fichiers (photos, plans, pièces jointes, PDF)
+sont archivés séparément par une commande `tar` à planifier dans le cron
+système (voir la procédure).
+
+- **Commandes** : `backup:run --only-db`, `backup:list`, `backup:monitor`, `backup:clean`.
+- **Planification** : `backup:clean` à 01:15, `backup:run --only-db` à 01:30, `backup:monitor` à 02:00 ; `BACKUP_ENABLED=false` suspend les trois.
+- **Chiffrement** : AES-256 du ZIP via `BACKUP_ARCHIVE_PASSWORD`, obligatoire en production.
+- **Rétention** : 7 jours intégraux, 30 jours en quotidien, 12 semaines, 6 mois, 2 ans, plafond 2 Go.
+- **Configuration** : `config/backup.php`, disque `backups` de `config/filesystems.php`.
+- **Procédure complète** (sauvegarde des fichiers, restauration, exercice trimestriel, dépannage) : `docs/sauvegarde-restauration.md`.
 
 ---
 

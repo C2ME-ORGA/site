@@ -38,6 +38,18 @@ php artisan db:seed --class=DemoDataSeeder   # idempotent, ne supprime rien
 - Il crée comptes, contacts, affaires, activités (dont photos privées), devis, relances, e-mails, demandes du site, demandes de devis avec plans et événements de calendrier.
 - Comptes de test : `demo.commercial@c2me.fr` et `demo.be@c2me.fr`, mot de passe `password` (jamais réinitialisé si le compte existe déjà).
 
+Sauvegarde de la base (voir `docs/sauvegarde-restauration.md`) :
+
+```bash
+php artisan backup:run --only-db   # archive chiffrée dans storage/app/backups
+php artisan backup:list
+php artisan backup:monitor
+php artisan backup:clean
+```
+
+- Les archives ne sont jamais commitées ni servies publiquement ; en production, `BACKUP_ARCHIVE_PASSWORD` est obligatoire.
+- En local, MySQL tourne dans Docker : `mysqldump` n'est pas sur l'hôte. Utiliser `docker exec` ou `DB_DUMP_BINARY_PATH` pour tester une sauvegarde.
+
 ## Tests
 
 ### Tests PHP
@@ -141,6 +153,7 @@ Toute évolution de structure impose d'incrémenter `DB_VERSION` dans `field-mod
 - Toute modification du cache ou des assets du service worker impose d'incrémenter `VERSION` dans `public/sw.js` et de vérifier la version affichée dans l'onglet Données.
 - Les réponses API du mode terrain ne doivent jamais être mises en cache par le service worker.
 - Les migrations doivent rester compatibles avec SQLite et MySQL.
+- Les archives de sauvegarde ne sont jamais commitées ni placées dans `public/` ; en production elles sont chiffrées (`BACKUP_ARCHIVE_PASSWORD`) et copiées hors site.
 
 ## Avant de livrer
 

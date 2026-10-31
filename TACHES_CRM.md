@@ -164,6 +164,18 @@
 - [x] Chemins de stockage pseudonymes (HMAC de l'identifiant avec `APP_KEY`) pour éviter l'énumération des utilisateurs via les URLs de fichiers.
 - [x] Tests du profil, du préremplissage (nouveau message, réponse, absence de signature), des restrictions d'upload, de la sanitisation et de l'absolutisation des URLs ; Pint, PHPStan et suite complète au vert.
 
+### 15. Sauvegarde et restauration
+
+- [x] `spatie/laravel-backup` configuré pour ne sauvegarder que la base MySQL (`config/backup.php`), avec `useSingleTransaction` pour un dump cohérent sans verrouiller les tables InnoDB.
+- [x] Archives ZIP horodatées `c2me-AAAA-MM-JJ-HH-MM-SS.zip` dans `storage/app/backups` (disque `backups`, hors dossier public et ignoré par Git).
+- [x] Chiffrement AES-256 des archives dès que `BACKUP_ARCHIVE_PASSWORD` est défini ; sinon archive non chiffrée (local uniquement).
+- [x] Vérification de l'archive après création (`verify_backup`) et dump `db-dumps/mysql-{base}.sql`.
+- [x] Planification : `backup:clean` à 01:15, `backup:run --only-db` à 01:30, `backup:monitor` à 02:00, suspendues par `BACKUP_ENABLED=false`.
+- [x] Rétention 7 jours / 30 jours / 12 semaines / 6 mois / 2 ans, plafond 2 Go ; alertes e-mail limitées aux échecs et aux sauvegardes trop anciennes (`BACKUP_NOTIFICATION_EMAIL`).
+- [x] Sauvegarde des fichiers (`storage/app/private`, `storage/app/public`) par `tar` + `gzip` documentée, avec copie hors site (`rclone`, `scp`) et contrôle `sha256`.
+- [x] Runbook complet dans `docs/sauvegarde-restauration.md` : prérequis, configuration, commandes, restauration de la base et des fichiers, liste de vérification, exercice trimestriel, dépannage (dont MySQL dans Docker en local) et consignes RGPD.
+- [x] Tests : périmètre base seule, disque privé, planification `--only-db`, chiffrement conditionnel.
+
 ## Proposition de développement supplémentaire
 
 - [x] **Amélioration du mode terrain** : édition hors ligne, création d'activités, actions rapides, conflits de synchronisation, photos et tournée — détail en section 7.
@@ -176,7 +188,8 @@
 - [x] Gestion dédiée des tags (création/renommage/fusion) avec couleurs, badges, filtres par carnet et outils de nettoyage des doublons.
 - [x] Journal d'audit des modifications sensibles (statuts, suppressions, envois) — implémenté (voir section 13).
 - [x] Signatures e-mail configurables par utilisateur — implémenté (voir section 14).
-- [ ] Sauvegarde/restauration documentée de la base et des fichiers.
+- [x] Sauvegarde/restauration documentée de la base et des fichiers — `spatie/laravel-backup`, archives chiffrées, runbook `docs/sauvegarde-restauration.md` (voir section 15).
 - [ ] Accessibilité et revue RGPD finale avant mise en production.
 - [x] Ajouter support Calendrier avec synchronisation/export pour Outlook, Google Calendar, etc. — flux WebCal privé par utilisateur, export ICS, activités et relances, événements personnels partageables (voir `plan_calendrier.md`).
 - [ ] Prise en charge des Graphiques visuelle avec Apache Echart (https://filamentphp.com/plugins/elemind-echarts)
+- [ ] Utiliser https://filamentphp.com/plugins/pedro-monteiro-page-header pour mettre en forme les vues des différents affichages.

@@ -36,3 +36,7 @@ Toutes les nuits, après les purges des demandes du site :
 - La suppression d'un compte reste manuelle (soft delete) afin de
   préserver l'historique ; l'anonymisation automatique couvre les
   prospects sans activité commerciale.
+- Les sauvegardes de la base suivent la même logique : rétention limitée
+  (7 jours intégraux, puis 30 jours, 12 semaines, 6 mois, 2 ans) et
+  suppression des archives concernées lors d'une demande d'effacement.
+  Voir `docs/sauvegarde-restauration.md`.
