@@ -83,3 +83,10 @@ test('le dernier administrateur actif ne peut pas être supprimé par un autre',
     // Plus qu'un seul actif : la suppression est bloquée.
     expect(Gate::forUser($admin)->allows('delete', $other))->toBeFalse();
 });
+
+test('la suppression groupée des utilisateurs est interdite', function (): void {
+    $admin = roleAdmin();
+
+    expect(Gate::forUser($admin)->allows('deleteAny', User::class))
+        ->toBeFalse();
+});

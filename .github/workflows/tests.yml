@@ -5,6 +5,9 @@ on:
     branches:
       - master
       - production
+      - 'fix/**'
+      - 'feat/**'
+
   pull_request:
       branches:
           - master
@@ -15,7 +18,7 @@ permissions:
 
 jobs:
   ci:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
 
     steps:
       - name: Checkout code
@@ -35,14 +38,28 @@ jobs:
         with:
           node-version-file: '.nvmrc'
 
-      - name: Setup Application
-        run: composer setup
+      - name: Install PHP dependencies
+        run: composer install --no-interaction --prefer-dist --optimize-autoloader
+
+      - name: Prepare environment
+        run: |
+              cp .env.example .env
+              php artisan key:generate --force
+
+      - name: Prepare database
+        run: php artisan migrate --force
+
+      - name: Install Node dependencies
+        run: npm ci
+
+      - name: Build frontend
+        run: npm run build
 
       - name: Run CI Checks
         run: composer ci:check
 
   e2e:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
 
     steps:
       - name: Checkout code
@@ -62,8 +79,22 @@ jobs:
         with:
             node-version-file: '.nvmrc'
 
-      - name: Setup Application
-        run: composer setup
+      - name: Install PHP dependencies
+        run: composer install --no-interaction --prefer-dist --optimize-autoloader
+
+      - name: Prepare environment
+        run: |
+            cp .env.example .env
+            php artisan key:generate --force
+
+      - name: Prepare database
+        run: php artisan migrate --force
+
+      - name: Install Node dependencies
+        run: npm ci
+
+      - name: Build frontend
+        run: npm run build
 
       - name: Install Playwright browser
         run: npx playwright install --with-deps chromium
