@@ -2,11 +2,14 @@
 
 namespace Tests\Feature;
 
+use App\Enums\CrmActivityType;
 use App\Enums\CrmBook;
 use App\Enums\OpportunityStage;
 use App\Enums\QuoteDocumentStatus;
 use App\Enums\UserRole;
 use App\Models\CrmAccount;
+use App\Models\CrmActivity;
+use App\Models\CrmContact;
 use App\Models\CrmOpportunity;
 use App\Models\Quote;
 use App\Models\User;
@@ -281,4 +284,97 @@ test('la période du tableau de bord est construite depuis les filtres', functio
 
     expect($fallback->start->toDateString())->toBe('2026-01-01')
         ->and($fallback->end->toDateString())->toBe('2026-12-31');
+});
+
+test('le CA par mois couvre douze mois, trous compris', function (): void {
+    $admin = dashboardAdmin();
+    $account = dashboardAccount($admin);
+
+    dashboardQuote($account, QuoteDocumentStatus::Accepted, '2026-10-01', '2026-10-02', '2026-10-10', 12000);
+    dashboardQuote($account, QuoteDocumentStatus::Accepted, '2026-08-01', '2026-08-02', '2026-08-10', 8000);
+    dashboardQuote($account, QuoteDocumentStatus::Sent, '2026-09-01', '2026-09-02', null, 5000);
+    dashboardOpportunity($account, OpportunityStage::Won, 25000, 100, '2026-07-15');
+
+    $data = app(DashboardMetricsService::class)->revenueByMonth($admin);
+
+    expect($data['labels'])->toHaveCount(12)
+        ->and($data['quotes'][0])->toBe(0.0)
+        ->and($data['quotes'][8])->toBe(0.0)
+        ->and($data['quotes'][9])->toBe(8000.0)
+        ->and($data['quotes'][10])->toBe(0.0)
+        ->and($data['quotes'][11])->toBe(12000.0)
+        ->and($data['opportunities'][8])->toBe(25000.0);
+});
+
+test('les activités par type sont filtrées par période et par utilisateur', function (): void {
+    $admin = dashboardAdmin();
+    $commercial = dashboardCommercial();
+    $other = dashboardCommercial();
+
+    $contact = CrmContact::factory()->create();
+
+    CrmActivity::factory()->create([
+        'crm_account_id' => $contact->crm_account_id,
+        'crm_contact_id' => $contact->id,
+        'user_id' => $commercial->id,
+        'type' => CrmActivityType::Call,
+        'occurred_at' => '2026-10-05 09:00:00',
+    ]);
+
+    CrmActivity::factory()->create([
+        'crm_account_id' => $contact->crm_account_id,
+        'crm_contact_id' => $contact->id,
+        'user_id' => $commercial->id,
+        'type' => CrmActivityType::Email,
+        'occurred_at' => '2026-10-06 09:00:00',
+    ]);
+
+    CrmActivity::factory()->create([
+        'crm_account_id' => $contact->crm_account_id,
+        'crm_contact_id' => $contact->id,
+        'user_id' => $commercial->id,
+        'type' => CrmActivityType::Call,
+        'occurred_at' => '2025-10-05 09:00:00',
+    ]);
+
+    CrmActivity::factory()->create([
+        'crm_account_id' => $contact->crm_account_id,
+        'crm_contact_id' => $contact->id,
+        'user_id' => $other->id,
+        'type' => CrmActivityType::Call,
+        'occurred_at' => '2026-10-07 09:00:00',
+    ]);
+
+    $data = app(DashboardMetricsService::class)->activitiesByType($commercial, DashboardPeriod::year(2026));
+
+    expect($data['labels'])->toBe(['Appel', 'E-mail'])
+        ->and($data['values'])->toBe([1, 1]);
+
+    $adminData = app(DashboardMetricsService::class)->activitiesByType($admin, DashboardPeriod::year(2026));
+
+    expect($adminData['labels'])->toBe(['Appel', 'E-mail'])
+        ->and($adminData['values'])->toBe([2, 1]);
+});
+
+test('le top des comptes agrège le pipeline ouvert et l’ordonne', function (): void {
+    $admin = dashboardAdmin();
+
+    $big = dashboardAccount($admin);
+    $big->update(['name' => 'Grand Compte']);
+
+    $medium = dashboardAccount($admin);
+    $medium->update(['name' => 'Compte Moyen']);
+
+    $closed = dashboardAccount($admin);
+    $closed->update(['name' => 'Compte Clos']);
+
+    dashboardOpportunity($big, OpportunityStage::Negotiation, 60000, 75);
+    dashboardOpportunity($big, OpportunityStage::New, 40000, 10);
+    dashboardOpportunity($medium, OpportunityStage::New, 30000, 10);
+    dashboardOpportunity($closed, OpportunityStage::Won, 999999, 100, '2026-05-01');
+
+    $data = app(DashboardMetricsService::class)->topAccountsByPipeline($admin, 2);
+
+    expect($data['labels'])->toBe(['Grand Compte', 'Compte Moyen'])
+        ->and($data['values'])->toBe([100000.0, 30000.0]);
 });

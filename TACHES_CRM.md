@@ -197,6 +197,15 @@
 - [x] Tests du service d'export/Anonymisation, du contenu du journal et de la restriction aux administrateurs (`tests/Feature/ContactPrivacyTest.php`).
 - [ ] Points à finaliser en production : contrat SMTP, vérification `logo.dev`, purge du journal d'audit (12 mois), 2FA administrateurs.
 
+### 18. Graphiques Apache ECharts
+
+- [x] Plugin `elemind/filament-echarts` (`^1.1`) installé et enregistré dans `AdminPanelProvider`.
+- [x] Widgets ECharts : CA sur 12 derniers mois (barres + courbe), pipeline par carnet, top 5 comptes par pipeline, taux de conversion (jauge) et activités par type (anneau).
+- [x] Filtre de période du tableau de bord respecté par la jauge et l'anneau (`InteractsWithPageFilters`) ; polling désactivé.
+- [x] Montants formatés en français via `extraJsOptions()` (`Intl.NumberFormat`), états vides explicites, palettes de la charte (teal/lime).
+- [x] Service complété : `revenueByMonth()`, `activitiesByType()`, `topAccountsByPipeline()`.
+- [x] Tests de calcul (`DashboardMetricsTest`) et de rendu des widgets (`DashboardPageTest`) ; Pint, PHPStan et suite complète au vert.
+
 ## Proposition de développement supplémentaire
 
 - [x] **Amélioration du mode terrain** : édition hors ligne, création d'activités, actions rapides, conflits de synchronisation, photos et tournée — détail en section 7.
@@ -212,5 +221,5 @@
 - [x] Sauvegarde/restauration documentée de la base et des fichiers — `spatie/laravel-backup`, archives chiffrées, runbook `docs/sauvegarde-restauration.md` (voir section 15).
 - [x] Accessibilité et revue RGPD finale avant mise en production — lien d’évitement, formulaires ARIA, contrastes AA, registre des traitements, export et anonymisation RGPD d’un contact (sections 16 et 17).
 - [x] Ajouter support Calendrier avec synchronisation/export pour Outlook, Google Calendar, etc. — flux WebCal privé par utilisateur, export ICS, activités et relances, événements personnels partageables (voir `plan_calendrier.md`).
-- [ ] Prise en charge des Graphiques visuelle avec Apache Echart (https://filamentphp.com/plugins/elemind-echarts)
+- [x] Prise en charge des Graphiques visuelle avec Apache Echart (https://filamentphp.com/plugins/elemind-echarts) — cinq graphiques sur le tableau de bord (voir section 18).
 - [ ] Utiliser https://filamentphp.com/plugins/pedro-monteiro-page-header pour mettre en forme les vues des différents affichages.

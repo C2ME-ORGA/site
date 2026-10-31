@@ -2,13 +2,16 @@
 
 namespace App\Services;
 
+use App\Enums\CrmActivityType;
 use App\Enums\CrmBook;
 use App\Enums\OpportunityStage;
 use App\Enums\QuoteDocumentStatus;
+use App\Models\CrmActivity;
 use App\Models\CrmOpportunity;
 use App\Models\Quote;
 use App\Models\User;
 use App\Support\DashboardPeriod;
+use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 
@@ -91,6 +94,134 @@ final class DashboardMetricsService
         }
 
         return $this->wonOpportunityRevenue($user, $period) / $count;
+    }
+
+    /**
+     * Chiffre d'affaires signé (devis acceptés) et gagné (affaires remportées)
+     * sur les derniers mois, mois par mois.
+     *
+     * @return array{labels: list<string>, quotes: list<float>, opportunities: list<float>}
+     */
+    public function revenueByMonth(User $user, int $months = 12): array
+    {
+        $months = max(1, min(24, $months));
+        $end = CarbonImmutable::now(config('app.timezone'))->endOfMonth();
+        $start = $end->startOfMonth()->subMonths($months - 1);
+
+        $quotes = $this->quotes($user)
+            ->where('status', QuoteDocumentStatus::Accepted->value)
+            ->whereBetween('accepted_at', [$start, $end])
+            ->get(['accepted_at', 'amount_ht']);
+
+        $opportunities = $this->opportunities($user)
+            ->where('stage', OpportunityStage::Won->value)
+            ->whereBetween('won_at', [$start, $end])
+            ->get(['won_at', 'amount_estimated']);
+
+        $quoteTotals = [];
+        $opportunityTotals = [];
+
+        foreach ($quotes as $quote) {
+            $key = $quote->accepted_at?->format('Y-m');
+
+            if ($key !== null) {
+                $quoteTotals[$key] = ($quoteTotals[$key] ?? 0.0) + (float) $quote->amount_ht;
+            }
+        }
+
+        foreach ($opportunities as $opportunity) {
+            $key = $opportunity->won_at?->format('Y-m');
+
+            if ($key !== null) {
+                $opportunityTotals[$key] = ($opportunityTotals[$key] ?? 0.0) + (float) $opportunity->amount_estimated;
+            }
+        }
+
+        $labels = [];
+        $quoteValues = [];
+        $opportunityValues = [];
+
+        for ($index = 0; $index < $months; $index++) {
+            $month = $start->addMonths($index);
+            $key = $month->format('Y-m');
+
+            $labels[] = ucfirst($month->translatedFormat('M Y'));
+            $quoteValues[] = round($quoteTotals[$key] ?? 0.0);
+            $opportunityValues[] = round($opportunityTotals[$key] ?? 0.0);
+        }
+
+        return [
+            'labels' => $labels,
+            'quotes' => $quoteValues,
+            'opportunities' => $opportunityValues,
+        ];
+    }
+
+    /**
+     * Nombre d'activités par type sur la période sélectionnée.
+     *
+     * @return array{labels: list<string>, values: list<int>}
+     */
+    public function activitiesByType(User $user, DashboardPeriod $period): array
+    {
+        $counts = CrmActivity::query()
+            ->forUser($user)
+            ->whereBetween('occurred_at', [$period->start, $period->end])
+            ->selectRaw('type, COUNT(*) as total')
+            ->groupBy('type')
+            ->pluck('total', 'type');
+
+        $labels = [];
+        $values = [];
+
+        foreach (CrmActivityType::cases() as $type) {
+            $count = (int) ($counts[$type->value] ?? 0);
+
+            if ($count === 0) {
+                continue;
+            }
+
+            $labels[] = $type->getLabel();
+            $values[] = $count;
+        }
+
+        return ['labels' => $labels, 'values' => $values];
+    }
+
+    /**
+     * Comptes portant le plus gros pipeline ouvert.
+     *
+     * @return array{labels: list<string>, values: list<float>}
+     */
+    public function topAccountsByPipeline(User $user, int $limit = 5): array
+    {
+        $openStages = array_map(
+            fn (OpportunityStage $stage): string => $stage->value,
+            OpportunityStage::openCases(),
+        );
+
+        $rows = CrmOpportunity::query()
+            ->from('crm_opportunities')
+            ->join('crm_accounts', 'crm_accounts.id', '=', 'crm_opportunities.crm_account_id')
+            ->whereNull('crm_accounts.deleted_at')
+            ->whereIn('crm_opportunities.stage', $openStages)
+            ->when(! $user->isAdmin(), fn (Builder $query): Builder => $query->where('crm_opportunities.owner_id', $user->id))
+            ->selectRaw('crm_accounts.name as account_name')
+            ->selectRaw('COALESCE(SUM(crm_opportunities.amount_estimated), 0) as pipeline_raw')
+            ->groupBy('crm_accounts.id', 'crm_accounts.name')
+            ->orderByDesc('pipeline_raw')
+            ->limit($limit)
+            ->get();
+
+        $labels = [];
+        $values = [];
+
+        foreach ($rows as $row) {
+            $labels[] = (string) data_get($row, 'account_name', '—');
+            $values[] = round((float) data_get($row, 'pipeline_raw', 0));
+        }
+
+        return ['labels' => $labels, 'values' => $values];
     }
 
     /**
