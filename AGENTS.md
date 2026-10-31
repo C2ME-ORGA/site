@@ -144,6 +144,15 @@ Toute évolution de structure impose d'incrémenter `DB_VERSION` dans `field-mod
 - Tests : `tests/Feature/CalendarFeedTest.php` et `tests/Feature/CalendarEventTest.php`.
 - Le flux ne doit jamais être mis en cache par le service worker ni par un proxy partagé.
 
+## Accessibilité et RGPD
+
+- Le site public doit conserver le lien d'évitement, `<main id="main" tabindex="-1">` et l'indicateur de focus global (`:focus-visible` dans `resources/css/app.css`).
+- Tout formulaire public utilise `x-ui.form-errors` (résumé `role="alert"`) et `x-ui.privacy-notice` (mention RGPD + lien vers `/confidentialite`), avec `aria-required`, `aria-invalid` et `aria-describedby` sur les champs en erreur.
+- Contrastes : ne pas descendre sous `text-ink-700/70` pour du texte, utiliser `brand-600` (assombri) pour les libellés et `brand-700` pour les liens sur fond clair. Le texte blanc ne se pose que sur `bg-brand-600` ou plus foncé.
+- Les actions « Exporter les données (RGPD) » et « Anonymiser » d'un contact sont réservées aux administrateurs et journalisées ; ne jamais écrire de donnée personnelle effacée dans le journal d'audit.
+- Documentation : `docs/accessibilite.md` (audit et limites connues) et `docs/rgpd-registre.md` (registre des traitements et procédure des droits).
+- Tests : `tests/Feature/AccessibilityTest.php` et `tests/Feature/ContactPrivacyTest.php`.
+
 ## Conventions
 
 - Ne pas committer, pousser ou ouvrir de pull request sans demande explicite.

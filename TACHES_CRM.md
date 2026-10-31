@@ -176,6 +176,27 @@
 - [x] Runbook complet dans `docs/sauvegarde-restauration.md` : prérequis, configuration, commandes, restauration de la base et des fichiers, liste de vérification, exercice trimestriel, dépannage (dont MySQL dans Docker en local) et consignes RGPD.
 - [x] Tests : périmètre base seule, disque privé, planification `--only-db`, chiffrement conditionnel.
 
+### 16. Accessibilité du site public
+
+- [x] Lien d'évitement « Aller au contenu principal », `<main id="main" tabindex="-1">` et indicateur de focus commun (`:focus-visible`).
+- [x] Menu services et menu mobile : `aria-expanded`, `aria-haspopup`, `aria-controls`, nom accessible dynamique, fermeture par `Échap` et au clic extérieur.
+- [x] Formulaires de contact et de devis : `aria-required`, `aria-invalid`, `aria-describedby`, résumé d'erreurs `role="alert"` avec liens vers les champs, astérisque décoratif et mention « (obligatoire) » réservée aux lecteurs d'écran.
+- [x] Cartes de choix en `radiogroup` avec anneau de focus (`focus-within`), zone de dépôt de plans focusable.
+- [x] Galerie : filtres en boutons `aria-pressed` (au lieu de `role="tab"` sans panneau), visionneuse avec focus rendu au déclencheur et fermeture par `Échap`.
+- [x] Contrastes : texte atténué à 5,2:1, `brand-600` assombri à #0b7c7c (5:1), boutons pleins en `brand-600`, liens RGPD en `brand-700` (6,1:1).
+- [x] Tableaux légaux avec `scope="col"`, titres de cartes de la page contact en `<h2>`, liens externes signalés « (nouvel onglet) ».
+- [x] Messages de validation traduits en français (`lang/fr/validation.php`, `auth.php`, `passwords.php`) : les erreurs n'affichent plus de clés brutes comme « validation.required ».
+- [x] Audit documenté dans `docs/accessibilite.md` ; tests de non-régression dans `tests/Feature/AccessibilityTest.php`.
+
+### 17. Revue RGPD finale
+
+- [x] Registre des traitements, sous-traitants, cookies, procédure des droits et violation de données dans `docs/rgpd-registre.md`.
+- [x] Mention RGPD sous les trois formulaires publics, avec lien vers la politique de confidentialité (`x-ui.privacy-notice`).
+- [x] Export RGPD d'un contact depuis la fiche compte (JSON : contact, compte, affaires, devis, activités, e-mails), réservé aux administrateurs et journalisé (`exported`).
+- [x] Anonymisation d'un contact (effacement du nom, des coordonnées et des notes, historique conservé), journalisée sans conserver les valeurs effacées (`anonymized`).
+- [x] Tests du service d'export/Anonymisation, du contenu du journal et de la restriction aux administrateurs (`tests/Feature/ContactPrivacyTest.php`).
+- [ ] Points à finaliser en production : contrat SMTP, vérification `logo.dev`, purge du journal d'audit (12 mois), 2FA administrateurs.
+
 ## Proposition de développement supplémentaire
 
 - [x] **Amélioration du mode terrain** : édition hors ligne, création d'activités, actions rapides, conflits de synchronisation, photos et tournée — détail en section 7.
@@ -189,7 +210,7 @@
 - [x] Journal d'audit des modifications sensibles (statuts, suppressions, envois) — implémenté (voir section 13).
 - [x] Signatures e-mail configurables par utilisateur — implémenté (voir section 14).
 - [x] Sauvegarde/restauration documentée de la base et des fichiers — `spatie/laravel-backup`, archives chiffrées, runbook `docs/sauvegarde-restauration.md` (voir section 15).
-- [ ] Accessibilité et revue RGPD finale avant mise en production.
+- [x] Accessibilité et revue RGPD finale avant mise en production — lien d’évitement, formulaires ARIA, contrastes AA, registre des traitements, export et anonymisation RGPD d’un contact (sections 16 et 17).
 - [x] Ajouter support Calendrier avec synchronisation/export pour Outlook, Google Calendar, etc. — flux WebCal privé par utilisateur, export ICS, activités et relances, événements personnels partageables (voir `plan_calendrier.md`).
 - [ ] Prise en charge des Graphiques visuelle avec Apache Echart (https://filamentphp.com/plugins/elemind-echarts)
 - [ ] Utiliser https://filamentphp.com/plugins/pedro-monteiro-page-header pour mettre en forme les vues des différents affichages.

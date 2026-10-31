@@ -17,6 +17,10 @@ enum AuditEvent: string implements HasColor, HasLabel
 
     case Sent = 'sent';
 
+    case Anonymized = 'anonymized';
+
+    case Exported = 'exported';
+
     public function getLabel(): string
     {
         return match ($this) {
@@ -25,6 +29,8 @@ enum AuditEvent: string implements HasColor, HasLabel
             self::ForceDeleted => 'Suppression définitive',
             self::Restored => 'Restauration',
             self::Sent => 'Envoi',
+            self::Anonymized => 'Anonymisation',
+            self::Exported => 'Export RGPD',
         };
     }
 
@@ -36,6 +42,8 @@ enum AuditEvent: string implements HasColor, HasLabel
             self::ForceDeleted => 'danger',
             self::Restored => 'success',
             self::Sent => 'info',
+            self::Anonymized => 'danger',
+            self::Exported => 'info',
         };
     }
 
@@ -47,6 +55,8 @@ enum AuditEvent: string implements HasColor, HasLabel
             self::ForceDeleted => 'heroicon-o-fire',
             self::Restored => 'heroicon-o-arrow-uturn-left',
             self::Sent => 'heroicon-o-paper-airplane',
+            self::Anonymized => 'heroicon-o-user-minus',
+            self::Exported => 'heroicon-o-arrow-down-tray',
         };
     }
 

@@ -155,8 +155,8 @@ new class extends Component
             class="rounded-2xl border border-brand-200 bg-brand-50 p-8"
             role="status"
         >
-            <span class="inline-grid h-12 w-12 place-items-center rounded-full bg-brand-500 text-white">
-                <svg class="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <span class="inline-grid h-12 w-12 place-items-center rounded-full bg-brand-600 text-white">
+                <svg class="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M20 6 9 17l-5-5" />
                 </svg>
             </span>
@@ -176,32 +176,42 @@ new class extends Component
                 class="mt-6 inline-flex items-center gap-2 text-sm font-bold text-brand-600 transition hover:text-brand-700"
             >
                 Envoyer une autre demande
-                <svg class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                <svg class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
                     <path fill-rule="evenodd" d="M3 10a.75.75 0 0 1 .75-.75h10.19L10.7 6.03a.75.75 0 1 1 1.06-1.06l4.5 4.5a.75.75 0 0 1 0 1.06l-4.5 4.5a.75.75 0 1 1-1.06-1.06l3.24-3.22H3.75A.75.75 0 0 1 3 10Z" clip-rule="evenodd" />
                 </svg>
             </button>
         </div>
     @else
         <form wire:submit="submit" class="space-y-5">
+            <x-ui.form-errors :fields="[
+                'name' => 'contact-name',
+                'email' => 'contact-email',
+                'requestType' => 'contact-type',
+                'message' => 'contact-message',
+            ]" />
+
             <div class="grid gap-5 sm:grid-cols-2">
                 <div>
                     <label for="contact-name" class="mb-2 block text-sm font-bold text-ink-900">
-                        Nom <span class="text-brand-600">*</span>
+                        Nom <span class="text-brand-600" aria-hidden="true">*</span>
+                        <span class="sr-only">(obligatoire)</span>
                     </label>
                     <input
                         id="contact-name"
                         type="text"
                         wire:model="name"
                         autocomplete="name"
+                        aria-required="true"
+                        @if ($errors->has('name')) aria-invalid="true" aria-describedby="contact-name-error" @endif
                         @class([
-                            'w-full rounded-lg border border-mist-300 bg-white px-4 py-3 text-sm text-ink-900 transition placeholder:text-ink-700/40 focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-500/20',
+                            'w-full rounded-lg border border-mist-300 bg-white px-4 py-3 text-sm text-ink-900 transition placeholder:text-ink-700/70 focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-500/20',
                             'border-red-400' => $errors->has('name'),
                         ])
                         placeholder="Jean Dupont"
                     >
                     @error('name')
-                        <p class="mt-2 text-xs font-semibold text-red-600">{{ $message }}</p>
-    @enderror
+                        <p id="contact-name-error" class="mt-2 text-xs font-semibold text-red-600">{{ $message }}</p>
+                    @enderror
                 </div>
 
                 <div>
@@ -213,7 +223,7 @@ new class extends Component
                         type="text"
                         wire:model="company"
                         autocomplete="organization"
-                        class="w-full rounded-lg border border-mist-300 bg-white px-4 py-3 text-sm text-ink-900 transition placeholder:text-ink-700/40 focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-500/20"
+                        class="w-full rounded-lg border border-mist-300 bg-white px-4 py-3 text-sm text-ink-900 transition placeholder:text-ink-700/70 focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-500/20"
                         placeholder="Nom de votre entreprise"
                     >
                 </div>
@@ -222,21 +232,24 @@ new class extends Component
             <div class="grid gap-5 sm:grid-cols-2">
                 <div>
                     <label for="contact-email" class="mb-2 block text-sm font-bold text-ink-900">
-                        E-mail <span class="text-brand-600">*</span>
+                        E-mail <span class="text-brand-600" aria-hidden="true">*</span>
+                        <span class="sr-only">(obligatoire)</span>
                     </label>
                     <input
                         id="contact-email"
                         type="email"
                         wire:model="email"
                         autocomplete="email"
+                        aria-required="true"
+                        @if ($errors->has('email')) aria-invalid="true" aria-describedby="contact-email-error" @endif
                         @class([
-                            'w-full rounded-lg border border-mist-300 bg-white px-4 py-3 text-sm text-ink-900 transition placeholder:text-ink-700/40 focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-500/20',
+                            'w-full rounded-lg border border-mist-300 bg-white px-4 py-3 text-sm text-ink-900 transition placeholder:text-ink-700/70 focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-500/20',
                             'border-red-400' => $errors->has('email'),
                         ])
                         placeholder="vous@exemple.fr"
                     >
                     @error('email')
-                        <p class="mt-2 text-xs font-semibold text-red-600">{{ $message }}</p>
+                        <p id="contact-email-error" class="mt-2 text-xs font-semibold text-red-600">{{ $message }}</p>
                     @enderror
                 </div>
 
@@ -249,7 +262,7 @@ new class extends Component
                         type="tel"
                         wire:model="phone"
                         autocomplete="tel"
-                        class="w-full rounded-lg border border-mist-300 bg-white px-4 py-3 text-sm text-ink-900 transition placeholder:text-ink-700/40 focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-500/20"
+                        class="w-full rounded-lg border border-mist-300 bg-white px-4 py-3 text-sm text-ink-900 transition placeholder:text-ink-700/70 focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-500/20"
                         placeholder="06 00 00 00 00"
                     >
                 </div>
@@ -257,11 +270,14 @@ new class extends Component
 
             <div>
                 <label for="contact-type" class="mb-2 block text-sm font-bold text-ink-900">
-                    Type de demande <span class="text-brand-600">*</span>
+                    Type de demande <span class="text-brand-600" aria-hidden="true">*</span>
+                    <span class="sr-only">(obligatoire)</span>
                 </label>
                 <select
                     id="contact-type"
                     wire:model="requestType"
+                    aria-required="true"
+                    @if ($errors->has('requestType')) aria-invalid="true" aria-describedby="contact-type-error" @endif
                     @class([
                         'w-full appearance-none rounded-lg border border-mist-300 bg-white px-4 py-3 text-sm text-ink-900 transition focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-500/20',
                         'border-red-400' => $errors->has('requestType'),
@@ -273,26 +289,29 @@ new class extends Component
                     @endforeach
                 </select>
                 @error('requestType')
-                    <p class="mt-2 text-xs font-semibold text-red-600">{{ $message }}</p>
+                    <p id="contact-type-error" class="mt-2 text-xs font-semibold text-red-600">{{ $message }}</p>
                 @enderror
             </div>
 
             <div>
                 <label for="contact-message" class="mb-2 block text-sm font-bold text-ink-900">
-                    Message <span class="text-brand-600">*</span>
+                    Message <span class="text-brand-600" aria-hidden="true">*</span>
+                    <span class="sr-only">(obligatoire)</span>
                 </label>
                 <textarea
                     id="contact-message"
                     wire:model="message"
                     rows="6"
+                    aria-required="true"
+                    @if ($errors->has('message')) aria-invalid="true" aria-describedby="contact-message-error" @endif
                     @class([
-                        'w-full resize-y rounded-lg border border-mist-300 bg-white px-4 py-3 text-sm text-ink-900 transition placeholder:text-ink-700/40 focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-500/20',
+                        'w-full resize-y rounded-lg border border-mist-300 bg-white px-4 py-3 text-sm text-ink-900 transition placeholder:text-ink-700/70 focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-500/20',
                         'border-red-400' => $errors->has('message'),
                     ])
                     placeholder="Décrivez votre projet, les quantités, les délais souhaités…"
                 ></textarea>
                 @error('message')
-                    <p class="mt-2 text-xs font-semibold text-red-600">{{ $message }}</p>
+                    <p id="contact-message-error" class="mt-2 text-xs font-semibold text-red-600">{{ $message }}</p>
                 @enderror
             </div>
 
@@ -308,19 +327,24 @@ new class extends Component
                 >
             </div>
 
-            <div class="flex items-center justify-between gap-6 pt-2">
-                <p class="text-xs leading-relaxed text-ink-700/60">
-                    Les champs marqués d'un <span class="text-brand-600">*</span> sont obligatoires.
+            <div class="space-y-4 pt-2">
+                <p class="text-xs leading-relaxed text-ink-700/70">
+                    Les champs marqués d’un <span class="text-brand-600" aria-hidden="true">*</span>
+                    <span class="sr-only">astérisque</span> sont obligatoires.
                 </p>
 
-                <button
-                    type="submit"
-                    wire:loading.attr="disabled"
-                    class="inline-flex items-center justify-center gap-2 rounded-lg bg-brand-500 px-6 py-3.5 text-base font-bold text-white transition hover:bg-brand-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-400 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
-                >
-                    <span wire:loading.remove wire:target="submit">Envoyer la demande</span>
-                    <span wire:loading wire:target="submit">Envoi en cours…</span>
-                </button>
+                <x-ui.privacy-notice />
+
+                <div class="flex justify-end">
+                    <button
+                        type="submit"
+                        wire:loading.attr="disabled"
+                        class="inline-flex items-center justify-center gap-2 rounded-lg bg-brand-600 px-6 py-3.5 text-base font-bold text-white transition hover:bg-brand-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                        <span wire:loading.remove wire:target="submit">Envoyer la demande</span>
+                        <span wire:loading wire:target="submit">Envoi en cours…</span>
+                    </button>
+                </div>
             </div>
         </form>
     @endif

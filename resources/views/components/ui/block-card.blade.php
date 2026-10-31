@@ -1,7 +1,7 @@
 @props(['block'])
 
 <article class="flex h-full flex-col overflow-hidden rounded-2xl border border-mist-200 bg-white">
-    <div class="flex items-start justify-between gap-4 bg-brand-500 p-6 text-white">
+    <div class="flex items-start justify-between gap-4 bg-brand-600 p-6 text-white">
         <div>
             <h3 class="font-display text-xl font-extrabold leading-tight sm:text-2xl">{{ $block['title'] }}</h3>
             @if (! empty($block['subtitle']))
