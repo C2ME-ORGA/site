@@ -188,6 +188,34 @@ test('la page calendrier permet de créer, modifier et supprimer un événement'
     expect(CalendarEvent::query()->count())->toBe(0);
 });
 
+test('les récurrences terminées ne sont pas chargées par le calendrier', function (): void {
+    $owner = calendarEventUser();
+
+    CalendarEvent::query()->create([
+        'user_id' => $owner->id,
+        'title' => 'Ancienne récurrence terminée',
+        'starts_at' => now()->subMonths(3)->setTime(9, 0),
+        'ends_at' => now()->subMonths(3)->setTime(9, 30),
+        'recurrence' => 'weekly',
+        'recurrence_until' => now()->subMonths(2)->toDateString(),
+    ]);
+
+    CalendarEvent::query()->create([
+        'user_id' => $owner->id,
+        'title' => 'Récurrence active',
+        'starts_at' => now()->setTime(9, 0),
+        'ends_at' => now()->setTime(9, 30),
+        'recurrence' => 'weekly',
+        'recurrence_until' => now()->addMonths(2)->toDateString(),
+    ]);
+
+    $this->actingAs($owner)
+        ->get('/admin/calendar?date='.now()->format('Y-m-d'))
+        ->assertOk()
+        ->assertSee('Récurrence active')
+        ->assertDontSee('Ancienne récurrence terminée');
+});
+
 test('les événements en journée entière utilisent des dates ICS', function (): void {
     $owner = calendarEventUser();
     $startDate = now()->addDays(3)->startOfDay();

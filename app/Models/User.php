@@ -16,6 +16,7 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Notifications\Notification;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
 /**
@@ -94,11 +95,24 @@ class User extends Authenticatable implements FilamentUser
      */
     public function ensureCalendarToken(): string
     {
-        if ($this->calendar_token === null || $this->calendar_token === '') {
-            $this->regenerateCalendarToken();
+        if ($this->calendar_token !== null && $this->calendar_token !== '') {
+            return $this->calendar_token;
         }
 
-        return (string) $this->calendar_token;
+        return DB::transaction(function (): string {
+            $user = self::query()
+                ->whereKey($this->getKey())
+                ->lockForUpdate()
+                ->firstOrFail();
+
+            if ($user->calendar_token === null || $user->calendar_token === '') {
+                $user->regenerateCalendarToken();
+            }
+
+            $this->setRawAttributes($user->getAttributes(), true);
+
+            return (string) $user->calendar_token;
+        });
     }
 
     public function regenerateCalendarToken(): string

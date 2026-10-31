@@ -285,10 +285,8 @@ class Calendar extends Page
     {
         $user = $this->currentUser();
         $event = CalendarEvent::query()
-            ->visibleTo($user)
+            ->where('user_id', $user->id)
             ->findOrFail($eventId);
-
-        abort_unless($event->isOwnedBy($user), 403);
 
         $validated = $this->validateEventData($data, $user);
 
@@ -305,10 +303,8 @@ class Calendar extends Page
     {
         $user = $this->currentUser();
         $event = CalendarEvent::query()
-            ->visibleTo($user)
+            ->where('user_id', $user->id)
             ->findOrFail($eventId);
-
-        abort_unless($event->isOwnedBy($user), 403);
 
         $event->delete();
 
@@ -321,11 +317,13 @@ class Calendar extends Page
     public function editCalendarEvent(int $eventId): void
     {
         $user = $this->currentUser();
-        $event = CalendarEvent::query()
-            ->visibleTo($user)
-            ->findOrFail($eventId);
-
-        abort_unless($event->isOwnedBy($user), 403);
+        abort_unless(
+            CalendarEvent::query()
+                ->where('user_id', $user->id)
+                ->whereKey($eventId)
+                ->exists(),
+            404,
+        );
 
         $this->mountAction('editCalendarEvent', ['event' => $eventId]);
     }
@@ -338,11 +336,9 @@ class Calendar extends Page
         $user = $this->currentUser();
 
         $event = CalendarEvent::query()
-            ->visibleTo($user)
+            ->where('user_id', $user->id)
             ->with('sharedUsers')
             ->findOrFail($eventId);
-
-        abort_unless($event->isOwnedBy($user), 403);
 
         return [
             'title' => $event->title,
@@ -662,9 +658,15 @@ class Calendar extends Page
                 ->where(fn (Builder $query) => $query
                     ->whereNull('recurrence')
                     ->where(fn (Builder $query) => $query
-                        ->whereNull('ends_at')
-                        ->orWhere('ends_at', '>=', $from->startOfDay())))
-                ->orWhereNotNull('recurrence'))
+                        ->where('ends_at', '>=', $from->startOfDay())
+                        ->orWhere(fn (Builder $query) => $query
+                            ->whereNull('ends_at')
+                            ->where('starts_at', '>=', $from->startOfDay()))))
+                ->orWhere(fn (Builder $query) => $query
+                    ->whereNotNull('recurrence')
+                    ->where(fn (Builder $query) => $query
+                        ->whereNull('recurrence_until')
+                        ->orWhere('recurrence_until', '>=', $from->toDateString()))))
             ->orderBy('starts_at')
             ->get();
 
