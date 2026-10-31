@@ -189,6 +189,8 @@ return [
 
         'feed_ttl_minutes' => 300,
         'feed_past_months' => 12,
+        // Nombre maximal d'occurrences calculées pour un événement récurrent.
+        'max_occurrences' => 500,
     ],
 
     /*

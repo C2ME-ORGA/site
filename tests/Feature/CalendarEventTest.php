@@ -216,6 +216,27 @@ test('les récurrences terminées ne sont pas chargées par le calendrier', func
         ->assertDontSee('Ancienne récurrence terminée');
 });
 
+test('le nombre d’occurrences calculées est plafonné par la configuration', function (): void {
+    config(['crm.calendar.max_occurrences' => 3]);
+
+    $owner = calendarEventUser();
+
+    $event = CalendarEvent::query()->create([
+        'user_id' => $owner->id,
+        'title' => 'Récurrence longue',
+        'starts_at' => now()->setTime(9, 0),
+        'ends_at' => now()->setTime(9, 30),
+        'recurrence' => 'weekly',
+    ]);
+
+    $occurrences = $event->occurrencesBetween(
+        now()->startOfDay()->toImmutable(),
+        now()->addYears(2)->toImmutable(),
+    );
+
+    expect($occurrences)->toHaveCount(3);
+});
+
 test('les événements en journée entière utilisent des dates ICS', function (): void {
     $owner = calendarEventUser();
     $startDate = now()->addDays(3)->startOfDay();

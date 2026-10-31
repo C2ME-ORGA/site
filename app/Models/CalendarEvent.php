@@ -148,7 +148,13 @@ class CalendarEvent extends Model
         $occurrences = [];
         $step = 0;
 
-        while ($step < 500) {
+        // Garde-fou : une récurrence sans date de fin combinée à une fenêtre
+        // très large pourrait produire un nombre illimité d'occurrences.
+        // 500 occurrences couvrent environ 9,5 ans en hebdomadaire et 41 ans
+        // en mensuel ; la limite reste ajustable via la configuration.
+        $limit = max(1, (int) config('crm.calendar.max_occurrences', 500));
+
+        while ($step < $limit) {
             $start = match ($this->recurrence) {
                 'weekly' => $base->addWeeks($step),
                 'monthly' => $base->addMonthsNoOverflow($step),

@@ -670,7 +670,7 @@ class Calendar extends Page
             ->orderBy('starts_at')
             ->get();
 
-        $grouped = [];
+        $entries = [];
 
         foreach ($activities as $activity) {
             $dueAt = $activity->due_at;
@@ -679,7 +679,8 @@ class Calendar extends Page
                 continue;
             }
 
-            $grouped[$dueAt->format('Y-m-d')][] = [
+            $entries[] = [
+                'date' => $dueAt->format('Y-m-d'),
                 'kind' => 'activity',
                 'id' => $activity->id,
                 'time' => $dueAt->format('H:i'),
@@ -702,7 +703,10 @@ class Calendar extends Page
                     $last = $occurrence['end']->greaterThan($to) ? $to->startOfDay() : $occurrence['end']->startOfDay();
 
                     while ($cursor->lessThanOrEqualTo($last)) {
-                        $grouped[$cursor->format('Y-m-d')][] = $this->eventEntry($event, $occurrence['start'], $user);
+                        $entries[] = [
+                            ...$this->eventEntry($event, $occurrence['start'], $user),
+                            'date' => $cursor->format('Y-m-d'),
+                        ];
                         $cursor = $cursor->addDay();
                     }
 
@@ -712,22 +716,31 @@ class Calendar extends Page
                 $key = $occurrence['start']->format('Y-m-d');
 
                 if ($key >= $from->format('Y-m-d') && $key <= $to->format('Y-m-d')) {
-                    $grouped[$key][] = $this->eventEntry($event, $occurrence['start'], $user);
+                    $entries[] = [
+                        ...$this->eventEntry($event, $occurrence['start'], $user),
+                        'date' => $key,
+                    ];
                 }
             }
         }
 
-        foreach ($grouped as &$entries) {
-            usort($entries, function (array $first, array $second): int {
-                if ($first['all_day'] !== $second['all_day']) {
-                    return $first['all_day'] ? -1 : 1;
-                }
+        // Tri global unique (jour, journée entière d'abord, puis heure) avant
+        // le regroupement, plutôt qu'un tri par jour après coup.
+        usort($entries, static fn (array $first, array $second): int => [
+            $first['date'],
+            $first['all_day'] ? 0 : 1,
+            $first['time_sort'],
+        ] <=> [
+            $second['date'],
+            $second['all_day'] ? 0 : 1,
+            $second['time_sort'],
+        ]);
 
-                return strcmp((string) $first['time_sort'], (string) $second['time_sort']);
-            });
+        $grouped = [];
+
+        foreach ($entries as $entry) {
+            $grouped[$entry['date']][] = $entry;
         }
-
-        unset($entries);
 
         return $grouped;
     }

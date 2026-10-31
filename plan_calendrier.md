@@ -63,6 +63,9 @@ Le flux contient :
 - Les activités terminées sont exclues.
 - Les événements personnels ne sont visibles que par leur propriétaire et les
   personnes avec qui ils sont partagés.
+- Le calcul des récurrences est plafonné à `crm.calendar.max_occurrences`
+  (500 par défaut), pour éviter qu'une récurrence sans fin ne produise un
+  nombre illimité d'occurrences.
 
 ### 3.4 Interface
 
@@ -92,6 +95,7 @@ les relances.
     'follow_up_reminder_hour' => 9,
     'feed_ttl_minutes' => 300,
     'feed_past_months' => 12,
+    'max_occurrences' => 500,
 ],
 ```
 
