@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "ff02e3bdd3bfd46428f595458b4025fe",
+    "content-hash": "27f7d9d94da17dba43ca4bc5f3827b7b",
     "packages": [
         {
             "name": "anourvalar/eloquent-serialize",
@@ -1499,6 +1499,84 @@
                 }
             ],
             "time": "2025-03-06T22:45:56+00:00"
+        },
+        {
+            "name": "elemind/filament-echarts",
+            "version": "1.1.0",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/elemind/filament-echarts.git",
+                "reference": "c2e266a7a80956d79a01898c7dd8b67812b0d1bb"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/elemind/filament-echarts/zipball/c2e266a7a80956d79a01898c7dd8b67812b0d1bb",
+                "reference": "c2e266a7a80956d79a01898c7dd8b67812b0d1bb",
+                "shasum": ""
+            },
+            "require": {
+                "filament/filament": "^4.0|^5.0",
+                "php": "^8.2",
+                "spatie/laravel-package-tools": "^1.15.0"
+            },
+            "require-dev": {
+                "larastan/larastan": "^3.0",
+                "laravel/pint": "^1.0",
+                "nunomaduro/collision": "^8.0",
+                "orchestra/testbench": "^9.0|^10.0",
+                "pestphp/pest": "^3.0",
+                "pestphp/pest-plugin-arch": "^3.0",
+                "pestphp/pest-plugin-laravel": "^3.0",
+                "pestphp/pest-plugin-livewire": "^3.0",
+                "rector/rector": "^2.0",
+                "spatie/laravel-ray": "^1.26"
+            },
+            "type": "library",
+            "extra": {
+                "laravel": {
+                    "aliases": {
+                        "FilamentECharts": "Elemind\\FilamentECharts\\Facades\\FilamentECharts"
+                    },
+                    "providers": [
+                        "Elemind\\FilamentECharts\\FilamentEChartsServiceProvider"
+                    ]
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "Elemind\\FilamentECharts\\": "src/"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "elemind",
+                    "email": "info@elemind.com",
+                    "role": "Developer"
+                }
+            ],
+            "description": "Apache ECharts integration for Filament",
+            "homepage": "https://github.com/elemind/filament-echarts",
+            "keywords": [
+                "elemind",
+                "filament-echarts",
+                "filamentphp",
+                "laravel"
+            ],
+            "support": {
+                "issues": "https://github.com/elemind/filament-echarts/issues",
+                "source": "https://github.com/elemind/filament-echarts"
+            },
+            "funding": [
+                {
+                    "url": "https://github.com/elemind",
+                    "type": "github"
+                }
+            ],
+            "time": "2026-01-19T07:59:22+00:00"
         },
         {
             "name": "evenement/evenement",
