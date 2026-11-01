@@ -3,7 +3,9 @@
 namespace App\Filament\Resources\Activities\Schemas;
 
 use App\Enums\CrmActivityType;
+use App\Models\CrmAccount;
 use App\Models\CrmActivity;
+use App\Support\FilamentAccountUrl;
 use Filament\Infolists\Components\TextEntry;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
@@ -38,6 +40,13 @@ class CrmActivityHeader
                     MetadataEntry::make('account.name')
                         ->label('Compte')
                         ->fieldIcon(Heroicon::OutlinedBuildingOffice2)
+                        ->url(function (CrmActivity $record): ?string {
+                            $account = $record->account;
+
+                            return $account instanceof CrmAccount
+                                ? FilamentAccountUrl::view($account)
+                                : null;
+                        })
                         ->placeholder('—'),
 
                     MetadataEntry::make('contact.last_name')

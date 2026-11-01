@@ -244,6 +244,13 @@ La page `/realisations` et les fiches chantier sont alimentées par la base de d
 - **Droits** : gestion réservée aux administrateurs (`ProjectPolicy`, `ProjectCategoryPolicy`).
 - **Tests** : `tests/Feature/ProjectTest.php`, `tests/Feature/ProjectAdminTest.php`.
 
+### 17. Totaux de devis calculés automatiquement
+
+- Les champs **Total HT** et **Total TTC** d’un devis sont en lecture seule : ils sont calculés à partir des lignes (quantité × prix unitaire, remise déduite).
+- Le formulaire recalcule en direct à chaque modification de quantité, prix, remise, à l’ajout ou à la suppression d’une ligne, ainsi qu’au changement du taux de TVA (`UpdatesQuoteTotals`).
+- À l’enregistrement, `QuoteLineObserver` recalcule le total de chaque ligne, puis `Quote::recalculateTotals()` et `QuoteObserver` consolident le HT et le TTC en base. La création d’un devis sans ligne reste possible (valeurs par défaut à 0).
+- Tests : `tests/Feature/QuoteTotalsTest.php`.
+
 ---
 
 ## Développement

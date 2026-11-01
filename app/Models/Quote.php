@@ -61,6 +61,18 @@ class Quote extends Model
     ];
 
     /**
+     * Valeurs par défaut pour qu'un devis créé sans ligne soit inséré avec
+     * des totaux à zéro (les montants sont NOT NULL en base).
+     *
+     * @var array<string, mixed>
+     */
+    protected $attributes = [
+        'amount_ht' => 0,
+        'vat_rate' => 0,
+        'amount_ttc' => 0,
+    ];
+
+    /**
      * @return array<string, string>
      */
     protected function casts(): array

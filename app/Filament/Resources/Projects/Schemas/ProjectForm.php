@@ -121,7 +121,7 @@ class ProjectForm
                                             ->numeric()
                                             ->default(0),
                                     ]),
-                            ])
+                            ]),
                     ]),
             ]);
     }

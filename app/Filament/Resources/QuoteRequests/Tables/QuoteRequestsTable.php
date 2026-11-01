@@ -7,6 +7,7 @@ use App\Enums\QuoteStatus;
 use App\Filament\Resources\QuoteRequests\Actions\QuoteRequestActions;
 use App\Filament\Resources\QuoteRequests\QuoteRequestResource;
 use App\Models\QuoteRequest;
+use Filament\Actions\ActionGroup;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
@@ -85,11 +86,13 @@ class QuoteRequestsTable
             ])
             ->recordActions([
                 ViewAction::make(),
-                QuoteRequestActions::reply(),
-                QuoteRequestActions::markAsQuoted(),
-                QuoteRequestActions::downloadPlans(),
-                QuoteRequestActions::resolve(),
-                EditAction::make(),
+                ActionGroup::make([
+                    QuoteRequestActions::reply(),
+                    QuoteRequestActions::markAsQuoted(),
+                    QuoteRequestActions::downloadPlans(),
+                    QuoteRequestActions::resolve(),
+                    EditAction::make(),
+                ]),
             ])
             ->toolbarActions([
                 BulkActionGroup::make([
