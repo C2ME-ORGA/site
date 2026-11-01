@@ -47,7 +47,6 @@
                     @endforeach
                     @foreach ([
                         ['label' => 'Téléphone', 'value' => $company['phone']],
-                        ['label' => 'Mobile', 'value' => $company['mobile']],
                         ['label' => 'E-mail', 'value' => $company['email']],
                         ['label' => 'Zone d’intervention', 'value' => $company['zone']],
                     ] as $row)

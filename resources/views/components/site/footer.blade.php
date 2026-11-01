@@ -63,7 +63,6 @@
                 @endforeach
                 <p>
                     <a href="tel:{{ $company['phone_link'] }}" class="block transition hover:text-white">{{ $company['phone'] }}</a>
-                    <a href="tel:{{ $company['mobile_link'] }}" class="block transition hover:text-white">{{ $company['mobile'] }}</a>
                     <a href="mailto:{{ $company['email'] }}" class="block transition hover:text-white">{{ $company['email'] }}</a>
                 </p>
             </address>

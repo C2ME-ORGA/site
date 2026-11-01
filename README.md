@@ -107,6 +107,8 @@ C2ME is a Laravel Livewire-based CRM application managing clients industriels, p
 | `SMTP_USERNAME` | Nom d'utilisateur SMTP |
 | `SMTP_PASSWORD` | Mot de passe SMTP |
 | `LOGO_DEV` | Key publishable pour les logos Développeurs |
+| `SITE_HERO_VIDEO` | Vidéo de fond du hero (chemin relatif à `public/`, ex. `videos/hero.mp4`) |
+| `SITE_HERO_POSTER` | Image affichée avant la vidéo et en mode « mouvement réduit » |
 | `crm.retention.prospects_months` | Mois de conservation des prospects (entier) |
 | `crm.retention.activities_months` | Mois de conservation des activités (entier) |
 | `crm.email.retention_months` | Mois de conservation des e-mails (entier) |

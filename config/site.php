@@ -57,7 +57,7 @@ return [
             [
                 'key' => 'atelier',
                 'label' => 'Atelier',
-                'line1' => '2 Rue du Vieux Château',
+                'line1' => 'Zone des Sénardières',
                 'line2' => 'Boufféré',
                 'postal_code' => '85600',
                 'city' => 'Montaigu-Vendée',
@@ -100,6 +100,26 @@ return [
                     'closes' => '17:00',
                 ],
             ],
+        ],
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Page d'accueil
+    |--------------------------------------------------------------------------
+    |
+    | Vidéo de fond du hero. Les chemins sont relatifs au dossier public/.
+    | Laisser vide pour conserver le fond dégradé actuel. La vidéo est
+    | purement décorative : elle est muette, sans contrôles et masquée aux
+    | technologies d'assistance. L'image `poster` s'affiche pendant le
+    | chargement et remplace la vidéo si `prefers-reduced-motion` est actif.
+    |
+    */
+
+    'home' => [
+        'hero' => [
+            'video' => env('SITE_HERO_VIDEO'),
+            'poster' => env('SITE_HERO_POSTER'),
         ],
     ],
 
