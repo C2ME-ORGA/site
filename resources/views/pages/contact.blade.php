@@ -66,9 +66,6 @@
                         <a href="tel:{{ $company['phone_link'] }}" class="block font-bold text-ink-900 transition hover:text-brand-600">
                             {{ $company['phone'] }} <span class="font-normal text-ink-700/70">(standard)</span>
                         </a>
-                        <a href="tel:{{ $company['mobile_link'] }}" class="block font-bold text-ink-900 transition hover:text-brand-600">
-                            {{ $company['mobile'] }} <span class="font-normal text-ink-700/70">(mobile)</span>
-                        </a>
                     </div>
                     <p class="mt-5 text-xs font-bold uppercase tracking-[0.16em] text-brand-600">E-mail</p>
                     <a href="mailto:{{ $company['email'] }}" class="mt-2 block text-sm font-bold text-ink-900 transition hover:text-brand-600">

@@ -19,9 +19,6 @@
                 <a href="tel:{{ $company['phone_link'] }}" class="flex items-center gap-2 transition hover:text-volt-400">
                     {{ $company['phone'] }}
                 </a>
-                <a href="tel:{{ $company['mobile_link'] }}" class="flex items-center gap-2 transition hover:text-volt-400">
-                    {{ $company['mobile'] }}
-                </a>
                 <a href="mailto:{{ $company['email'] }}" class="transition hover:text-volt-400">
                     {{ $company['email'] }}
                 </a>

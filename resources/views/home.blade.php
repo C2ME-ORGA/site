@@ -1,19 +1,67 @@
 @php
     $site = config('site');
     $company = $site['company'];
+
+    /*
+     * Fond du hero : vidéo décorative si SITE_HERO_VIDEO pointe vers un
+     * fichier présent dans public/, sinon image poster, sinon dégradé.
+     */
+    $heroVideo = $site['home']['hero']['video'] ?? null;
+    $heroPoster = $site['home']['hero']['poster'] ?? null;
+    $heroVideoExists = is_string($heroVideo) && $heroVideo !== '' && is_file(public_path($heroVideo));
+    $heroPosterExists = is_string($heroPoster) && $heroPoster !== '' && is_file(public_path($heroPoster));
+    $heroVideoType = match (strtolower((string) pathinfo((string) $heroVideo, PATHINFO_EXTENSION))) {
+        'webm' => 'video/webm',
+        'ogv' => 'video/ogg',
+        default => 'video/mp4',
+    };
 @endphp
 
 <x-layouts.app :title="$company['tagline']">
 
     {{-- HERO --}}
-    <section class="relative overflow-hidden bg-ink-900 text-white">
-        <div
-            class="pointer-events-none absolute inset-0 opacity-[0.08]"
-            style="background-image: linear-gradient(to right, #fff 1px, transparent 1px), linear-gradient(to bottom, #fff 1px, transparent 1px); background-size: 56px 56px;"
-        ></div>
-        <div class="pointer-events-none absolute -right-24 top-1/2 h-96 w-96 -translate-y-1/2 rounded-full bg-brand-500/25 blur-3xl"></div>
+    <section class="relative isolate overflow-hidden bg-ink-900 text-white">
+        {{-- Fond : poster fixe, puis vidéo par-dessus si elle est configurée --}}
+        <div class="absolute inset-0" aria-hidden="true">
+            @if ($heroPosterExists)
+                <img
+                    src="{{ asset($heroPoster) }}"
+                    alt=""
+                    class="absolute inset-0 h-full w-full object-cover"
+                >
+            @endif
 
-        <div class="container-site relative grid items-center gap-14 py-20 lg:grid-cols-12 lg:py-28">
+            @if ($heroVideoExists)
+                <video
+                    class="absolute inset-0 h-full w-full object-cover motion-reduce:hidden"
+                    autoplay
+                    muted
+                    loop
+                    playsinline
+                    preload="metadata"
+                    tabindex="-1"
+                    @if ($heroPosterExists) poster="{{ asset($heroPoster) }}" @endif
+                >
+                    <source src="{{ asset($heroVideo) }}" type="{{ $heroVideoType }}">
+                </video>
+            @endif
+
+            @if ($heroVideoExists || $heroPosterExists)
+                {{-- Voile de lisibilité : le texte reste lisible sur toute image --}}
+                <div class="absolute inset-0 bg-gradient-to-r from-ink-950/90 via-ink-950/65 to-ink-950/25"></div>
+                <div class="absolute inset-0 bg-gradient-to-t from-ink-950/60 via-transparent to-transparent"></div>
+            @endif
+        </div>
+
+        @unless ($heroVideoExists || $heroPosterExists)
+            <div
+                class="pointer-events-none absolute inset-0 opacity-[0.08]"
+                style="background-image: linear-gradient(to right, #fff 1px, transparent 1px), linear-gradient(to bottom, #fff 1px, transparent 1px); background-size: 56px 56px;"
+            ></div>
+            <div class="pointer-events-none absolute -right-24 top-1/2 h-96 w-96 -translate-y-1/2 rounded-full bg-brand-500/25 blur-3xl"></div>
+        @endunless
+
+        <div class="container-site relative z-10 grid items-center gap-14 py-20 lg:grid-cols-12 lg:py-28">
             <div class="lg:col-span-7">
                 <p class="flex items-center gap-3 text-xs font-bold uppercase tracking-[0.2em] text-volt-400">
                     <span class="inline-block h-1 w-10 rounded-full bg-volt-500"></span>
