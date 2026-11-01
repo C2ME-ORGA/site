@@ -2,7 +2,7 @@
 
 ## A Corriger 
 ### Acceuil
-- [ ] Vidéo sur le bandeau Héro (3/ Construction/Bureau étude / Atelier-Laser)
+- [x] Vidéo sur le bandeau Héro (3/ Construction/Bureau étude / Atelier-Laser)
 - [ ] Mettre en avant la sous-traitance
 
 ### Nos Réalisation

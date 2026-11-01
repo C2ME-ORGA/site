@@ -672,27 +672,4 @@ return [
         ],
     ],
 
-    /*
-    |--------------------------------------------------------------------------
-    | Réalisations — intitulés par dossier (source : F:\C2ME\Travaux)
-    |--------------------------------------------------------------------------
-    */
-
-    'projects' => [
-        '3P' => '3P',
-        'Albi' => 'Albi',
-        'bbq' => 'BBQ',
-        'Bordeau' => 'Bordeau',
-        'constans' => 'Constans',
-        'dussac' => 'Dussac',
-        'Escala' => 'Escala',
-        'Lacroix' => 'Lacroix',
-        'Minaudiere' => 'Minaudière',
-        'Monestre' => 'Monestre',
-        'protextyl' => 'Protextyl',
-        'Soucha' => 'Soucha',
-        'valastro' => 'Valastro',
-        'verges' => 'Verges',
-    ],
-
 ];

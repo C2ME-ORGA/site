@@ -214,6 +214,17 @@
 - [x] Configuration compacte par en-tête (`whenCompact`) : identité, badges, actions et quelques métadonnées clés restent visibles.
 - [x] Tests de découverte des schémas et de rendu (`tests/Feature/PageHeaderTest.php`) ; Pint, PHPStan et suite complète au vert.
 
+### 20. Réalisations gérées dans le CRM
+
+- [x] Modèles `ProjectCategory` (département), `Project` (chantier) et `ProjectImage` (photo), avec slugs générés, portées publiées/ordonnées et factories.
+- [x] Migrations SQLite/MySQL : catégories, chantiers (département, client, commune, année, prestations JSON, publication, ordre) et images (chemin, vignette, texte alternatif, ordre).
+- [x] Back-office « Site » : ressources Départements et Réalisations, réordonnancement, filtres par département et publication, actions réservées aux administrateurs par policy.
+- [x] Photos : dépôt multiple (5 Mo, JPEG/PNG/WebP, redimensionnement 1600 px), vignette WebP 720 px générée par GD, suppression des fichiers avec l’image, texte alternatif.
+- [x] Site : `/realisations` filtrée par département avec compteurs, fiches `/realisations/{slug}` (métadonnées, prestations, galerie avec visionneuse), état vide, liens « autres chantiers ».
+- [x] Sitemap : ajout des chantiers publiés ; les brouillons renvoient 404.
+- [x] Suppression de l’ancienne galerie statique (`config/site.php → projects`, composant `projects.gallery`) ; les dossiers `public/images/realisations` restent sur disque mais ne sont plus lus, tout se saisit désormais dans le CRM.
+- [x] Tests publics et admin (`tests/Feature/ProjectTest.php`, `ProjectAdminTest.php`) ; Pint, PHPStan et suite complète au vert.
+
 ## Proposition de développement supplémentaire
 
 - [x] **Amélioration du mode terrain** : édition hors ligne, création d'activités, actions rapides, conflits de synchronisation, photos et tournée — détail en section 7.
@@ -231,3 +242,4 @@
 - [x] Ajouter support Calendrier avec synchronisation/export pour Outlook, Google Calendar, etc. — flux WebCal privé par utilisateur, export ICS, activités et relances, événements personnels partageables (voir `plan_calendrier.md`).
 - [x] Prise en charge des Graphiques visuelle avec Apache Echart (https://filamentphp.com/plugins/elemind-echarts) — cinq graphiques sur le tableau de bord (voir section 18).
 - [x] Utiliser https://filamentphp.com/plugins/pedro-monteiro-page-header pour mettre en forme les vues des différents affichages — `mortalkiller/filament-page-header` `^2.4`, en-têtes compacts sur les fiches (voir section 19).
+- [ ] Permettre la gestion et l'organisation de l'espace 'Nos Réalisations' du frontend dans le CRM: Organisation par Département/chantier/images (Source probante: https://www.briand.fr/realisations/) 

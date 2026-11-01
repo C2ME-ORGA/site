@@ -232,6 +232,18 @@ système (voir la procédure).
 - **Mention formulaires** : `x-ui.privacy-notice` affiche la finalité et le lien vers la politique de confidentialité sous les formulaires de contact et de devis.
 - **Tests** : `tests/Feature/AccessibilityTest.php`, `tests/Feature/ContactPrivacyTest.php`.
 
+### 16. Réalisations gérées dans le CRM
+
+La page `/realisations` et les fiches chantier sont alimentées par la base de données, et non plus par `config/site.php`.
+
+- **Modèles** : `ProjectCategory` (département, c’est-à-dire une famille d’ouvrages), `Project` (chantier) et `ProjectImage` (photo et vignette).
+- **Back-office** : groupe « Site » avec « Départements » (nom, description, ordre, visibilité) et « Réalisations » (département, titre, maître d’ouvrage, commune, année, prestations en étiquettes, description, publication, ordre).
+- **Photos** : dépôt multiple dans la fiche chantier (JPEG/PNG/WebP, 5 Mo max, redimensionnement 1600 px), texte alternatif et réordonnancement par glisser-déposer. Une vignette WebP de 720 px est générée automatiquement (GD) pour la grille ; les fichiers sont stockés sur le disque `public` (`storage/app/public/projects`) et supprimés avec la photo.
+- **Site** : `/realisations` liste les chantiers publiés, filtrables par département (`?departement=slug`), avec compteurs de chantiers, photos et départements. Chaque carte mène à `/realisations/{slug}` : fil d’Ariane, maître d’ouvrage, commune, année, prestations et galerie avec visionneuse clavier.
+- **SEO** : les chantiers publiés sont ajoutés au `sitemap.xml` ; un chantier non publié renvoie une 404.
+- **Droits** : gestion réservée aux administrateurs (`ProjectPolicy`, `ProjectCategoryPolicy`).
+- **Tests** : `tests/Feature/ProjectTest.php`, `tests/Feature/ProjectAdminTest.php`.
+
 ---
 
 ## Développement

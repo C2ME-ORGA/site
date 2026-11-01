@@ -4,6 +4,8 @@ use App\Http\Controllers\CalendarFeedController;
 use App\Http\Controllers\EmailAttachmentController;
 use App\Http\Controllers\FieldModeController;
 use App\Http\Controllers\PrintController;
+use App\Http\Controllers\ProjectController;
+use App\Models\Project;
 use Illuminate\Routing\Route as RouteInstance;
 use Illuminate\Support\Facades\Route;
 use Symfony\Component\HttpFoundation\Response;
@@ -33,7 +35,8 @@ Route::view('/charpente-metallique', 'services.charpente-metallique')->name('ser
 */
 
 Route::view('/entreprise', 'pages.company')->name('company');
-Route::view('/realisations', 'pages.projects')->name('projects');
+Route::get('/realisations', [ProjectController::class, 'index'])->name('projects');
+Route::get('/realisations/{project:slug}', [ProjectController::class, 'show'])->name('projects.show');
 
 /*
 |--------------------------------------------------------------------------
@@ -139,6 +142,18 @@ Route::get('/sitemap.xml', function (): Response {
             || str_starts_with($route->uri(), 'livewire')
             || str_starts_with((string) $route->getName(), 'filament.'))
         ->map(fn (RouteInstance $route): string => e(url($route->uri())))
+        ->sort()
+        ->values();
+
+    $projectUrls = Project::query()
+        ->published()
+        ->ordered()
+        ->pluck('slug')
+        ->map(fn (string $slug): string => e(route('projects.show', $slug)));
+
+    $urls = $urls
+        ->merge($projectUrls)
+        ->unique()
         ->sort()
         ->values();
 
