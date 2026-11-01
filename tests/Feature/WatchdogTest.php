@@ -3,16 +3,17 @@
 namespace Tests\Feature;
 
 use App\Enums\UserRole;
+use App\Filament\Resources\SecurityAlerts\SecurityAlertResource;
 use App\Models\User;
 use Filament\Facades\Filament;
 use Illuminate\Auth\Events\Failed;
 use Illuminate\Auth\Events\Login;
 use Illuminate\Console\Scheduling\Schedule;
+use Illuminate\Support\Env;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Gate;
 use MKWebDesign\FilamentWatchdog\Models\ActivityLog;
 use MKWebDesign\FilamentWatchdog\Models\SecurityAlert;
-use MKWebDesign\FilamentWatchdog\Resources\SecurityAlertResource;
 use MKWebDesign\FilamentWatchdog\Widgets\RecentAlertsWidget;
 use MKWebDesign\FilamentWatchdog\Widgets\SecurityOverviewWidget;
 use MKWebDesign\FilamentWatchdog\Widgets\ThreatLevelWidget;
@@ -130,10 +131,15 @@ test('le scan de sécurité est planifié toutes les quinze minutes', function (
         ->and($scheduled->expression)->toBe('*/15 * * * *');
 });
 
-test('la quarantaine automatique est désactivée', function (): void {
+test('la quarantaine automatique est désactivée et les destinataires viennent de ADMIN_EMAIL', function (): void {
+    $expectedRecipients = array_values(array_filter(array_map(
+        'trim',
+        explode(',', (string) Env::get('ADMIN_EMAIL', '')),
+    )));
+
     expect(config('filament-watchdog.malware_detection.quarantine_enabled'))->toBeFalse()
         ->and(config('filament-watchdog.navigation.security.hidden'))->toBeTrue()
-        ->and(config('filament-watchdog.alerts.email_recipients'))->toContain('admin@c2me.fr');
+        ->and(config('filament-watchdog.alerts.email_recipients'))->toBe($expectedRecipients);
 });
 
 test('un utilisateur désactivé n’accède à aucun des deux panneaux', function (): void {
