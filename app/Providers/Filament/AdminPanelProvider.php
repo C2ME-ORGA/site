@@ -4,6 +4,7 @@ namespace App\Providers\Filament;
 
 use App\Filament\Pages\Dashboard;
 use App\Filament\Pages\EditProfile;
+use App\Filament\Pages\Security\SecurityDashboard;
 use App\Filament\Widgets\ActivitiesByTypeChart;
 use App\Filament\Widgets\CommercialStatsOverview;
 use App\Filament\Widgets\CrmStatsOverview;
@@ -36,6 +37,10 @@ use Illuminate\Routing\Middleware\SubstituteBindings;
 use Illuminate\Session\Middleware\StartSession;
 use Illuminate\Support\Facades\Vite;
 use Illuminate\View\Middleware\ShareErrorsFromSession;
+use MKWebDesign\FilamentWatchdog\Resources\ActivityLogResource;
+use MKWebDesign\FilamentWatchdog\Resources\FileIntegrityResource;
+use MKWebDesign\FilamentWatchdog\Resources\MalwareDetectionResource;
+use MKWebDesign\FilamentWatchdog\Resources\SecurityAlertResource;
 use MortalKiller\FilamentPageHeader\PageHeaderPlugin;
 use Vaslv\FilamentAppVersion\AppVersionPlugin;
 
@@ -59,6 +64,13 @@ class AdminPanelProvider extends PanelProvider
             ->discoverPages(in: app_path('Filament/Pages'), for: 'App\Filament\Pages')
             ->pages([
                 Dashboard::class,
+                SecurityDashboard::class,
+            ])
+            ->resources([
+                SecurityAlertResource::class,
+                FileIntegrityResource::class,
+                MalwareDetectionResource::class,
+                ActivityLogResource::class,
             ])
             ->discoverWidgets(in: app_path('Filament/Widgets'), for: 'App\Filament\Widgets')
             ->widgets([
@@ -111,6 +123,30 @@ class AdminPanelProvider extends PanelProvider
                     ->sort(90)
                     ->url('/terrain')
                     ->icon(Heroicon::OutlinedDevicePhoneMobile),
+                NavigationItem::make('Alertes de sécurité')
+                    ->group('Système')
+                    ->sort(98)
+                    ->icon(Heroicon::OutlinedExclamationTriangle)
+                    ->visible(fn (): bool => auth()->user()?->isAdmin() === true)
+                    ->url(fn (): string => SecurityAlertResource::getUrl('index', panel: 'admin')),
+                NavigationItem::make('Intégrité des fichiers')
+                    ->group('Système')
+                    ->sort(99)
+                    ->icon(Heroicon::OutlinedDocumentMagnifyingGlass)
+                    ->visible(fn (): bool => auth()->user()?->isAdmin() === true)
+                    ->url(fn (): string => FileIntegrityResource::getUrl('index', panel: 'admin')),
+                NavigationItem::make('Détections de malwares')
+                    ->group('Système')
+                    ->sort(100)
+                    ->icon(Heroicon::OutlinedBugAnt)
+                    ->visible(fn (): bool => auth()->user()?->isAdmin() === true)
+                    ->url(fn (): string => MalwareDetectionResource::getUrl('index', panel: 'admin')),
+                NavigationItem::make('Journal d’activité')
+                    ->group('Système')
+                    ->sort(101)
+                    ->icon(Heroicon::OutlinedClipboardDocumentList)
+                    ->visible(fn (): bool => auth()->user()?->isAdmin() === true)
+                    ->url(fn (): string => ActivityLogResource::getUrl('index', panel: 'admin')),
             ])
             ->plugins([
                 AppVersionPlugin::make(),

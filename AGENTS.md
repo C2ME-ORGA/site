@@ -154,6 +154,17 @@ Toute évolution de structure impose d'incrémenter `DB_VERSION` dans `field-mod
 - Le plugin compagnon est déclaré sur le panneau `admin` (`KnowledgeBaseCompanionPlugin`, bouton latéral + aide en modale).
 - Tests : `tests/Feature/KnowledgeBaseTest.php`.
 
+## Surveillance de sécurité
+
+- Paquet `mkwebdesign/filament-watchdog-v5` : pages et ressources réservées aux administrateurs (politiques en lecture seule).
+- Entrées françaises dans le groupe **Système** : Sécurité, Alertes de sécurité, Intégrité des fichiers, Détections de malwares, Journal d'activité.
+- Le paquet planifie un scan chaque minute : désactivé dans `config/filament-watchdog.php` (`monitoring.enabled=false`) et remplacé par `watchdog:scan --force` toutes les 15 minutes dans `routes/console.php`.
+- Baseline d'intégrité à créer sur le serveur après déploiement : `php artisan watchdog:baseline`. Le scan planifié est désactivé sous Windows (chemins absolus du paquet).
+- Quarantaine automatique désactivée ; alertes e-mail vers `WATCHDOG_EMAIL_RECIPIENTS` (10/heure maximum).
+- Journal d'activité alimenté par les événements `Login`/`Failed` dans `AppServiceProvider`.
+- Vue d'erreur de verrouillage : `resources/views/errors/emergency-lockdown.blade.php`.
+- Tests : `tests/Feature/WatchdogTest.php`.
+
 ## Accessibilité et RGPD
 
 - Le site public doit conserver le lien d'évitement, `<main id="main" tabindex="-1">` et l'indicateur de focus global (`:focus-visible` dans `resources/css/app.css`).

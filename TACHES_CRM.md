@@ -245,6 +245,22 @@
 
 > Mise à jour du contenu : les articles sont des fichiers Markdown versionnés. Après une modification, vider le cache (`php artisan cache:clear`) pour voir le rendu actualisé.
 
+### 23. Surveillance de sécurité (`mkwebdesign/filament-watchdog-v5`)
+
+- [x] Paquet `mkwebdesign/filament-watchdog-v5` installé, configuration publiée dans `config/filament-watchdog.php` et migrations exécutées.
+- [x] Tableau de bord `App\Filament\Pages\Security\SecurityDashboard` (sous-classe du paquet) : libellé français « Sécurité », groupe **Système** (tri 97), accès réservé aux administrateurs.
+- [x] Politiques en lecture seule pour les quatre modèles du paquet (`viewAny`/`view` réservés aux administrateurs, création et modification refusées) et entrées de navigation françaises pour Alertes, Intégrité, Malwares et Journal d’activité (URL `file-integrities` générée par le paquet).
+- [x] Planification : le scan automatique du paquet (chaque minute) est désactivé (`monitoring.enabled=false`) et remplacé par `watchdog:scan --force` toutes les 15 minutes dans `routes/console.php`, avec `withoutOverlapping`/`onOneServer`.
+- [x] Surveillance limitée aux chemins utiles ; exclusions des caches, du build Vite, des assets publiés, des seeders de démonstration et des images publiques.
+- [x] Alertes e-mail vers `admin@c2me.fr` (variables `WATCHDOG_EMAIL_RECIPIENTS` / `WATCHDOG_ADMIN_EMAILS`), limitation à 10 alertes par heure, quarantaine automatique désactivée.
+- [x] Journal d’activité alimenté par les événements d’authentification (`Login` / `Failed`), absent du paquet : connexions réussies, échecs et alerte force brute au-delà de 5 échecs par heure.
+- [x] Vue d’erreur de verrouillage traduite en français (`resources/views/errors/emergency-lockdown.blade.php`), publiée automatiquement par le paquet.
+- [x] Les widgets de sécurité ne polluent pas le tableau de bord CRM (ils sont rendus uniquement par la page Sécurité).
+- [x] Article d’aide utilisateur `docs/knowledge-base/fr/administration/securite.md`.
+- [x] Tests d’accès, de politiques, de journalisation et de planification (`tests/Feature/WatchdogTest.php`) ; Pint, PHPStan et suite complète au vert.
+
+> Le baseline et le scan planifié sont inactifs sous Windows (chemins absolus du paquet). Sur le serveur : `php artisan watchdog:baseline` après chaque déploiement volontaire.
+
 ## Proposition de développement supplémentaire
 
 - [x] **Amélioration du mode terrain** : édition hors ligne, création d'activités, actions rapides, conflits de synchronisation, photos et tournée — détail en section 7.
@@ -264,5 +280,5 @@
 - [x] Utiliser https://filamentphp.com/plugins/pedro-monteiro-page-header pour mettre en forme les vues des différents affichages — `mortalkiller/filament-page-header` `^2.4`, en-têtes compacts sur les fiches (voir section 19).
 - [x] Permettre la gestion et l'organisation de l'espace 'Nos Réalisations' du frontend dans le CRM: Organisation par Département/chantier/images (Source probante: https://www.briand.fr/realisations/)
 - [x] Intégration du package filament: guava/filament-knowledge-base et définir une base documentaire pour l'utilisation du CRM aux utilisateurs. (voir section 22)
-- [ ] Intégration du package filament: mkwebdesign/filament-watchdog-v5 afin de suivre le service de sécurité de l'application
+- [x] Intégration du package filament: mkwebdesign/filament-watchdog-v5 afin de suivre le service de sécurité de l'application. (voir section 23)
 - [ ] Intégration du package filament: caresome/filament-auth-designer et redéfinir les pages de connexions au couleur de l'entreprise.

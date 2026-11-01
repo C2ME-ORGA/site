@@ -17,6 +17,7 @@
         "laravel/tinker": "^3.0",
         "livewire/blaze": "^1.0",
         "livewire/livewire": "^4.1",
+        "mkwebdesign/filament-watchdog-v5": "^1.0",
         "mortalkiller/filament-page-header": "^2.4",
         "predis/predis": "^3.7",
         "spatie/laravel-backup": "^10.3",
