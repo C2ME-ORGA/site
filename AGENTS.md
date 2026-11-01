@@ -33,6 +33,7 @@ Jeu de démonstration pour les tests manuels :
 
 ```bash
 php artisan db:seed --class=DemoDataSeeder   # idempotent, ne supprime rien
+php artisan db:seed --class=ProjectDemoSeeder # départements, 14 chantiers et 74 photos
 ```
 
 - Il crée comptes, contacts, affaires, activités (dont photos privées), devis, relances, e-mails, demandes du site, demandes de devis avec plans et événements de calendrier.

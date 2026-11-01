@@ -22,11 +22,14 @@ class CreateQuote extends CreateRecord
         return $this->withQuoteTotals($data);
     }
 
-    protected function afterSave(): void
+    protected function afterCreate(): void
     {
         $record = $this->getRecord();
 
         if ($record instanceof Quote) {
+            // Les lignes du répéteur sont enregistrées après le devis : ce
+            // passage garantit des totaux alignés sur la base (sans écriture
+            // si les observateurs les ont déjà mis à jour).
             $record->recalculateTotals();
         }
     }

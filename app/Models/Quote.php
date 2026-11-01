@@ -20,7 +20,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  * @property QuoteDocumentStatus $status
  * @property string|null $pdf_path
  * @property string|float|null $amount_ht
- * @property string|null $vat_rate
+ * @property string|float|null $vat_rate
  * @property string|float|null $amount_ttc
  * @property CarbonImmutable|null $issued_at
  * @property CarbonImmutable|null $valid_until
@@ -176,11 +176,27 @@ class Quote extends Model
     }
 
     /**
-     * Recalcule les totaux à partir des lignes.
+     * Calcule le montant TTC à partir du montant HT et du taux de TVA.
+     */
+    public static function calculateAmountTtc(mixed $amountHt, mixed $vatRate): float
+    {
+        $amountHt = is_numeric($amountHt) ? (float) $amountHt : 0.0;
+        $vatRate = is_numeric($vatRate) ? (float) $vatRate : 0.0;
+
+        return round($amountHt * (1 + ($vatRate / 100)), 2);
+    }
+
+    /**
+     * Recalcule les totaux HT et TTC à partir des lignes persistées.
      */
     public function recalculateTotals(): void
     {
-        $this->amount_ht = (float) $this->lines()->sum('total_ht');
+        $this->amount_ht = round((float) $this->lines()->sum('total_ht'), 2);
+        $this->amount_ttc = self::calculateAmountTtc($this->amount_ht, $this->vat_rate);
+
+        if (! $this->isDirty()) {
+            return;
+        }
 
         $this->save();
     }
