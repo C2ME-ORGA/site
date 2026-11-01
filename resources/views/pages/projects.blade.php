@@ -1,42 +1,8 @@
 @php
-    $site = config('site');
+    $site ??= config('site');
 
-    $projects = collect(config('site.projects'))
-        ->map(function (string $name, string $slug) {
-            $directory = public_path('images/realisations/'.$slug);
-
-            if (! is_dir($directory)) {
-                return null;
-            }
-
-            $files = collect(scandir($directory))
-                ->filter(fn (string $file) => (bool) preg_match('/^photo-\d+\.webp$/', $file))
-                ->sort()
-                ->values();
-
-            $photos = $files
-                ->map(fn (string $file) => [
-                    'src' => asset('images/realisations/'.$slug.'/'.$file),
-                    'thumb' => asset('images/realisations/'.$slug.'/'.str_replace('.webp', '-thumb.webp', $file)),
-                    'name' => $name,
-                    'alt' => 'Réalisation C2ME — '.$name,
-                ])
-                ->all();
-
-            if ($photos === []) {
-                return null;
-            }
-
-            return [
-                'slug' => $slug,
-                'name' => $name,
-                'photos' => $photos,
-            ];
-        })
-        ->filter()
-        ->values();
-
-    $total = $projects->sum(fn (array $project) => count($project['photos']));
+    $projectCount = $projects->count();
+    $photoCount = $projects->sum(fn ($project) => $project->images->count());
 @endphp
 
 <x-layouts.app title="Réalisations" description="Découvrez les réalisations de C2ME : charpentes et ossatures métalliques, bâtiments industriels et agricoles, en Vendée et sur toute la France.">
@@ -46,9 +12,9 @@
         title="Nos réalisations"
         lead="Charpentes, ossatures et bâtiments métalliques : un aperçu des chantiers menés par C2ME en Vendée et sur l’ensemble du territoire."
         :specs="[
-            ['label' => 'Chantiers', 'value' => (string) count($projects)],
-            ['label' => 'Photos', 'value' => (string) $total],
-            ['label' => 'Zone', 'value' => $site['company']['zone']],
+            ['label' => 'Chantiers', 'value' => (string) $projectCount],
+            ['label' => 'Photos', 'value' => (string) $photoCount],
+            ['label' => 'Départements', 'value' => (string) $categories->count()],
         ]"
     >
         <x-slot:actions>
@@ -66,19 +32,49 @@
             <div class="max-w-2xl">
                 <p class="eyebrow">Chantiers</p>
                 <h2 class="mt-4 font-display text-3xl font-extrabold tracking-tight text-ink-900 sm:text-4xl">
-                    Filtrez par chantier
+                    Filtrez par département
                 </h2>
                 <p class="mt-4 text-lg leading-relaxed text-ink-700/70">
-                    Sélectionnez un chantier pour voir ses photos, ou parcourez
-                    l’ensemble des réalisations.
+                    Sélectionnez une famille d’ouvrages pour affiner la sélection,
+                    ou parcourez l’ensemble des réalisations.
                 </p>
             </div>
+
+            @if ($categories->isNotEmpty())
+                <nav class="mt-8 flex flex-wrap gap-2" aria-label="Filtrer les réalisations par département">
+                    <a
+                        href="{{ route('projects') }}"
+                        @class([
+                            'rounded-full px-4 py-2 text-sm font-bold transition',
+                            'bg-ink-900 text-white' => $selected === '',
+                            'border border-mist-300 bg-white text-ink-900 hover:border-brand-400 hover:text-brand-600' => $selected !== '',
+                        ])
+                        @if ($selected === '') aria-current="page" @endif
+                    >
+                        Tous les chantiers
+                    </a>
+
+                    @foreach ($categories as $category)
+                        <a
+                            href="{{ route('projects', ['departement' => $category->slug]) }}"
+                            @class([
+                                'rounded-full px-4 py-2 text-sm font-bold transition',
+                                'bg-ink-900 text-white' => $selected === $category->slug,
+                                'border border-mist-300 bg-white text-ink-900 hover:border-brand-400 hover:text-brand-600' => $selected !== $category->slug,
+                            ])
+                            @if ($selected === $category->slug) aria-current="page" @endif
+                        >
+                            {{ $category->name }} · {{ $category->projects_count }}
+                        </a>
+                    @endforeach
+                </nav>
+            @endif
 
             <div class="mt-12">
                 @if ($projects->isEmpty())
                     <div class="rounded-2xl border border-dashed border-mist-300 bg-mist-50 p-12 text-center">
                         <h3 class="font-display text-xl font-extrabold text-ink-900">
-                            Photos en cours de préparation
+                            Aucun chantier dans cette sélection
                         </h3>
                         <p class="mx-auto mt-3 max-w-md text-sm leading-relaxed text-ink-700/70">
                             Les photos de nos réalisations seront bientôt disponibles.
@@ -86,12 +82,19 @@
                             et échanger sur votre projet.
                         </p>
                         <div class="mt-8 flex flex-wrap items-center justify-center gap-4">
+                            @if ($selected !== '')
+                                <x-ui.button :href="route('projects')" variant="outline">Voir tous les chantiers</x-ui.button>
+                            @endif
                             <x-ui.button :href="route('quote')" variant="primary">Demander un devis</x-ui.button>
                             <x-ui.button :href="route('contact')" variant="outline">Nous contacter</x-ui.button>
                         </div>
                     </div>
                 @else
-                    <x-projects.gallery :projects="$projects" />
+                    <div class="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+                        @foreach ($projects as $project)
+                            <x-projects.card :project="$project" />
+                        @endforeach
+                    </div>
                 @endif
             </div>
         </div>

@@ -60,29 +60,29 @@
 
                     <dl class="divide-y divide-mist-200 border-y border-mist-200">
                         <div class="flex items-baseline justify-between gap-6 py-3.5">
-                            <dt class="shrink-0 text-sm font-bold uppercase tracking-[0.1em] text-ink-700/60">SIREN</dt>
+                            <dt class="shrink-0 text-sm font-bold uppercase tracking-[0.1em] text-ink-700/70">SIREN</dt>
                             <dd class="text-right text-sm font-semibold tabular-nums text-ink-900">{{ $editor['siren'] }}</dd>
                         </div>
                         <div class="flex items-baseline justify-between gap-6 py-3.5">
-                            <dt class="shrink-0 text-sm font-bold uppercase tracking-[0.1em] text-ink-700/60">SIRET du siège</dt>
+                            <dt class="shrink-0 text-sm font-bold uppercase tracking-[0.1em] text-ink-700/70">SIRET du siège</dt>
                             <dd class="text-right text-sm font-semibold tabular-nums text-ink-900">{{ $editor['siret'] }}</dd>
                         </div>
                         <div class="flex items-baseline justify-between gap-6 py-3.5">
-                            <dt class="shrink-0 text-sm font-bold uppercase tracking-[0.1em] text-ink-700/60">RCS</dt>
+                            <dt class="shrink-0 text-sm font-bold uppercase tracking-[0.1em] text-ink-700/70">RCS</dt>
                             <dd class="text-right text-sm font-semibold text-ink-900">RCS {{ $editor['rcs'] }} {{ $editor['siren'] }}</dd>
                         </div>
                         <div class="flex items-baseline justify-between gap-6 py-3.5">
-                            <dt class="shrink-0 text-sm font-bold uppercase tracking-[0.1em] text-ink-700/60">TVA intracom.</dt>
+                            <dt class="shrink-0 text-sm font-bold uppercase tracking-[0.1em] text-ink-700/70">TVA intracom.</dt>
                             <dd class="text-right text-sm font-semibold tabular-nums text-ink-900">{{ $editor['vat'] }}</dd>
                         </div>
                         <div class="flex items-baseline justify-between gap-6 py-3.5">
-                            <dt class="shrink-0 text-sm font-bold uppercase tracking-[0.1em] text-ink-700/60">Activité (APE)</dt>
+                            <dt class="shrink-0 text-sm font-bold uppercase tracking-[0.1em] text-ink-700/70">Activité (APE)</dt>
                             <dd class="text-right text-sm font-semibold text-ink-900">
                                 {{ $editor['ape'] }} — {{ $editor['ape_label'] }}
                             </dd>
                         </div>
                         <div class="flex items-baseline justify-between gap-6 py-3.5">
-                            <dt class="shrink-0 text-sm font-bold uppercase tracking-[0.1em] text-ink-700/60">Immatriculation</dt>
+                            <dt class="shrink-0 text-sm font-bold uppercase tracking-[0.1em] text-ink-700/70">Immatriculation</dt>
                             <dd class="text-right text-sm font-semibold text-ink-900">Le {{ $editor['created_on'] }}</dd>
                         </div>
                     </dl>
@@ -162,7 +162,7 @@
                         défaut d’accord amiable, la compétence revient aux tribunaux du ressort du siège social de
                         {{ $editor['legal_name'] }}.
                     </p>
-                    <p class="text-sm text-ink-700/60">
+                    <p class="text-sm text-ink-700/70">
                         Dernière mise à jour : <time datetime="2026-10-17">17 octobre 2026</time>.
                     </p>
                 </x-ui.legal-section>

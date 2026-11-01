@@ -13,9 +13,12 @@ use Filament\Actions\Action;
 use Filament\Actions\DeleteAction;
 use Filament\Forms\Components\Select;
 use Filament\Resources\Pages\ViewRecord;
+use MortalKiller\FilamentPageHeader\Concerns\HasPageHeader;
 
 class ViewEmailMessage extends ViewRecord
 {
+    use HasPageHeader;
+
     protected static string $resource = EmailMessageResource::class;
 
     public function mount(int|string $record): void

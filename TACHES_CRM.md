@@ -42,34 +42,47 @@
 ### 7. Amélioration du mode terrain (`/terrain`)
 
 > Constat : le mode terrain actuel permet surtout de consulter un snapshot en lecture seule et de modifier le compte rendu / le statut des activités existantes. Les fiches ne sont pas éditables, aucune création n'est possible, et la synchronisation est en « dernier écrivain gagne ».
+>
+> Plan détaillé : [plan_mode_terrain.md](plan_mode_terrain.md). Décisions retenues : priorités 1 et 2, résolution manuelle des conflits, photos rattachées aux activités, tournée manuelle avec itinéraire Google Maps.
 
 **Priorité 1 — usage quotidien sur le terrain**
-- [ ] Créer une activité depuis le terrain (appel, visite, note, tâche) avec échéance et rattachement au compte/contact.
-- [ ] Éditer hors ligne les coordonnées du compte et des contacts (téléphone, e-mail, adresse, notes) avec file de synchronisation.
-- [ ] Actions rapides : appeler, envoyer un SMS, écrire un e-mail, ouvrir l'adresse dans Plans.
-- [ ] Trier et filtrer par carnet, statut, relance à venir et activités en retard ; tri par date de relance ou distance.
-- [ ] Mettre en tête de liste les activités du jour et les retards.
+- [x] Créer une activité depuis le terrain (appel, visite, note, tâche) avec échéance et rattachement au compte/contact.
+- [x] Éditer hors ligne les coordonnées du compte et des contacts (téléphone, e-mail, adresse, notes) avec file de synchronisation.
+- [x] Actions rapides : appeler, envoyer un SMS, écrire un e-mail, ouvrir l'adresse dans Plans.
+- [x] Trier et filtrer par carnet, statut, relance à venir et activités en retard ; tri par date de relance ou nom.
+- [x] Mettre en tête de liste les activités du jour et les retards via le tri « Priorité terrain ».
+
+> Phase 1 livrée le 30/10/2026 : snapshot v2 (comptes/contacts séparés des activités), endpoint paginé des activités, file d'opérations IndexedDB, `client_uuid` idempotent, création d'activité et édition compte/contact hors ligne, actions rapides, filtres et tri prioritaire. Tests : `FieldModeTest` (13 tests).
 
 **Priorité 2 — fiabilité de la synchronisation**
-- [ ] Détecter les conflits : exploiter `base_updated_at` (envoyé mais actuellement ignoré) et signaler les modifications concurrentes.
-- [ ] Synchronisation incrémentale (`updated_since`) au lieu de recharger tout le snapshot ; supprimer la limite arbitraire de 50 activités par compte.
-- [ ] Reprise automatique (retry avec backoff) et conservation des erreurs de synchronisation par élément.
-- [ ] Gérer l'expiration de session hors ligne : conserver le snapshot et la file sans perte, puis reconnecter.
-- [ ] Bouton « Vider le cache » avec confirmation et affichage de l'espace utilisé.
+- [x] Détecter les conflits : `base_updated_at` est comparé à la version serveur, réponse `conflict` avec la version serveur.
+- [x] Synchronisation incrémentale (`updated_since`) des comptes/contacts avec curseur et liste des suppressions.
+- [x] Suppression de la limite arbitraire de 50 activités par compte via l'endpoint paginé `/terrain/activities`.
+- [x] Reprise automatique (backoff 5 s, 30 s, 2 min, 10 min) et conservation des erreurs de synchronisation par opération.
+- [x] Gestion de l'expiration de session hors ligne : bandeau de reconnexion, snapshot et file conservés.
+- [x] Panneau « Données locales » : espace utilisé, export JSON de la file, suppression avec confirmation renforcée.
+
+> Phase 2 livrée le 30/10/2026 : détection et résolution manuelle des conflits (garder local, prendre serveur, fusion champ par champ), reprise automatique avec backoff, erreurs par opération, session expirée sans perte, snapshot incrémental et panneau de gestion du cache. Tests : `FieldModeTest` (17 tests).
 
 **Priorité 3 — richesse fonctionnelle**
-- [ ] Photos et pièces jointes prises sur le terrain, stockées localement puis envoyées à la synchronisation.
+- [x] Photos et pièces jointes prises sur le terrain, stockées localement puis envoyées à la synchronisation.
+- [x] Tournée manuelle : ajout, ordre, retrait, réinitialisation, itinéraires Google Maps découpés par 10 étapes.
 - [ ] Notes vocales (au minimum pièce jointe audio, idéalement retranscription).
 - [ ] Signature client sur devis / bon de réception.
 - [ ] Géolocalisation : « autour de moi », distance, itinéraire multi-étapes de la tournée.
 - [ ] Mode « tournée du jour » avec progression et prochaine étape.
 - [ ] Recherche accents-insensible étendue aux contacts, affaires et devis.
 
+> Phase 3 livrée le 30/10/2026 : photos rattachées aux activités (compression JPEG locale, stockage IndexedDB en Blob, upload différé idempotent, 5 photos / 5 Mo maximum), galerie dans `/terrain` et dans la fiche activité Filament, stockage privé purgé avec l'activité et à la rétention ; tournée du jour persistée avec ordre manuel, réinitialisation automatique au changement de date et itinéraires Google Maps par tronçons de 10 étapes. Tests : `FieldAttachmentTest` (11 tests).
+
 **Priorité 4 — ergonomie mobile et qualité**
-- [ ] Refonte mobile : cibles tactiles ≥ 44 px, navigation par onglets, en-tête compact, mode sombre vérifié.
-- [ ] Installation PWA guidée (invite, icônes, écran de démarrage) et indicateur de version du cache.
-- [ ] Accessibilité : contrastes, focus, labels ARIA, navigation clavier.
-- [ ] Tests : snapshot (scoping admin/commercial), conflits, reprise après erreur, quota IndexedDB, parcours hors ligne.
+- [x] Refonte mobile : cibles tactiles ≥ 44 px, navigation par onglets, en-tête compact, thème clair/sombre avec bascule manuelle.
+- [x] Installation PWA guidée (invite personnalisée, report de 14 jours) et indicateur de version du cache.
+- [x] Accessibilité : contrastes, focus visible, labels ARIA, lien d'évitement, navigation clavier des onglets.
+- [x] Tests PHP et Playwright : snapshot (scoping admin/commercial), conflits, reprise après erreur, parcours hors ligne, photos, tournée, session expirée.
+- [ ] Test de quota IndexedDB (simulation de saturation du stockage navigateur).
+
+> Phase 4 livrée le 30/10/2026 : barre d'onglets mobile (Comptes / Tournée / Données) avec badges, en-tête compact, thème clair/sombre persistant, invite d'installation PWA, version du cache hors ligne, accessibilité (cibles 44 px, focus, ARIA, clavier). Parcours Playwright automatisés sur base SQLite dédiée et intégrés au workflow GitHub Actions. Documentation `AGENTS.md`. Tests : 290 tests PHP, 8 parcours E2E.
 
 ### 8. Relances automatiques
 
@@ -151,9 +164,78 @@
 - [x] Chemins de stockage pseudonymes (HMAC de l'identifiant avec `APP_KEY`) pour éviter l'énumération des utilisateurs via les URLs de fichiers.
 - [x] Tests du profil, du préremplissage (nouveau message, réponse, absence de signature), des restrictions d'upload, de la sanitisation et de l'absolutisation des URLs ; Pint, PHPStan et suite complète au vert.
 
+### 15. Sauvegarde et restauration
+
+- [x] `spatie/laravel-backup` configuré pour ne sauvegarder que la base MySQL (`config/backup.php`), avec `useSingleTransaction` pour un dump cohérent sans verrouiller les tables InnoDB.
+- [x] Archives ZIP horodatées `c2me-AAAA-MM-JJ-HH-MM-SS.zip` dans `storage/app/backups` (disque `backups`, hors dossier public et ignoré par Git).
+- [x] Chiffrement AES-256 des archives dès que `BACKUP_ARCHIVE_PASSWORD` est défini ; sinon archive non chiffrée (local uniquement).
+- [x] Vérification de l'archive après création (`verify_backup`) et dump `db-dumps/mysql-{base}.sql`.
+- [x] Planification : `backup:clean` à 01:15, `backup:run --only-db` à 01:30, `backup:monitor` à 02:00, suspendues par `BACKUP_ENABLED=false`.
+- [x] Rétention 7 jours / 30 jours / 12 semaines / 6 mois / 2 ans, plafond 2 Go ; alertes e-mail limitées aux échecs et aux sauvegardes trop anciennes (`BACKUP_NOTIFICATION_EMAIL`).
+- [x] Sauvegarde des fichiers (`storage/app/private`, `storage/app/public`) par `tar` + `gzip` documentée, avec copie hors site (`rclone`, `scp`) et contrôle `sha256`.
+- [x] Runbook complet dans `docs/sauvegarde-restauration.md` : prérequis, configuration, commandes, restauration de la base et des fichiers, liste de vérification, exercice trimestriel, dépannage (dont MySQL dans Docker en local) et consignes RGPD.
+- [x] Tests : périmètre base seule, disque privé, planification `--only-db`, chiffrement conditionnel.
+
+### 16. Accessibilité du site public
+
+- [x] Lien d'évitement « Aller au contenu principal », `<main id="main" tabindex="-1">` et indicateur de focus commun (`:focus-visible`).
+- [x] Menu services et menu mobile : `aria-expanded`, `aria-haspopup`, `aria-controls`, nom accessible dynamique, fermeture par `Échap` et au clic extérieur.
+- [x] Formulaires de contact et de devis : `aria-required`, `aria-invalid`, `aria-describedby`, résumé d'erreurs `role="alert"` avec liens vers les champs, astérisque décoratif et mention « (obligatoire) » réservée aux lecteurs d'écran.
+- [x] Cartes de choix en `radiogroup` avec anneau de focus (`focus-within`), zone de dépôt de plans focusable.
+- [x] Galerie : filtres en boutons `aria-pressed` (au lieu de `role="tab"` sans panneau), visionneuse avec focus rendu au déclencheur et fermeture par `Échap`.
+- [x] Contrastes : texte atténué à 5,2:1, `brand-600` assombri à #0b7c7c (5:1), boutons pleins en `brand-600`, liens RGPD en `brand-700` (6,1:1).
+- [x] Tableaux légaux avec `scope="col"`, titres de cartes de la page contact en `<h2>`, liens externes signalés « (nouvel onglet) ».
+- [x] Messages de validation traduits en français (`lang/fr/validation.php`, `auth.php`, `passwords.php`) : les erreurs n'affichent plus de clés brutes comme « validation.required ».
+- [x] Audit documenté dans `docs/accessibilite.md` ; tests de non-régression dans `tests/Feature/AccessibilityTest.php`.
+
+### 17. Revue RGPD finale
+
+- [x] Registre des traitements, sous-traitants, cookies, procédure des droits et violation de données dans `docs/rgpd-registre.md`.
+- [x] Mention RGPD sous les trois formulaires publics, avec lien vers la politique de confidentialité (`x-ui.privacy-notice`).
+- [x] Export RGPD d'un contact depuis la fiche compte (JSON : contact, compte, affaires, devis, activités, e-mails), réservé aux administrateurs et journalisé (`exported`).
+- [x] Anonymisation d'un contact (effacement du nom, des coordonnées et des notes, historique conservé), journalisée sans conserver les valeurs effacées (`anonymized`).
+- [x] Tests du service d'export/Anonymisation, du contenu du journal et de la restriction aux administrateurs (`tests/Feature/ContactPrivacyTest.php`).
+- [ ] Points à finaliser en production : contrat SMTP, vérification `logo.dev`, purge du journal d'audit (12 mois), 2FA administrateurs.
+
+### 18. Graphiques Apache ECharts
+
+- [x] Plugin `elemind/filament-echarts` (`^1.1`) installé et enregistré dans `AdminPanelProvider`.
+- [x] Widgets ECharts : CA sur 12 derniers mois (barres + courbe), pipeline par carnet, top 5 comptes par pipeline, taux de conversion (jauge) et activités par type (anneau).
+- [x] Filtre de période du tableau de bord respecté par la jauge et l'anneau (`InteractsWithPageFilters`) ; polling désactivé.
+- [x] Montants formatés en français via `extraJsOptions()` (`Intl.NumberFormat`), états vides explicites, palettes de la charte (teal/lime).
+- [x] Service complété : `revenueByMonth()`, `activitiesByType()`, `topAccountsByPipeline()`.
+- [x] Tests de calcul (`DashboardMetricsTest`) et de rendu des widgets (`DashboardPageTest`) ; Pint, PHPStan et suite complète au vert.
+
+### 19. En-têtes de pages (Page Header)
+
+- [x] Plugin `mortalkiller/filament-page-header` `^2.4` installé, assets publiés et enregistré dans `AdminPanelProvider` en mode `compact()`.
+- [x] Trait `HasPageHeader` ajouté aux pages de vue et d'édition : comptes (3 carnets), devis, activités, demandes de contact et de devis, e-mails, utilisateurs, boîtes e-mail, étiquettes.
+- [x] Schémas partagés par ressource (`Schemas/{Modèle}Header.php`) : titre, description, initiales ou logo, badges de statut colorés, métadonnées avec icônes et actions natives.
+- [x] Configuration compacte par en-tête (`whenCompact`) : identité, badges, actions et quelques métadonnées clés restent visibles.
+- [x] Tests de découverte des schémas et de rendu (`tests/Feature/PageHeaderTest.php`) ; Pint, PHPStan et suite complète au vert.
+
+### 20. Réalisations gérées dans le CRM
+
+- [x] Modèles `ProjectCategory` (département), `Project` (chantier) et `ProjectImage` (photo), avec slugs générés, portées publiées/ordonnées et factories.
+- [x] Migrations SQLite/MySQL : catégories, chantiers (département, client, commune, année, prestations JSON, publication, ordre) et images (chemin, vignette, texte alternatif, ordre).
+- [x] Back-office « Site » : ressources Départements et Réalisations, réordonnancement, filtres par département et publication, actions réservées aux administrateurs par policy.
+- [x] Photos : dépôt multiple (5 Mo, JPEG/PNG/WebP, redimensionnement 1600 px), vignette WebP 720 px générée par GD, suppression des fichiers avec l’image, texte alternatif.
+- [x] Site : `/realisations` filtrée par département avec compteurs, fiches `/realisations/{slug}` (métadonnées, prestations, galerie avec visionneuse), état vide, liens « autres chantiers ».
+- [x] Sitemap : ajout des chantiers publiés ; les brouillons renvoient 404.
+- [x] Suppression de l’ancienne galerie statique (`config/site.php → projects`, composant `projects.gallery`) ; les dossiers `public/images/realisations` restent sur disque mais ne sont plus lus, tout se saisit désormais dans le CRM.
+- [x] Tests publics et admin (`tests/Feature/ProjectTest.php`, `ProjectAdminTest.php`) ; Pint, PHPStan et suite complète au vert.
+- [x] Seeder de démonstration `ProjectDemoSeeder` : 4 départements, 14 chantiers et 74 photos issus de `public/images/realisations`, idempotent, appelé par `DemoDataSeeder` et couvert par `ProjectSeederTest`.
+
+### 21. Totaux de devis calculés automatiquement
+
+- [x] Total HT et Total TTC en lecture seule, calculés depuis les lignes (quantité × P.U. HT, remise déduite).
+- [x] Recalcul en direct dans le formulaire à l’ajout, la modification ou la suppression d’une ligne, et au changement du taux de TVA (`UpdatesQuoteTotals`).
+- [x] Consolidation à l’enregistrement (`QuoteLineObserver`, `Quote::recalculateTotals()`, TTC recalculé par `QuoteObserver`) ; création sans ligne possible grâce aux valeurs par défaut à 0.
+- [x] Tests du calcul en direct, de l’enregistrement, de la suppression totale des lignes et de la création (`tests/Feature/QuoteTotalsTest.php`).
+
 ## Proposition de développement supplémentaire
 
-- [ ] **Amélioration du mode terrain** : édition hors ligne, création d'activités, actions rapides, conflits de synchronisation, photos et tournée — détail en section 7.
+- [x] **Amélioration du mode terrain** : édition hors ligne, création d'activités, actions rapides, conflits de synchronisation, photos et tournée — détail en section 7.
 - [x] Recherche globale Filament inter-carnets (comptes, contacts, affaires, devis). (v1.1.0)
 - [x] Relances automatiques : notifications/rappels à partir de `next_follow_up_at` — implémenté (voir section 8). (v1.1.0)
 - [x] Tableau de bord enrichi : CA signé, taux de conversion, pipeline par carnet — implémenté (voir section 9). (v1.1.0)
@@ -163,6 +245,9 @@
 - [x] Gestion dédiée des tags (création/renommage/fusion) avec couleurs, badges, filtres par carnet et outils de nettoyage des doublons.
 - [x] Journal d'audit des modifications sensibles (statuts, suppressions, envois) — implémenté (voir section 13).
 - [x] Signatures e-mail configurables par utilisateur — implémenté (voir section 14).
-- [ ] Sauvegarde/restauration documentée de la base et des fichiers.
-- [ ] Accessibilité et revue RGPD finale avant mise en production.
-- [ ] Ajouter support Calendrier avec synchronisation/export pour outlook, google calendar, etc...
+- [x] Sauvegarde/restauration documentée de la base et des fichiers — `spatie/laravel-backup`, archives chiffrées, runbook `docs/sauvegarde-restauration.md` (voir section 15).
+- [x] Accessibilité et revue RGPD finale avant mise en production — lien d’évitement, formulaires ARIA, contrastes AA, registre des traitements, export et anonymisation RGPD d’un contact (sections 16 et 17).
+- [x] Ajouter support Calendrier avec synchronisation/export pour Outlook, Google Calendar, etc. — flux WebCal privé par utilisateur, export ICS, activités et relances, événements personnels partageables (voir `plan_calendrier.md`).
+- [x] Prise en charge des Graphiques visuelle avec Apache Echart (https://filamentphp.com/plugins/elemind-echarts) — cinq graphiques sur le tableau de bord (voir section 18).
+- [x] Utiliser https://filamentphp.com/plugins/pedro-monteiro-page-header pour mettre en forme les vues des différents affichages — `mortalkiller/filament-page-header` `^2.4`, en-têtes compacts sur les fiches (voir section 19).
+- [ ] Permettre la gestion et l'organisation de l'espace 'Nos Réalisations' du frontend dans le CRM: Organisation par Département/chantier/images (Source probante: https://www.briand.fr/realisations/) 

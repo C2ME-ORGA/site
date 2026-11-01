@@ -76,6 +76,7 @@ C2ME is a Laravel Livewire-based CRM application managing clients industriels, p
 
 ### 5. RGPD / Rétention
 
+- Registre des traitements et procédure des droits : `docs/rgpd-registre.md`
 - Commandes de purge selon `config/crm.retention.*` (prospects, activités, e-mails)
 - Planification via tâche cron (non incluse dans cette démo, à ajouter en production)
 - Anonymisation des données personnelles à la suppression
@@ -88,6 +89,10 @@ C2ME is a Laravel Livewire-based CRM application managing clients industriels, p
 | `php artisan crm:purge-activities` | Purge des activités anciennes selon `crm.retention.activities_months` |
 | `php artisan crm:purge-emails` | Purge des e-mails anciens selon `crm.email.retention_months` |
 | `php artisan crm:send-follow-up-reminders --stage=due-day` | Envoie le digest des relances dues (voir section 10) |
+| `php artisan backup:run --only-db` | Crée une archive chiffrée de la base (voir section 13) |
+| `php artisan backup:list` | Liste les archives présentes sur le disque de sauvegarde |
+| `php artisan backup:monitor` | Vérifie l'âge et le volume des sauvegardes |
+| `php artisan backup:clean` | Applique la politique de rétention |
 
 ### 6. Configuration `.env`
 
@@ -102,6 +107,8 @@ C2ME is a Laravel Livewire-based CRM application managing clients industriels, p
 | `SMTP_USERNAME` | Nom d'utilisateur SMTP |
 | `SMTP_PASSWORD` | Mot de passe SMTP |
 | `LOGO_DEV` | Key publishable pour les logos Développeurs |
+| `SITE_HERO_VIDEO` | Vidéo de fond du hero (chemin relatif à `public/`, ex. `videos/hero.mp4`) |
+| `SITE_HERO_POSTER` | Image affichée avant la vidéo et en mode « mouvement réduit » |
 | `crm.retention.prospects_months` | Mois de conservation des prospects (entier) |
 | `crm.retention.activities_months` | Mois de conservation des activités (entier) |
 | `crm.email.retention_months` | Mois de conservation des e-mails (entier) |
@@ -126,8 +133,7 @@ C2ME is a Laravel Livewire-based CRM application managing clients industriels, p
 - Journal d'audit des modifications sensibles
 - Signatures e-mail configurables par utilisateur
 - Support OAuth Microsoft 365 / Google Workspace en plus d'IMAP par mot de passe
-- Documentation de sauvegarde/restauration
-- Accessibilité et revue RGPD finale avant mise en production
+- Revue d'accessibilité du back-office Filament et du mode terrain
 
 ### 9. Recherche globale inter-carnets
 
@@ -168,6 +174,13 @@ Le tableau de bord (`/admin`) est une page Filament personnalisée (`App\Filamen
 - **Taux de conversion** : devis acceptés parmi les devis dont `sent_at` est dans la période. Affiche `—` si aucun devis n'a été envoyé.
 - **Panier moyen** : CA devis / nombre de devis acceptés, avec le panier moyen des affaires gagnées en description.
 - **Pipeline par carnet** : affaires ouvertes uniquement (`nouveau`, `qualifie`, `etude`, `devis_envoye`, `negociation`), en brut et pondéré par probabilité. Le graphique indique le nombre d'affaires et la part de chaque carnet.
+- **Graphiques Apache ECharts** (`elemind/filament-echarts`, plugin enregistré dans le panel) :
+  - **CA sur 12 derniers mois** : barres des devis acceptés et courbe des affaires gagnées, mois par mois ;
+  - **Pipeline par carnet** : barres groupées brut/pondéré ;
+  - **Top 5 comptes par pipeline** : barres horizontales, montants formatés en euros ;
+  - **Taux de conversion des devis** : jauge 0–100 % sur la période sélectionnée ;
+  - **Activités par type** : anneau des activités enregistrées sur la période.
+  - Les montants sont formatés en français (`Intl.NumberFormat`), les axes et infobulles sont harmonisés et chaque graphique gère son état vide.
 - **Top 5 des affaires ouvertes** : triées par montant décroissant, avec lien vers la fiche compte.
 - **Devis à relancer ou expirés** : devis `sent` dont `valid_until` arrive dans les 7 jours, devis `sent` dépassés et devis `expired`, avec lien vers la fiche devis.
 - **Objectif mensuel** : compare le CA devis du mois en cours à `CRM_DASHBOARD_MONTHLY_TARGET`. Une valeur à `0` masque la jauge et affiche « Objectif non défini ».
@@ -185,6 +198,59 @@ Les exports et impressions respectent le carnet courant, les filtres/recherches 
 - **Fiche affaire** : action « Imprimer » sur chaque ligne d'affaire. La vue A4 inclut l'affaire, le compte, le contact, les devis liés et les activités.
 - **Sécurité** : `GET /admin/print/comptes/{account}` et `GET /admin/print/affaires/{opportunity}` sont protégés par `auth`, l'utilisateur actif et `Gate::authorize('view', …)`.
 - **Code** : `App\Services\CrmCsvExporter`, `App\Http\Controllers\PrintController`, vues `resources/views/print/*`.
+
+### 13. Sauvegarde et restauration
+
+La base est sauvegardée chaque nuit dans `storage/app/backups` avec
+`spatie/laravel-backup` ; les fichiers (photos, plans, pièces jointes, PDF)
+sont archivés séparément par une commande `tar` à planifier dans le cron
+système (voir la procédure).
+
+- **Commandes** : `backup:run --only-db`, `backup:list`, `backup:monitor`, `backup:clean`.
+- **Planification** : `backup:clean` à 01:15, `backup:run --only-db` à 01:30, `backup:monitor` à 02:00 ; `BACKUP_ENABLED=false` suspend les trois.
+- **Chiffrement** : AES-256 du ZIP via `BACKUP_ARCHIVE_PASSWORD`, obligatoire en production.
+- **Rétention** : 7 jours intégraux, 30 jours en quotidien, 12 semaines, 6 mois, 2 ans, plafond 2 Go.
+- **Configuration** : `config/backup.php`, disque `backups` de `config/filesystems.php`.
+- **Procédure complète** (sauvegarde des fichiers, restauration, exercice trimestriel, dépannage) : `docs/sauvegarde-restauration.md`.
+
+### 15. En-têtes de pages (Page Header)
+
+- **Plugin** : `mortalkiller/filament-page-header` `^2.4`, enregistré dans `AdminPanelProvider` en mode **compact** (l'en-tête se réduit au défilement et reste épinglé).
+- **Schémas partagés** dans `app/Filament/Resources/{Ressource}/Schemas/{Modèle}Header.php`, découverts automatiquement par le trait `HasPageHeader` :
+  - `CrmAccountHeader` couvre les trois carnets (les ressources filles héritent d'`AccountResource`) ;
+  - `QuoteHeader`, `CrmActivityHeader`, `ContactRequestHeader`, `QuoteRequestHeader`, `EmailMessageHeader`, `UserHeader`, `EmailMailboxHeader`, `CrmTagHeader`.
+- **Contenu** : titre, description, initiales ou logo d'entreprise (comptes), badges de statut avec couleurs, métadonnées avec icônes (commercial, coordonnées, dates) et actions natives existantes (modifier, supprimer, imprimer, transitions de devis…).
+- **Compact** : avatar, titre, badges et actions restent visibles ; seules les métadonnées clés (commercial, prochaine relance, montant, échéance) sont conservées.
+- **Pages concernées** : vue et édition des fiches (comptes, devis, activités, demandes de contact et de devis, e-mails, utilisateurs, boîtes e-mail, étiquettes).
+- **Tests** : `tests/Feature/PageHeaderTest.php`.
+
+### 14. Accessibilité et RGPD
+
+- **Accessibilité** : lien d'évitement, `<main id="main">`, focus visible global, menus `aria-expanded`/`aria-controls` fermables par `Échap`, formulaires avec `aria-required`/`aria-invalid`/`aria-describedby` et résumé d'erreurs `role="alert"`, galerie en boutons `aria-pressed`, visionneuse avec restitution du focus. Contrastes texte ≥ 4,5:1 (texte atténué `ink-700/70`, `brand-600` assombri en `#0b7c7c`, boutons en `brand-600`). Audit et limites connues : `docs/accessibilite.md`.
+- **RGPD** : registre des traitements, sous-traitants, cookies et procédure des droits dans `docs/rgpd-registre.md` ; durées de purge dans `docs/crm-rgpd.md`.
+- **Droits des personnes** : sur la fiche compte, onglet Contacts (administrateurs), boutons « Exporter les données (RGPD) » (JSON : contact, compte, affaires, devis, activités, e-mails) et « Anonymiser » (nom, coordonnées et notes effacés, historique conservé). Les deux opérations sont journalisées dans le journal d'audit.
+- **Mention formulaires** : `x-ui.privacy-notice` affiche la finalité et le lien vers la politique de confidentialité sous les formulaires de contact et de devis.
+- **Tests** : `tests/Feature/AccessibilityTest.php`, `tests/Feature/ContactPrivacyTest.php`.
+
+### 16. Réalisations gérées dans le CRM
+
+La page `/realisations` et les fiches chantier sont alimentées par la base de données, et non plus par `config/site.php`.
+
+- **Modèles** : `ProjectCategory` (département, c’est-à-dire une famille d’ouvrages), `Project` (chantier) et `ProjectImage` (photo et vignette).
+- **Back-office** : groupe « Site » avec « Départements » (nom, description, ordre, visibilité) et « Réalisations » (département, titre, maître d’ouvrage, commune, année, prestations en étiquettes, description, publication, ordre).
+- **Photos** : dépôt multiple dans la fiche chantier (JPEG/PNG/WebP, 5 Mo max, redimensionnement 1600 px), texte alternatif et réordonnancement par glisser-déposer. Une vignette WebP de 720 px est générée automatiquement (GD) pour la grille ; les fichiers sont stockés sur le disque `public` (`storage/app/public/projects`) et supprimés avec la photo.
+- **Site** : `/realisations` liste les chantiers publiés, filtrables par département (`?departement=slug`), avec compteurs de chantiers, photos et départements. Chaque carte mène à `/realisations/{slug}` : fil d’Ariane, maître d’ouvrage, commune, année, prestations et galerie avec visionneuse clavier.
+- **SEO** : les chantiers publiés sont ajoutés au `sitemap.xml` ; un chantier non publié renvoie une 404.
+- **Droits** : gestion réservée aux administrateurs (`ProjectPolicy`, `ProjectCategoryPolicy`).
+- **Démo** : `php artisan db:seed --class=ProjectDemoSeeder` crée 4 départements et 14 chantiers avec les 74 photos de `public/images/realisations` (copiées sur le disque public, vignettes incluses). Le seeder est idempotent et `DemoDataSeeder` l’appelle.
+- **Tests** : `tests/Feature/ProjectTest.php`, `tests/Feature/ProjectAdminTest.php`, `tests/Feature/ProjectSeederTest.php`.
+
+### 17. Totaux de devis calculés automatiquement
+
+- Les champs **Total HT** et **Total TTC** d’un devis sont en lecture seule : ils sont calculés à partir des lignes (quantité × prix unitaire, remise déduite).
+- Le formulaire recalcule en direct à chaque modification de quantité, prix, remise, à l’ajout ou à la suppression d’une ligne, ainsi qu’au changement du taux de TVA (`UpdatesQuoteTotals`).
+- À l’enregistrement, `QuoteLineObserver` recalcule le total de chaque ligne, puis `Quote::recalculateTotals()` et `QuoteObserver` consolident le HT et le TTC en base. La création d’un devis sans ligne reste possible (valeurs par défaut à 0).
+- Tests : `tests/Feature/QuoteTotalsTest.php`.
 
 ---
 

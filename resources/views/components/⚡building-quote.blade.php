@@ -366,8 +366,8 @@ new class extends Component
 <div>
     @if ($submitted)
         <div class="rounded-2xl border border-brand-200 bg-brand-50 p-8" role="status">
-            <span class="inline-grid h-12 w-12 place-items-center rounded-full bg-brand-500 text-white">
-                <svg class="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <span class="inline-grid h-12 w-12 place-items-center rounded-full bg-brand-600 text-white">
+                <svg class="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M20 6 9 17l-5-5" />
                 </svg>
             </span>
@@ -387,7 +387,7 @@ new class extends Component
                 class="mt-6 inline-flex items-center gap-2 text-sm font-bold text-brand-600 transition hover:text-brand-700"
             >
                 Décrire un autre projet
-                <svg class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                <svg class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
                     <path fill-rule="evenodd" d="M3 10a.75.75 0 0 1 .75-.75h10.19L10.7 6.03a.75.75 0 1 1 1.06-1.06l4.5 4.5a.75.75 0 0 1 0 1.06l-4.5 4.5a.75.75 0 1 1-1.06-1.06l3.24-3.22H3.75A.75.75 0 0 1 3 10Z" clip-rule="evenodd" />
                 </svg>
             </button>
@@ -412,13 +412,14 @@ new class extends Component
                         wire:click="goToStep({{ $index }})"
                         @disabled($index > $step)
                         @if ($index > $step) aria-disabled="true" @endif
+                        @if ($index === $step) aria-current="step" @endif
                         class="flex items-center gap-2 text-sm font-bold transition @if ($index === $step) text-brand-600 @elseif ($index < $step) text-ink-900 hover:text-brand-600 @else text-ink-700/35 @endif"
                     >
                         <span
-                            class="grid h-6 w-6 place-items-center rounded-full text-[11px] @if ($index === $step) bg-brand-500 text-white @elseif ($index < $step) bg-brand-100 text-brand-600 @else bg-mist-200 text-ink-700/40 @endif"
+                            class="grid h-6 w-6 place-items-center rounded-full text-[11px] @if ($index === $step) bg-brand-600 text-white @elseif ($index < $step) bg-brand-100 text-brand-600 @else bg-mist-200 text-ink-700/40 @endif"
                         >
                             @if ($index < $step)
-                                <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+                                <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" aria-hidden="true">
                                     <path stroke-linecap="round" stroke-linejoin="round" d="M20 6 9 17l-5-5" />
                                 </svg>
                             @else
@@ -432,18 +433,49 @@ new class extends Component
         </ol>
 
         <form wire:submit="submit" class="space-y-8">
+            <x-ui.form-errors :fields="[
+                'type' => 'building-type',
+                'usage' => 'building-usage',
+                'length' => 'building-length',
+                'width' => 'building-width',
+                'height' => 'building-height',
+                'city' => 'building-city',
+                'envelope' => 'building-envelope',
+                'prestations' => 'building-prestations',
+                'delay' => 'building-delay',
+                'budget' => 'building-budget',
+                'level' => 'building-level',
+                'plans' => 'building-plans',
+                'plans.*' => 'building-plans',
+                'plansLater' => 'building-plans-later',
+                'name' => 'building-name',
+                'company' => 'building-company',
+                'email' => 'building-email',
+                'phone' => 'building-phone',
+                'message' => 'building-message',
+            ]" />
+
             {{-- Étape 1 — nature du projet --}}
             @if ($step === 1)
                 <div class="space-y-6">
                     <div>
-                        <span class="mb-3 block text-sm font-bold text-ink-900">
-                            Nature du bâtiment <span class="text-brand-600">*</span>
+                        <span id="building-type-label" class="mb-3 block text-sm font-bold text-ink-900">
+                            Nature du bâtiment <span class="text-brand-600" aria-hidden="true">*</span>
+                            <span class="sr-only">(obligatoire)</span>
                         </span>
 
-                        <div class="grid gap-3 sm:grid-cols-2">
+                        <div
+                            id="building-type"
+                            tabindex="-1"
+                            role="radiogroup"
+                            aria-labelledby="building-type-label"
+                            aria-required="true"
+                            @if ($errors->has('type')) aria-invalid="true" aria-describedby="building-type-error" @endif
+                            class="grid gap-3 sm:grid-cols-2"
+                        >
                             @foreach (config('site.quote.building.types', []) as $option)
                                 <label
-                                    class="cursor-pointer rounded-xl border p-4 transition @if ($type === $option['value']) border-brand-500 bg-brand-50 ring-2 ring-brand-500/20 @else border-mist-300 bg-white hover:border-brand-300 @endif"
+                                    class="cursor-pointer rounded-xl border p-4 transition focus-within:ring-2 focus-within:ring-brand-600 focus-within:ring-offset-2 @if ($type === $option['value']) border-brand-500 bg-brand-50 ring-2 ring-brand-500/20 @else border-mist-300 bg-white hover:border-brand-300 @endif"
                                 >
                                     <input
                                         type="radio"
@@ -455,7 +487,7 @@ new class extends Component
                                     <span class="block font-display text-base font-extrabold text-ink-900">
                                         {{ $option['label'] }}
                                     </span>
-                                    <span class="mt-1 block text-xs leading-relaxed text-ink-700/60">
+                                    <span class="mt-1 block text-xs leading-relaxed text-ink-700/70">
                                         {{ $option['hint'] }}
                                     </span>
                                 </label>
@@ -463,17 +495,20 @@ new class extends Component
                         </div>
 
                         @error('type')
-                            <p class="mt-2 text-xs font-semibold text-red-600">{{ $message }}</p>
+                            <p id="building-type-error" class="mt-2 text-xs font-semibold text-red-600">{{ $message }}</p>
                         @enderror
                     </div>
 
                     <div>
                         <label for="building-usage" class="mb-2 block text-sm font-bold text-ink-900">
-                            Usage prévu <span class="text-brand-600">*</span>
+                            Usage prévu <span class="text-brand-600" aria-hidden="true">*</span>
+                            <span class="sr-only">(obligatoire)</span>
                         </label>
                         <select
                             id="building-usage"
                             wire:model="usage"
+                            aria-required="true"
+                            @if ($errors->has('usage')) aria-invalid="true" aria-describedby="building-usage-error" @endif
                             @class([
                                 'w-full rounded-lg border border-mist-300 bg-white px-4 py-3 text-sm text-ink-900 transition focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-500/20',
                                 'border-red-400' => $errors->has('usage'),
@@ -485,7 +520,7 @@ new class extends Component
                             @endforeach
                         </select>
                         @error('usage')
-                            <p class="mt-2 text-xs font-semibold text-red-600">{{ $message }}</p>
+                            <p id="building-usage-error" class="mt-2 text-xs font-semibold text-red-600">{{ $message }}</p>
                         @enderror
                     </div>
                 </div>
@@ -497,7 +532,7 @@ new class extends Component
                     <div>
                         <span class="mb-2 block text-sm font-bold text-ink-900">
                             Emprise du bâtiment
-                            <span class="ml-1 text-xs font-semibold text-ink-700/50">(facultatif — une estimation suffit)</span>
+                            <span class="ml-1 text-xs font-semibold text-ink-700/70">(facultatif — une estimation suffit)</span>
                         </span>
 
                         <div class="grid gap-4 sm:grid-cols-3">
@@ -510,8 +545,9 @@ new class extends Component
                                     min="1"
                                     max="200"
                                     placeholder="30"
+                                    @if ($errors->has('length')) aria-invalid="true" aria-describedby="building-length-error" @endif
                                     @class([
-                                        'w-full rounded-lg border border-mist-300 bg-white px-4 py-3 text-sm text-ink-900 transition placeholder:text-ink-700/40 focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-500/20',
+                                        'w-full rounded-lg border border-mist-300 bg-white px-4 py-3 text-sm text-ink-900 transition placeholder:text-ink-700/70 focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-500/20',
                                         'border-red-400' => $errors->has('length'),
                                     ])
                                 >
@@ -526,8 +562,9 @@ new class extends Component
                                     min="1"
                                     max="200"
                                     placeholder="20"
+                                    @if ($errors->has('width')) aria-invalid="true" aria-describedby="building-width-error" @endif
                                     @class([
-                                        'w-full rounded-lg border border-mist-300 bg-white px-4 py-3 text-sm text-ink-900 transition placeholder:text-ink-700/40 focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-500/20',
+                                        'w-full rounded-lg border border-mist-300 bg-white px-4 py-3 text-sm text-ink-900 transition placeholder:text-ink-700/70 focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-500/20',
                                         'border-red-400' => $errors->has('width'),
                                     ])
                                 >
@@ -542,8 +579,9 @@ new class extends Component
                                     min="1"
                                     max="60"
                                     placeholder="8"
+                                    @if ($errors->has('height')) aria-invalid="true" aria-describedby="building-height-error" @endif
                                     @class([
-                                        'w-full rounded-lg border border-mist-300 bg-white px-4 py-3 text-sm text-ink-900 transition placeholder:text-ink-700/40 focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-500/20',
+                                        'w-full rounded-lg border border-mist-300 bg-white px-4 py-3 text-sm text-ink-900 transition placeholder:text-ink-700/70 focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-500/20',
                                         'border-red-400' => $errors->has('height'),
                                     ])
                                 >
@@ -551,36 +589,39 @@ new class extends Component
                         </div>
 
                         @error('length')
-                            <p class="mt-2 text-xs font-semibold text-red-600">{{ $message }}</p>
+                            <p id="building-length-error" class="mt-2 text-xs font-semibold text-red-600">{{ $message }}</p>
                         @enderror
                         @error('width')
-                            <p class="mt-2 text-xs font-semibold text-red-600">{{ $message }}</p>
+                            <p id="building-width-error" class="mt-2 text-xs font-semibold text-red-600">{{ $message }}</p>
                         @enderror
                         @error('height')
-                            <p class="mt-2 text-xs font-semibold text-red-600">{{ $message }}</p>
+                            <p id="building-height-error" class="mt-2 text-xs font-semibold text-red-600">{{ $message }}</p>
                         @enderror
                     </div>
 
                     <div>
                         <label for="building-city" class="mb-2 block text-sm font-bold text-ink-900">
-                            Commune du chantier <span class="text-brand-600">*</span>
+                            Commune du chantier <span class="text-brand-600" aria-hidden="true">*</span>
+                            <span class="sr-only">(obligatoire)</span>
                         </label>
                         <input
                             id="building-city"
                             type="text"
                             wire:model="city"
                             autocomplete="address-level2"
+                            aria-required="true"
+                            @if ($errors->has('city')) aria-invalid="true" aria-describedby="building-city-error" @endif
                             placeholder="Montaigu-Vendée"
                             @class([
-                                'w-full rounded-lg border border-mist-300 bg-white px-4 py-3 text-sm text-ink-900 transition placeholder:text-ink-700/40 focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-500/20',
+                                'w-full rounded-lg border border-mist-300 bg-white px-4 py-3 text-sm text-ink-900 transition placeholder:text-ink-700/70 focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-500/20',
                                 'border-red-400' => $errors->has('city'),
                             ])
                         >
-                        <p class="mt-2 text-xs text-ink-700/50">
+                        <p class="mt-2 text-xs text-ink-700/70">
                             Elle détermine la faisabilité du transport et du montage.
                         </p>
                         @error('city')
-                            <p class="mt-2 text-xs font-semibold text-red-600">{{ $message }}</p>
+                            <p id="building-city-error" class="mt-2 text-xs font-semibold text-red-600">{{ $message }}</p>
                         @enderror
                     </div>
                 </div>
@@ -590,14 +631,23 @@ new class extends Component
             @if ($step === 3)
                 <div class="space-y-6">
                     <div>
-                        <span class="mb-3 block text-sm font-bold text-ink-900">
-                            Niveau de livraison <span class="text-brand-600">*</span>
+                        <span id="building-envelope-label" class="mb-3 block text-sm font-bold text-ink-900">
+                            Niveau de livraison <span class="text-brand-600" aria-hidden="true">*</span>
+                            <span class="sr-only">(obligatoire)</span>
                         </span>
 
-                        <div class="grid gap-3 sm:grid-cols-2">
+                        <div
+                            id="building-envelope"
+                            tabindex="-1"
+                            role="radiogroup"
+                            aria-labelledby="building-envelope-label"
+                            aria-required="true"
+                            @if ($errors->has('envelope')) aria-invalid="true" aria-describedby="building-envelope-error" @endif
+                            class="grid gap-3 sm:grid-cols-2"
+                        >
                             @foreach (config('site.quote.building.enveloppes', []) as $option)
                                 <label
-                                    class="cursor-pointer rounded-xl border p-4 transition @if ($envelope === $option['value']) border-brand-500 bg-brand-50 ring-2 ring-brand-500/20 @else border-mist-300 bg-white hover:border-brand-300 @endif"
+                                    class="cursor-pointer rounded-xl border p-4 transition focus-within:ring-2 focus-within:ring-brand-600 focus-within:ring-offset-2 @if ($envelope === $option['value']) border-brand-500 bg-brand-50 ring-2 ring-brand-500/20 @else border-mist-300 bg-white hover:border-brand-300 @endif"
                                 >
                                     <input
                                         type="radio"
@@ -609,7 +659,7 @@ new class extends Component
                                     <span class="block font-display text-base font-extrabold text-ink-900">
                                         {{ $option['label'] }}
                                     </span>
-                                    <span class="mt-1 block text-xs leading-relaxed text-ink-700/60">
+                                    <span class="mt-1 block text-xs leading-relaxed text-ink-700/70">
                                         {{ $option['hint'] }}
                                     </span>
                                 </label>
@@ -617,17 +667,24 @@ new class extends Component
                         </div>
 
                         @error('envelope')
-                            <p class="mt-2 text-xs font-semibold text-red-600">{{ $message }}</p>
+                            <p id="building-envelope-error" class="mt-2 text-xs font-semibold text-red-600">{{ $message }}</p>
                         @enderror
                     </div>
 
                     <div>
-                        <span class="mb-3 block text-sm font-bold text-ink-900">
+                        <span id="building-prestations-label" class="mb-3 block text-sm font-bold text-ink-900">
                             Prestations souhaitées
-                            <span class="ml-1 text-xs font-semibold text-ink-700/50">(facultatif)</span>
+                            <span class="ml-1 text-xs font-semibold text-ink-700/70">(facultatif)</span>
                         </span>
 
-                        <div class="grid gap-2 sm:grid-cols-2">
+                        <div
+                            id="building-prestations"
+                            tabindex="-1"
+                            role="group"
+                            aria-labelledby="building-prestations-label"
+                            @if ($errors->has('prestations')) aria-describedby="building-prestations-error" @endif
+                            class="grid gap-2 sm:grid-cols-2"
+                        >
                             @foreach (config('site.quote.building.prestations', []) as $option)
                                 <label
                                     class="flex cursor-pointer items-start gap-3 rounded-lg border px-4 py-3 transition @if (in_array($option['value'], $prestations, true)) border-brand-500 bg-brand-50 ring-2 ring-brand-500/20 @else border-mist-300 bg-white hover:border-brand-300 @endif"
@@ -640,7 +697,7 @@ new class extends Component
                                     >
                                     <span>
                                         <span class="block text-sm font-bold text-ink-900">{{ $option['label'] }}</span>
-                                        <span class="mt-0.5 block text-xs leading-relaxed text-ink-700/60">
+                                        <span class="mt-0.5 block text-xs leading-relaxed text-ink-700/70">
                                             {{ $option['hint'] }}
                                         </span>
                                     </span>
@@ -649,7 +706,7 @@ new class extends Component
                         </div>
 
                         @error('prestations')
-                            <p class="mt-2 text-xs font-semibold text-red-600">{{ $message }}</p>
+                            <p id="building-prestations-error" class="mt-2 text-xs font-semibold text-red-600">{{ $message }}</p>
                         @enderror
                     </div>
                 </div>
@@ -661,11 +718,14 @@ new class extends Component
                     <div class="grid gap-6 sm:grid-cols-2">
                         <div>
                             <label for="building-delay" class="mb-2 block text-sm font-bold text-ink-900">
-                                Calendrier <span class="text-brand-600">*</span>
+                                Calendrier <span class="text-brand-600" aria-hidden="true">*</span>
+                                <span class="sr-only">(obligatoire)</span>
                             </label>
                             <select
                                 id="building-delay"
                                 wire:model="delay"
+                                aria-required="true"
+                                @if ($errors->has('delay')) aria-invalid="true" aria-describedby="building-delay-error" @endif
                                 @class([
                                     'w-full rounded-lg border border-mist-300 bg-white px-4 py-3 text-sm text-ink-900 transition focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-500/20',
                                     'border-red-400' => $errors->has('delay'),
@@ -676,17 +736,20 @@ new class extends Component
                                 @endforeach
                             </select>
                             @error('delay')
-                                <p class="mt-2 text-xs font-semibold text-red-600">{{ $message }}</p>
+                                <p id="building-delay-error" class="mt-2 text-xs font-semibold text-red-600">{{ $message }}</p>
                             @enderror
                         </div>
 
                         <div>
                             <label for="building-budget" class="mb-2 block text-sm font-bold text-ink-900">
-                                Enveloppe budgétaire <span class="text-brand-600">*</span>
+                                Enveloppe budgétaire <span class="text-brand-600" aria-hidden="true">*</span>
+                                <span class="sr-only">(obligatoire)</span>
                             </label>
                             <select
                                 id="building-budget"
                                 wire:model="budget"
+                                aria-required="true"
+                                @if ($errors->has('budget')) aria-invalid="true" aria-describedby="building-budget-error" @endif
                                 @class([
                                     'w-full rounded-lg border border-mist-300 bg-white px-4 py-3 text-sm text-ink-900 transition focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-500/20',
                                     'border-red-400' => $errors->has('budget'),
@@ -696,22 +759,25 @@ new class extends Component
                                     <option value="{{ $option['value'] }}">{{ $option['label'] }}</option>
                                 @endforeach
                             </select>
-                            <p class="mt-2 text-xs text-ink-700/50">
+                            <p class="mt-2 text-xs text-ink-700/70">
                                 Une fourchette nous aide à cadrer la proposition.
                             </p>
                             @error('budget')
-                                <p class="mt-2 text-xs font-semibold text-red-600">{{ $message }}</p>
+                                <p id="building-budget-error" class="mt-2 text-xs font-semibold text-red-600">{{ $message }}</p>
                             @enderror
                         </div>
                     </div>
 
                     <div>
                         <label for="building-level" class="mb-2 block text-sm font-bold text-ink-900">
-                            Vous portez le projet en tant que <span class="text-brand-600">*</span>
+                            Vous portez le projet en tant que <span class="text-brand-600" aria-hidden="true">*</span>
+                            <span class="sr-only">(obligatoire)</span>
                         </label>
                         <select
                             id="building-level"
                             wire:model="level"
+                            aria-required="true"
+                            @if ($errors->has('level')) aria-invalid="true" aria-describedby="building-level-error" @endif
                             @class([
                                 'w-full rounded-lg border border-mist-300 bg-white px-4 py-3 text-sm text-ink-900 transition focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-500/20',
                                 'border-red-400' => $errors->has('level'),
@@ -722,7 +788,7 @@ new class extends Component
                             @endforeach
                         </select>
                         @error('level')
-                            <p class="mt-2 text-xs font-semibold text-red-600">{{ $message }}</p>
+                            <p id="building-level-error" class="mt-2 text-xs font-semibold text-red-600">{{ $message }}</p>
                         @enderror
                     </div>
                 </div>
@@ -733,9 +799,9 @@ new class extends Component
                 <div class="space-y-6">
                     <div>
                         <span class="mb-2 block text-sm font-bold text-ink-900">
-                            Plans et documents <span class="text-ink-700/40">(facultatif)</span>
+                            Plans et documents <span class="text-ink-700/70">(facultatif)</span>
                         </span>
-                        <p class="mb-4 text-sm leading-relaxed text-ink-700/60">
+                        <p class="mb-4 text-sm leading-relaxed text-ink-700/70">
                             Plan de masse, implantation, relevé de terrain ou esquisse.
                             <strong class="font-bold text-ink-900">PDF, DXF ou DWG</strong>,
                             {{ config('site.quote.files.max_count') }} fichiers maximum,
@@ -743,7 +809,9 @@ new class extends Component
                         </p>
 
                         <label
-                            class="flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed border-mist-300 bg-mist-50 px-6 py-10 text-center transition hover:border-brand-400 hover:bg-brand-50"
+                            id="building-plans"
+                            tabindex="-1"
+                            class="flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed border-mist-300 bg-mist-50 px-6 py-10 text-center transition focus-within:ring-2 focus-within:ring-brand-600 focus-within:ring-offset-2 hover:border-brand-400 hover:bg-brand-50"
                         >
                             <input
                                 type="file"
@@ -765,10 +833,10 @@ new class extends Component
                         </label>
 
                         @error('plans')
-                            <p class="mt-2 text-xs font-semibold text-red-600">{{ $message }}</p>
+                            <p id="building-plans-error" class="mt-2 text-xs font-semibold text-red-600">{{ $message }}</p>
                         @enderror
                         @error('plans.*')
-                            <p class="mt-2 text-xs font-semibold text-red-600">{{ $message }}</p>
+                            <p id="building-plans-file-error" class="mt-2 text-xs font-semibold text-red-600">{{ $message }}</p>
                         @enderror
                     </div>
 
@@ -786,7 +854,7 @@ new class extends Component
                                         <span class="block truncate text-sm font-semibold text-ink-900">
                                             {{ $plan->getClientOriginalName() }}
                                         </span>
-                                        <span class="block text-xs text-ink-700/50">
+                                        <span class="block text-xs text-ink-700/70">
                                             {{ number_format($plan->getSize() / 1024, 0, ',', ' ') }} Ko
                                         </span>
                                     </span>
@@ -794,7 +862,7 @@ new class extends Component
                                     <button
                                         type="button"
                                         wire:click="removePlan({{ $index }})"
-                                        class="shrink-0 text-ink-700/40 transition hover:text-red-600"
+                                        class="shrink-0 text-ink-700/70 transition hover:text-red-600"
                                         aria-label="Retirer ce fichier"
                                     >
                                         <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -808,6 +876,7 @@ new class extends Component
 
                     <label class="flex cursor-pointer items-start gap-3">
                         <input
+                            id="building-plans-later"
                             type="checkbox"
                             wire:model="plansLater"
                             class="mt-0.5 h-4 w-4 rounded border-mist-300 text-brand-600 focus:ring-brand-500"
@@ -818,7 +887,7 @@ new class extends Component
                     </label>
 
                     @error('plansLater')
-                        <p class="mt-2 text-xs font-semibold text-red-600">{{ $message }}</p>
+                        <p id="building-plans-later-error" class="mt-2 text-xs font-semibold text-red-600">{{ $message }}</p>
                     @enderror
                 </div>
             @endif
@@ -827,21 +896,21 @@ new class extends Component
             @if ($step === 6)
                 <div class="space-y-6">
                     <div class="rounded-xl border border-mist-200 bg-mist-50 p-5">
-                        <p class="mb-3 text-xs font-bold uppercase tracking-wider text-ink-700/50">
+                        <p class="mb-3 text-xs font-bold uppercase tracking-wider text-ink-700/70">
                             Récapitulatif de votre projet
                         </p>
 
                         <dl class="space-y-2">
                             @foreach ($this->payload() as $key => $value)
                                 <div class="flex flex-wrap items-baseline gap-x-3 text-sm">
-                                    <dt class="shrink-0 font-semibold text-ink-700/60">{{ $key }}</dt>
+                                    <dt class="shrink-0 font-semibold text-ink-700/70">{{ $key }}</dt>
                                     <dd class="font-bold text-ink-900">{{ $value }}</dd>
                                 </div>
                             @endforeach
 
                             @if (count($plans) > 0)
                                 <div class="flex flex-wrap items-baseline gap-x-3 text-sm">
-                                    <dt class="shrink-0 font-semibold text-ink-700/60">Fichiers joints</dt>
+                                    <dt class="shrink-0 font-semibold text-ink-700/70">Fichiers joints</dt>
                                     <dd class="font-bold text-ink-900">
                                         {{ count($plans) }} fichier(s)
                                     </dd>
@@ -853,21 +922,24 @@ new class extends Component
                     <div class="grid gap-5 sm:grid-cols-2">
                         <div>
                             <label for="building-name" class="mb-2 block text-sm font-bold text-ink-900">
-                                Nom <span class="text-brand-600">*</span>
+                                Nom <span class="text-brand-600" aria-hidden="true">*</span>
+                                <span class="sr-only">(obligatoire)</span>
                             </label>
                             <input
                                 id="building-name"
                                 type="text"
                                 wire:model="name"
                                 autocomplete="name"
+                                aria-required="true"
+                                @if ($errors->has('name')) aria-invalid="true" aria-describedby="building-name-error" @endif
                                 placeholder="Jean Dupont"
                                 @class([
-                                    'w-full rounded-lg border border-mist-300 bg-white px-4 py-3 text-sm text-ink-900 transition placeholder:text-ink-700/40 focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-500/20',
+                                    'w-full rounded-lg border border-mist-300 bg-white px-4 py-3 text-sm text-ink-900 transition placeholder:text-ink-700/70 focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-500/20',
                                     'border-red-400' => $errors->has('name'),
                                 ])
                             >
                             @error('name')
-                                <p class="mt-2 text-xs font-semibold text-red-600">{{ $message }}</p>
+                                <p id="building-name-error" class="mt-2 text-xs font-semibold text-red-600">{{ $message }}</p>
                             @enderror
                         </div>
 
@@ -878,34 +950,38 @@ new class extends Component
                                 type="text"
                                 wire:model="company"
                                 autocomplete="organization"
+                                @if ($errors->has('company')) aria-invalid="true" aria-describedby="building-company-error" @endif
                                 placeholder="Charpentes Dupont"
                                 @class([
-                                    'w-full rounded-lg border border-mist-300 bg-white px-4 py-3 text-sm text-ink-900 transition placeholder:text-ink-700/40 focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-500/20',
+                                    'w-full rounded-lg border border-mist-300 bg-white px-4 py-3 text-sm text-ink-900 transition placeholder:text-ink-700/70 focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-500/20',
                                     'border-red-400' => $errors->has('company'),
                                 ])
                             >
                             @error('company')
-                                <p class="mt-2 text-xs font-semibold text-red-600">{{ $message }}</p>
+                                <p id="building-company-error" class="mt-2 text-xs font-semibold text-red-600">{{ $message }}</p>
                             @enderror
                         </div>
 
                         <div>
                             <label for="building-email" class="mb-2 block text-sm font-bold text-ink-900">
-                                E-mail <span class="text-brand-600">*</span>
+                                E-mail <span class="text-brand-600" aria-hidden="true">*</span>
+                                <span class="sr-only">(obligatoire)</span>
                             </label>
                             <input
                                 id="building-email"
                                 type="email"
                                 wire:model="email"
                                 autocomplete="email"
+                                aria-required="true"
+                                @if ($errors->has('email')) aria-invalid="true" aria-describedby="building-email-error" @endif
                                 placeholder="jean@dupont.fr"
                                 @class([
-                                    'w-full rounded-lg border border-mist-300 bg-white px-4 py-3 text-sm text-ink-900 transition placeholder:text-ink-700/40 focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-500/20',
+                                    'w-full rounded-lg border border-mist-300 bg-white px-4 py-3 text-sm text-ink-900 transition placeholder:text-ink-700/70 focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-500/20',
                                     'border-red-400' => $errors->has('email'),
                                 ])
                             >
                             @error('email')
-                                <p class="mt-2 text-xs font-semibold text-red-600">{{ $message }}</p>
+                                <p id="building-email-error" class="mt-2 text-xs font-semibold text-red-600">{{ $message }}</p>
                             @enderror
                         </div>
 
@@ -916,14 +992,15 @@ new class extends Component
                                 type="tel"
                                 wire:model="phone"
                                 autocomplete="tel"
+                                @if ($errors->has('phone')) aria-invalid="true" aria-describedby="building-phone-error" @endif
                                 placeholder="06 12 34 56 78"
                                 @class([
-                                    'w-full rounded-lg border border-mist-300 bg-white px-4 py-3 text-sm text-ink-900 transition placeholder:text-ink-700/40 focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-500/20',
+                                    'w-full rounded-lg border border-mist-300 bg-white px-4 py-3 text-sm text-ink-900 transition placeholder:text-ink-700/70 focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-500/20',
                                     'border-red-400' => $errors->has('phone'),
                                 ])
                             >
                             @error('phone')
-                                <p class="mt-2 text-xs font-semibold text-red-600">{{ $message }}</p>
+                                <p id="building-phone-error" class="mt-2 text-xs font-semibold text-red-600">{{ $message }}</p>
                             @enderror
                         </div>
                     </div>
@@ -936,14 +1013,15 @@ new class extends Component
                             id="building-message"
                             wire:model="message"
                             rows="4"
+                            @if ($errors->has('message')) aria-invalid="true" aria-describedby="building-message-error" @endif
                             placeholder="Contraintes de terrain, raccordements, règles d'urbanisme, contraintes d'accès…"
                             @class([
-                                'w-full rounded-lg border border-mist-300 bg-white px-4 py-3 text-sm text-ink-900 transition placeholder:text-ink-700/40 focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-500/20',
+                                'w-full rounded-lg border border-mist-300 bg-white px-4 py-3 text-sm text-ink-900 transition placeholder:text-ink-700/70 focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-500/20',
                                 'border-red-400' => $errors->has('message'),
                             ])
                         ></textarea>
                         @error('message')
-                            <p class="mt-2 text-xs font-semibold text-red-600">{{ $message }}</p>
+                            <p id="building-message-error" class="mt-2 text-xs font-semibold text-red-600">{{ $message }}</p>
                         @enderror
                     </div>
 
@@ -954,6 +1032,8 @@ new class extends Component
                 </div>
             @endif
 
+            <x-ui.privacy-notice />
+
             <div class="flex flex-wrap items-center gap-3 border-t border-mist-200 pt-6">
                 @if ($step > 1)
                     <button
@@ -961,7 +1041,7 @@ new class extends Component
                         wire:click="previousStep"
                         class="inline-flex items-center gap-2 rounded-lg border border-mist-300 bg-white px-5 py-3 text-sm font-bold text-ink-900 transition hover:border-brand-400 hover:text-brand-600"
                     >
-                        <svg class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                        <svg class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
                             <path fill-rule="evenodd" d="M17 10a.75.75 0 0 1-.75.75H5.612l4.158 3.96a.75.75 0 1 1-1.04 1.08l-5.5-5.25a.75.75 0 0 1 0-1.08l5.5-5.25a.75.75 0 1 1 1.04 1.08L5.612 9.25H16.25A.75.75 0 0 1 17 10Z" clip-rule="evenodd" />
                         </svg>
                         Retour
@@ -972,10 +1052,10 @@ new class extends Component
                     <button
                         type="button"
                         wire:click="nextStep"
-                        class="inline-flex items-center gap-2 rounded-lg bg-brand-500 px-6 py-3 text-sm font-bold text-white transition hover:bg-brand-600"
+                        class="inline-flex items-center gap-2 rounded-lg bg-brand-600 px-6 py-3 text-sm font-bold text-white transition hover:bg-brand-700"
                     >
                         Continuer
-                        <svg class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                        <svg class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
                             <path fill-rule="evenodd" d="M3 10a.75.75 0 0 1 .75-.75h10.19L10.7 6.03a.75.75 0 1 1 1.06-1.06l4.5 4.5a.75.75 0 0 1 0 1.06l-4.5 4.5a.75.75 0 1 1-1.06-1.06l3.24-3.22H3.75A.75.75 0 0 1 3 10Z" clip-rule="evenodd" />
                         </svg>
                     </button>

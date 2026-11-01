@@ -6,6 +6,7 @@ use App\Filament\Resources\ContactRequests\Actions\ContactRequestActions;
 use App\Filament\Resources\ContactRequests\ContactRequestResource;
 use App\Models\ContactRequest;
 use Filament\Actions\Action;
+use Filament\Actions\ActionGroup;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
@@ -80,10 +81,12 @@ class ContactRequestsTable
             ])
             ->recordActions([
                 ViewAction::make(),
-                ContactRequestActions::reply(),
-                ContactRequestActions::markAsRead(),
-                ContactRequestActions::resolve(),
-                EditAction::make(),
+                ActionGroup::make([
+                    ContactRequestActions::reply(),
+                    ContactRequestActions::markAsRead(),
+                    ContactRequestActions::resolve(),
+                    EditAction::make(),
+                ]),
             ])
             ->toolbarActions([
                 BulkActionGroup::make([

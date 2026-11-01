@@ -19,9 +19,6 @@
                 <a href="tel:{{ $company['phone_link'] }}" class="flex items-center gap-2 transition hover:text-volt-400">
                     {{ $company['phone'] }}
                 </a>
-                <a href="tel:{{ $company['mobile_link'] }}" class="flex items-center gap-2 transition hover:text-volt-400">
-                    {{ $company['mobile'] }}
-                </a>
                 <a href="mailto:{{ $company['email'] }}" class="transition hover:text-volt-400">
                     {{ $company['email'] }}
                 </a>
@@ -34,7 +31,9 @@
         <a href="{{ route('home') }}" class="flex items-center" aria-label="Accueil {{ $company['name'] }} — {{ $company['baseline'] }}">
             <img
                 src="{{ asset($company['logo']['wide']) }}"
-                alt="{{ $company['name'] }} — {{ $company['baseline'] }}"
+                alt=""
+                width="196"
+                height="56"
                 class="h-14 w-auto"
             >
         </a>
@@ -48,25 +47,35 @@
                     'text-brand-600' => request()->routeIs('home'),
                     'text-ink-800' => ! request()->routeIs('home'),
                 ])
+                @if (request()->routeIs('home')) aria-current="page" @endif
             >
                 Accueil
             </a>
 
             {{-- Menu déroulant services --}}
-            <div class="relative" @mouseenter="services = true" @mouseleave="services = false">
+            <div
+                class="relative"
+                @mouseenter="services = true"
+                @mouseleave="services = false"
+                @click.outside="services = false"
+                @keydown.escape.window="services = false"
+            >
                 <button
                     type="button"
                     @click="services = ! services"
                     class="flex items-center gap-1 rounded-md px-3 py-2 text-sm font-semibold text-ink-800 transition hover:text-brand-600"
                     :aria-expanded="services"
+                    aria-haspopup="true"
+                    aria-controls="services-menu"
                 >
                     Nos services
-                    <svg class="h-4 w-4 transition" :class="services && 'rotate-180'" viewBox="0 0 20 20" fill="currentColor">
+                    <svg class="h-4 w-4 transition" :class="services && 'rotate-180'" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
                         <path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 0 1 1.06.02L10 11.17l3.71-3.94a.75.75 0 1 1 1.08 1.04l-4.25 4.5a.75.75 0 0 1-1.08 0l-4.25-4.5a.75.75 0 0 1 .02-1.06Z" clip-rule="evenodd" />
                     </svg>
                 </button>
 
                 <div
+                    id="services-menu"
                     x-cloak
                     x-show="services"
                     x-transition.origin.top
@@ -96,6 +105,7 @@
                         'text-brand-600' => request()->routeIs($item['route']),
                         'text-ink-800' => ! request()->routeIs($item['route']),
                     ])
+                    @if (request()->routeIs($item['route'])) aria-current="page" @endif
                 >
                     {{ $item['label'] }}
                 </a>
@@ -105,7 +115,7 @@
         <div class="flex items-center gap-3">
             <a
                 href="{{ route('quote') }}"
-                class="hidden items-center gap-2 rounded-lg bg-brand-500 px-4 py-2.5 text-sm font-bold text-white transition hover:bg-brand-600 lg:inline-flex"
+                class="hidden items-center gap-2 rounded-lg bg-brand-600 px-4 py-2.5 text-sm font-bold text-white transition hover:bg-brand-700 lg:inline-flex"
             >
                 Demander un devis
             </a>
@@ -116,12 +126,13 @@
                 @click="open = ! open"
                 class="inline-flex h-11 w-11 items-center justify-center rounded-lg border border-mist-200 text-ink-900 lg:hidden"
                 :aria-expanded="open"
-                aria-label="Ouvrir le menu"
+                :aria-label="open ? 'Fermer le menu' : 'Ouvrir le menu'"
+                aria-controls="mobile-menu"
             >
-                <svg x-show="! open" class="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <svg x-show="! open" class="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
                     <path stroke-linecap="round" d="M4 6h16M4 12h16M4 18h16" />
                 </svg>
-                <svg x-cloak x-show="open" class="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <svg x-cloak x-show="open" class="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
                     <path stroke-linecap="round" d="M6 6l12 12M18 6L6 18" />
                 </svg>
             </button>
@@ -129,9 +140,16 @@
     </div>
 
     {{-- Menu mobile --}}
-    <div x-cloak x-show="open" x-transition class="border-t border-mist-200 bg-white lg:hidden">
-        <nav class="container-site flex flex-col gap-1 py-4">
-            <a href="{{ route('home') }}" class="rounded-lg px-3 py-3 text-base font-semibold hover:bg-mist-100">Accueil</a>
+    <div
+        id="mobile-menu"
+        x-cloak
+        x-show="open"
+        x-transition
+        class="border-t border-mist-200 bg-white lg:hidden"
+        @keydown.escape.window="open = false"
+    >
+        <nav class="container-site flex flex-col gap-1 py-4" aria-label="Navigation mobile">
+            <a href="{{ route('home') }}" class="rounded-lg px-3 py-3 text-base font-semibold hover:bg-mist-100" @if (request()->routeIs('home')) aria-current="page" @endif>Accueil</a>
 
             <p class="px-3 pt-3 text-xs font-bold uppercase tracking-[0.16em] text-brand-600">Nos services</p>
             @foreach ($site['services'] as $service)
@@ -147,7 +165,7 @@
                 </a>
             @endforeach
 
-            <a href="{{ route('quote') }}" class="mt-3 inline-flex items-center justify-center rounded-lg bg-brand-500 px-4 py-3 text-base font-bold text-white">
+            <a href="{{ route('quote') }}" class="mt-3 inline-flex items-center justify-center rounded-lg bg-brand-600 px-4 py-3 text-base font-bold text-white hover:bg-brand-700">
                 Demander un devis
             </a>
         </nav>

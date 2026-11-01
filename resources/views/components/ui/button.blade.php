@@ -5,10 +5,10 @@
 ])
 
 @php
-    $base = 'inline-flex items-center justify-center gap-2 rounded-lg font-bold transition focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-400 focus-visible:ring-offset-2';
+    $base = 'inline-flex items-center justify-center gap-2 rounded-lg font-bold transition focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 focus-visible:ring-offset-2';
 
     $variants = [
-        'primary' => 'bg-brand-500 text-white hover:bg-brand-600',
+        'primary' => 'bg-brand-600 text-white hover:bg-brand-700',
         'dark' => 'bg-ink-900 text-white hover:bg-ink-800',
         'volt' => 'bg-volt-500 text-ink-950 hover:bg-volt-400',
         'outline' => 'border border-ink-900/15 bg-white text-ink-900 hover:border-brand-400 hover:text-brand-600',

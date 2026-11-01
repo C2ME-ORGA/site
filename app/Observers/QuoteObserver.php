@@ -19,10 +19,12 @@ class QuoteObserver
 
     public function saving(Quote $quote): void
     {
-        $quote->amount_ttc = round(
-            (float) $quote->amount_ht * (1 + ((float) $quote->vat_rate / 100)),
-            2
-        );
+        // Les montants et le taux de TVA sont obligatoires en base : une valeur
+        // absente ou vidée dans le formulaire est ramenée à zéro.
+        $quote->amount_ht = is_numeric($quote->amount_ht) ? $quote->amount_ht : 0;
+        $quote->vat_rate = is_numeric($quote->vat_rate) ? $quote->vat_rate : 0;
+
+        $quote->amount_ttc = Quote::calculateAmountTtc($quote->amount_ht, $quote->vat_rate);
 
         if (! $quote->exists || ! $quote->isDirty('status')) {
             return;

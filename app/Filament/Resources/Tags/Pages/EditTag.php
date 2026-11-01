@@ -5,9 +5,12 @@ namespace App\Filament\Resources\Tags\Pages;
 use App\Filament\Resources\Tags\TagResource;
 use Filament\Actions\DeleteAction;
 use Filament\Resources\Pages\EditRecord;
+use MortalKiller\FilamentPageHeader\Concerns\HasPageHeader;
 
 class EditTag extends EditRecord
 {
+    use HasPageHeader;
+
     protected static string $resource = TagResource::class;
 
     protected function getHeaderActions(): array

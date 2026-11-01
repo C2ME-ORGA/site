@@ -4,14 +4,19 @@ namespace App\Providers\Filament;
 
 use App\Filament\Pages\Dashboard;
 use App\Filament\Pages\EditProfile;
+use App\Filament\Widgets\ActivitiesByTypeChart;
 use App\Filament\Widgets\CommercialStatsOverview;
 use App\Filament\Widgets\CrmStatsOverview;
 use App\Filament\Widgets\MonthlyTargetOverview;
 use App\Filament\Widgets\PipelineByBookChart;
+use App\Filament\Widgets\QuoteConversionGauge;
 use App\Filament\Widgets\QuotesToFollowUp;
+use App\Filament\Widgets\RevenueTrendChart;
+use App\Filament\Widgets\TopAccountsPipelineChart;
 use App\Filament\Widgets\TopOpenOpportunities;
 use App\Filament\Widgets\UpcomingActivities;
 use Boquizo\FilamentLogViewer\FilamentLogViewerPlugin;
+use Elemind\FilamentECharts\FilamentEChartsPlugin;
 use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
 use Filament\Http\Middleware\DisableBladeIconComponents;
@@ -30,6 +35,7 @@ use Illuminate\Routing\Middleware\SubstituteBindings;
 use Illuminate\Session\Middleware\StartSession;
 use Illuminate\Support\Facades\Vite;
 use Illuminate\View\Middleware\ShareErrorsFromSession;
+use MortalKiller\FilamentPageHeader\PageHeaderPlugin;
 use Vaslv\FilamentAppVersion\AppVersionPlugin;
 
 class AdminPanelProvider extends PanelProvider
@@ -58,7 +64,11 @@ class AdminPanelProvider extends PanelProvider
                 CrmStatsOverview::class,
                 CommercialStatsOverview::class,
                 MonthlyTargetOverview::class,
+                RevenueTrendChart::class,
                 PipelineByBookChart::class,
+                TopAccountsPipelineChart::class,
+                QuoteConversionGauge::class,
+                ActivitiesByTypeChart::class,
                 TopOpenOpportunities::class,
                 QuotesToFollowUp::class,
                 UpcomingActivities::class,
@@ -103,6 +113,8 @@ class AdminPanelProvider extends PanelProvider
             ])
             ->plugins([
                 AppVersionPlugin::make(),
+                FilamentEChartsPlugin::make(),
+                PageHeaderPlugin::make()->compact(),
                 FilamentLogViewerPlugin::make()
                     ->navigationGroup('Système')
                     ->navigationSort(95)

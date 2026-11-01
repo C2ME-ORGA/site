@@ -14,7 +14,7 @@ use Filament\Widgets\TableWidget;
 
 class TopOpenOpportunities extends TableWidget
 {
-    protected static ?int $sort = 5;
+    protected static ?int $sort = 9;
 
     protected int|string|array $columnSpan = 'full';
 

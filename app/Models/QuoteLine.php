@@ -40,6 +40,26 @@ class QuoteLine extends Model
     }
 
     /**
+     * Calcule le total HT d'une ligne, remise comprise.
+     */
+    public static function calculateTotalHt(mixed $quantity, mixed $unitPrice, mixed $discountPercent): float
+    {
+        $quantity = self::normalizeNumber($quantity);
+        $unitPrice = self::normalizeNumber($unitPrice);
+        $gross = $quantity * $unitPrice;
+
+        return round($gross - ($gross * (self::normalizeNumber($discountPercent) / 100)), 2);
+    }
+
+    /**
+     * Ramène une valeur absente, vide ou non numérique à zéro.
+     */
+    public static function normalizeNumber(mixed $value): float
+    {
+        return is_numeric($value) ? (float) $value : 0.0;
+    }
+
+    /**
      * @return BelongsTo<Quote, $this>
      */
     public function quote(): BelongsTo

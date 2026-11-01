@@ -149,6 +149,25 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Photos d'activité (mode terrain)
+    |--------------------------------------------------------------------------
+    |
+    | Les photos sont compressées côté navigateur puis stockées sur un disque
+    | privé. Elles ne sont servies qu'à travers une route authentifiée et sont
+    | supprimées avec l'activité ou lors de la purge de rétention.
+    |
+    */
+
+    'attachments' => [
+        'disk' => env('CRM_ATTACHMENT_DISK', 'local'),
+        'directory' => 'crm-activity-attachments',
+        'max_count' => 5,
+        'max_size_kb' => 5 * 1024,
+        'mime_types' => ['image/jpeg', 'image/png', 'image/webp'],
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Calendrier et relances
     |--------------------------------------------------------------------------
     */
@@ -157,6 +176,21 @@ return [
         'default_view' => 'month',
         'workday_start' => 8,
         'workday_end' => 18,
+
+        // Événements ICS : durée par défaut et rappel si l'activité n'a pas
+        // de remind_at explicite.
+        'duration_minutes' => 60,
+        'default_reminder_minutes' => 15,
+
+        // Les relances de comptes sont exportées en journée entière, avec un
+        // rappel à cette heure locale.
+        'include_follow_ups' => true,
+        'follow_up_reminder_hour' => 9,
+
+        'feed_ttl_minutes' => 300,
+        'feed_past_months' => 12,
+        // Nombre maximal d'occurrences calculées pour un événement récurrent.
+        'max_occurrences' => 500,
     ],
 
     /*

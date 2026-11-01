@@ -1,8 +1,11 @@
 <?php
 
+use App\Http\Controllers\CalendarFeedController;
 use App\Http\Controllers\EmailAttachmentController;
 use App\Http\Controllers\FieldModeController;
 use App\Http\Controllers\PrintController;
+use App\Http\Controllers\ProjectController;
+use App\Models\Project;
 use Illuminate\Routing\Route as RouteInstance;
 use Illuminate\Support\Facades\Route;
 use Symfony\Component\HttpFoundation\Response;
@@ -32,7 +35,8 @@ Route::view('/charpente-metallique', 'services.charpente-metallique')->name('ser
 */
 
 Route::view('/entreprise', 'pages.company')->name('company');
-Route::view('/realisations', 'pages.projects')->name('projects');
+Route::get('/realisations', [ProjectController::class, 'index'])->name('projects');
+Route::get('/realisations/{project:slug}', [ProjectController::class, 'show'])->name('projects.show');
 
 /*
 |--------------------------------------------------------------------------
@@ -83,10 +87,28 @@ Route::view('/confidentialite', 'pages.legal.confidentialite')
 |
 */
 
+/*
+| Flux calendrier privé : l'URL porte un jeton secret, car les clients
+| calendrier (Google, Outlook, Apple) ne peuvent pas s'authentifier par session.
+*/
+
+Route::get('/calendrier/{token}.ics', CalendarFeedController::class)
+    ->middleware('throttle:60,1')
+    ->where('token', '[A-Za-z0-9]{40,64}')
+    ->name('calendar.feed');
+
 Route::middleware('auth')->group(function (): void {
     Route::view('/terrain', 'field.index')->name('field.index');
     Route::get('/terrain/snapshot', [FieldModeController::class, 'snapshot'])->name('field.snapshot');
-    Route::post('/terrain/sync', [FieldModeController::class, 'sync'])->name('field.sync');
+    Route::get('/terrain/activities', [FieldModeController::class, 'activities'])->name('field.activities');
+    Route::post('/terrain/sync', [FieldModeController::class, 'sync'])
+        ->middleware('throttle:120,1')
+        ->name('field.sync');
+    Route::post('/terrain/activities/{activity}/attachments', [FieldModeController::class, 'storeAttachment'])
+        ->middleware('throttle:30,1')
+        ->name('field.attachments.store');
+    Route::get('/terrain/attachments/{attachment}', [FieldModeController::class, 'showAttachment'])
+        ->name('field.attachments.show');
 
     Route::get('/emails/attachments/{attachment}', [EmailAttachmentController::class, 'download'])
         ->name('emails.attachments.download');
@@ -120,6 +142,18 @@ Route::get('/sitemap.xml', function (): Response {
             || str_starts_with($route->uri(), 'livewire')
             || str_starts_with((string) $route->getName(), 'filament.'))
         ->map(fn (RouteInstance $route): string => e(url($route->uri())))
+        ->sort()
+        ->values();
+
+    $projectUrls = Project::query()
+        ->published()
+        ->ordered()
+        ->pluck('slug')
+        ->map(fn (string $slug): string => e(route('projects.show', $slug)));
+
+    $urls = $urls
+        ->merge($projectUrls)
+        ->unique()
         ->sort()
         ->values();
 

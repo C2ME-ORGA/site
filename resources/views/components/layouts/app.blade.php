@@ -40,9 +40,16 @@
         @livewireStyles
     </head>
     <body class="flex min-h-screen flex-col bg-white font-sans text-ink-900 antialiased">
+        <a
+            href="#main"
+            class="sr-only rounded-lg bg-ink-900 px-4 py-2 text-sm font-bold text-white focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[100]"
+        >
+            Aller au contenu principal
+        </a>
+
         <x-site.header :site="$site" />
 
-        <main class="flex-1">
+        <main id="main" tabindex="-1" class="flex-1 focus:outline-none">
             {{ $slot }}
         </main>
 

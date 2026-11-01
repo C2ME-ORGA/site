@@ -9,9 +9,11 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
  * @property int $id
+ * @property string|null $client_uuid
  * @property int|null $crm_account_id
  * @property int|null $crm_contact_id
  * @property int|null $crm_opportunity_id
@@ -36,6 +38,7 @@ class CrmActivity extends Model
      * @var list<string>
      */
     protected $fillable = [
+        'client_uuid',
         'crm_account_id',
         'crm_contact_id',
         'crm_opportunity_id',
@@ -76,6 +79,20 @@ class CrmActivity extends Model
                 $activity->occurred_at = now();
             }
         });
+
+        static::deleting(function (CrmActivity $activity): void {
+            $activity->attachments->each(
+                fn (CrmActivityAttachment $attachment) => $attachment->delete(),
+            );
+        });
+    }
+
+    /**
+     * @return HasMany<CrmActivityAttachment, $this>
+     */
+    public function attachments(): HasMany
+    {
+        return $this->hasMany(CrmActivityAttachment::class)->orderBy('id');
     }
 
     /**

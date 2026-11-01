@@ -1,5 +1,8 @@
 # CRM — politique de conservation (RGPD)
 
+Le registre des traitements, la liste des sous-traitants et la procédure de
+réponse aux droits figurent dans `docs/rgpd-registre.md`.
+
 Les durées sont configurables via `.env` (valeurs par défaut entre parenthèses) :
 
 | Donnée | Configuration | Durée |
@@ -36,3 +39,14 @@ Toutes les nuits, après les purges des demandes du site :
 - La suppression d'un compte reste manuelle (soft delete) afin de
   préserver l'historique ; l'anonymisation automatique couvre les
   prospects sans activité commerciale.
+- Les sauvegardes de la base suivent la même logique : rétention limitée
+  (7 jours intégraux, puis 30 jours, 12 semaines, 6 mois, 2 ans) et
+  suppression des archives concernées lors d'une demande d'effacement.
+  Voir `docs/sauvegarde-restauration.md`.
+- Exercice des droits depuis la fiche compte, onglet Contacts (réservé aux
+  administrateurs) : « Exporter les données (RGPD) » produit un fichier JSON
+  (contact, compte, affaires, devis, activités, e-mails) et « Anonymiser »
+  efface nom, coordonnées et notes en conservant l'historique. Les deux
+  opérations sont journalisées (`anonymized`, `exported`).
+- Le journal d'audit n'a pas encore de purge automatique : prévoir une
+  rétention de 12 mois en production.

@@ -14,7 +14,12 @@
     --color-brand-300: #58c8c8;
     --color-brand-400: #29b2b2;
     --color-brand-500: #0fa1a1;
-    --color-brand-600: #0d8888;
+    /*
+     * #0b7c7c plutôt que #0d8888 : contraste 5:1 avec le texte blanc et
+     * 5:1 avec le blanc, nécessaire pour les libellés et liens de petite
+     * taille (WCAG 2.1 AA, 1.4.3). Le logo conserve #0FA1A1.
+     */
+    --color-brand-600: #0b7c7c;
     --color-brand-700: #0b6d6d;
     --color-brand-800: #0a5757;
     --color-brand-900: #084242;
@@ -55,6 +60,16 @@
     /* Décalage des ancres sous le header collant */
     :target {
         scroll-margin-top: 6rem;
+    }
+
+    /*
+     * Indicateur de focus commun à tous les éléments interactifs. Les
+     * composants qui définissent déjà un anneau de focus le conservent :
+     * cette règle ne s'applique qu'en l'absence de style plus spécifique.
+     */
+    :where(a, button, input, select, textarea, summary, [tabindex]):focus-visible {
+        outline: 2px solid var(--color-brand-700);
+        outline-offset: 2px;
     }
 }
 

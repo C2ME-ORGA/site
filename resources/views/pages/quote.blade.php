@@ -52,7 +52,7 @@
                             {{ $kind->description() }}
                         </p>
 
-                        <ul class="mt-6 space-y-2 text-sm text-ink-700/60">
+                        <ul class="mt-6 space-y-2 text-sm text-ink-700/70">
                             @if ($kind === \App\Enums\QuoteKind::Laser)
                                 <li class="flex gap-2"><span class="text-brand-600">•</span> Acier, inox et aluminium</li>
                                 <li class="flex gap-2"><span class="text-brand-600">•</span> Plans DXF, DWG ou PDF joint</li>
@@ -100,7 +100,7 @@
                 </div>
             </div>
 
-            <p class="mt-10 text-center text-sm text-ink-700/60">
+            <p class="mt-10 text-center text-sm text-ink-700/70">
                 Vous préférez écrire directement ?
                 <a href="{{ route('contact') }}" class="font-bold text-brand-600 hover:underline">Passez par la page contact</a>.
             </p>

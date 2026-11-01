@@ -7,6 +7,7 @@ use App\Filament\Resources\Quotes\Actions\QuoteTransitions;
 use App\Models\Quote;
 use App\Services\QuotePdf;
 use Filament\Actions\Action;
+use Filament\Actions\ActionGroup;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
@@ -82,21 +83,23 @@ class QuotesTable
                     ->preload(),
             ])
             ->recordActions([
-                Action::make('pdf')
-                    ->label('PDF')
-                    ->icon('heroicon-o-document-arrow-down')
-                    ->color('gray')
-                    ->action(function (Quote $record) {
-                        $service = app(QuotePdf::class);
-                        $service->generate($record);
+                ActionGroup::make([
+                    Action::make('pdf')
+                        ->label('PDF')
+                        ->icon('heroicon-o-document-arrow-down')
+                        ->color('gray')
+                        ->action(function (Quote $record) {
+                            $service = app(QuotePdf::class);
+                            $service->generate($record);
 
-                        return Storage::disk((string) config('crm.quotes.storage_disk'))
-                            ->download($record->pdf_path);
-                    }),
+                            return Storage::disk((string) config('crm.quotes.storage_disk'))
+                                ->download($record->pdf_path);
+                        }),
 
-                ...QuoteTransitions::make(),
+                    ...QuoteTransitions::make(),
 
-                EditAction::make(),
+                    EditAction::make(),
+                ]),
             ])
             ->toolbarActions([
                 BulkActionGroup::make([
