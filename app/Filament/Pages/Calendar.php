@@ -22,13 +22,14 @@ use Filament\Pages\Page;
 use Filament\Schemas\Components\Component;
 use Filament\Schemas\Components\Utilities\Get;
 use Filament\Support\Icons\Heroicon;
+use Guava\FilamentKnowledgeBase\Contracts\HasKnowledgeBase;
 use Illuminate\Contracts\Support\Htmlable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Validator;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 use UnitEnum;
 
-class Calendar extends Page
+class Calendar extends Page implements HasKnowledgeBase
 {
     protected string $view = 'filament.pages.calendar';
 
@@ -811,5 +812,15 @@ class Calendar extends Page
             6 => 'Samedi',
             7 => 'Dimanche',
         ][$isoDay];
+    }
+
+    /**
+     * Article d'aide contextuelle ouvert depuis le menu d'aide du panneau.
+     *
+     * @return array<int, string>
+     */
+    public static function getDocumentation(): array
+    {
+        return ['communication.calendrier'];
     }
 }

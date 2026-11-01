@@ -13,10 +13,11 @@ use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
+use Guava\FilamentKnowledgeBase\Contracts\HasKnowledgeBase;
 use Illuminate\Database\Eloquent\Builder;
 use UnitEnum;
 
-class EmailMessageResource extends Resource
+class EmailMessageResource extends Resource implements HasKnowledgeBase
 {
     protected static ?string $model = EmailMessage::class;
 
@@ -86,5 +87,15 @@ class EmailMessageResource extends Resource
             'index' => ListEmailMessages::route('/'),
             'view' => ViewEmailMessage::route('/{record}'),
         ];
+    }
+
+    /**
+     * Article d'aide contextuelle ouvert depuis le menu d'aide du panneau.
+     *
+     * @return array<int, string>
+     */
+    public static function getDocumentation(): array
+    {
+        return ['communication.emails'];
     }
 }

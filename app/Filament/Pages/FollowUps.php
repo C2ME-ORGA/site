@@ -27,13 +27,14 @@ use Filament\Tables\Concerns\InteractsWithTable;
 use Filament\Tables\Contracts\HasTable;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
+use Guava\FilamentKnowledgeBase\Contracts\HasKnowledgeBase;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Throwable;
 use UnitEnum;
 
-class FollowUps extends Page implements HasTable
+class FollowUps extends Page implements HasKnowledgeBase, HasTable
 {
     use InteractsWithTable;
 
@@ -439,5 +440,15 @@ class FollowUps extends Page implements HasTable
             ->title($count.' '.$label)
             ->success()
             ->send();
+    }
+
+    /**
+     * Article d'aide contextuelle ouvert depuis le menu d'aide du panneau.
+     *
+     * @return array<int, string>
+     */
+    public static function getDocumentation(): array
+    {
+        return ['crm.relances'];
     }
 }

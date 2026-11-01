@@ -1,6 +1,36 @@
 @import '../../../../vendor/filament/filament/resources/css/theme.css';
 
 /*
+ * Typographie des articles de la base documentaire (guava/filament-knowledge-base).
+ * Le paquet applique `prose` au rendu Markdown : sans ce plugin Tailwind, les
+ * articles s'afficheraient sans espacement ni hiérarchie visuelle.
+ */
+@plugin "@tailwindcss/typography";
+@source '../../../../vendor/guava/filament-knowledge-base/src/**/*';
+@source '../../../../vendor/guava/filament-knowledge-base/resources/views/**/*';
+
+/*
+ * Rendu Markdown de la base documentaire : la typographie Tailwind entoure le
+ * code inline de backticks décoratifs, illisibles au milieu d'une phrase
+ * française. On les retire et on garde un fond discret pour distinguer le code.
+ */
+.prose code::before,
+.prose code::after {
+    content: none;
+}
+
+.prose :where(code):not(:where(pre code)) {
+    border-radius: 0.25rem;
+    background-color: rgb(15 23 42 / 0.06);
+    padding: 0.1rem 0.3rem;
+    font-weight: 500;
+}
+
+.dark .prose :where(code):not(:where(pre code)) {
+    background-color: rgb(255 255 255 / 0.1);
+}
+
+/*
  * Sources propres au panel : les classes Tailwind utilisées par les pages,
  * ressources et composants Filament de l'application n'existent pas dans le
  * thème par défaut de Filament (compilé avec `source(none)`).
@@ -30,6 +60,40 @@
 .fi-wi-chart .fi-wi-chart-frame:not(.fi-wi-chart-frame-no-aspect-ratio) {
     aspect-ratio: auto;
     height: 300px;
+}
+
+/*
+ * Pages de connexion (caresome/filament-auth-designer).
+ *
+ * Le nom de l'application et le titre du formulaire ont la même graisse par
+ * défaut : on hiérarchise les deux et on donne au nom de marque la couleur de
+ * l'entreprise, lisible en clair comme en sombre.
+ */
+.fi-auth-layout .fi-simple-header {
+    gap: 0.5rem;
+}
+
+.fi-auth-layout .fi-simple-header .fi-logo {
+    font-size: 0.72rem;
+    font-weight: 600;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--primary-600);
+}
+
+.dark .fi-auth-layout .fi-simple-header .fi-logo {
+    color: var(--primary-400);
+}
+
+.fi-auth-layout .fi-simple-header-heading {
+    font-size: 1.5rem;
+    line-height: 2rem;
+    font-weight: 700;
+}
+
+/* Le bouton de connexion reprend la teinte de l'entreprise, un peu plus dense. */
+.fi-auth-layout .fi-btn[type='submit'] {
+    font-weight: 600;
 }
 
 /*
