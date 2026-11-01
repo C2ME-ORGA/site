@@ -13,9 +13,10 @@ use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
+use Guava\FilamentKnowledgeBase\Contracts\HasKnowledgeBase;
 use UnitEnum;
 
-class ProjectResource extends Resource
+class ProjectResource extends Resource implements HasKnowledgeBase
 {
     protected static ?string $model = Project::class;
 
@@ -50,5 +51,15 @@ class ProjectResource extends Resource
             'create' => CreateProject::route('/create'),
             'edit' => EditProject::route('/{record}/edit'),
         ];
+    }
+
+    /**
+     * Article d'aide contextuelle ouvert depuis le menu d'aide du panneau.
+     *
+     * @return array<int, string>
+     */
+    public static function getDocumentation(): array
+    {
+        return ['site.realisations'];
     }
 }

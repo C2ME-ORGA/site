@@ -233,6 +233,18 @@
 - [x] Consolidation à l’enregistrement (`QuoteLineObserver`, `Quote::recalculateTotals()`, TTC recalculé par `QuoteObserver`) ; création sans ligne possible grâce aux valeurs par défaut à 0.
 - [x] Tests du calcul en direct, de l’enregistrement, de la suppression totale des lignes et de la création (`tests/Feature/QuoteTotalsTest.php`).
 
+### 22. Base documentaire utilisateurs (`guava/filament-knowledge-base`)
+
+- [x] Paquet `guava/filament-knowledge-base` `^3.3` installé (compatible Filament 5), `@tailwindcss/typography` ajouté et thème `resources/css/filament/admin/theme.css` complété (`@plugin`, `@source` du paquet, correction du code inline).
+- [x] Panneau Filament dédié `knowledge-base` exposé sur `/aide` (`KnowledgeBasePanelProvider`) : même garde d’authentification que `/admin`, brand `C2ME — Aide`, palette `#0e8577`, thème Vite partagé.
+- [x] Plugin compagnon sur `/admin` : bouton « Base de connaissances » en pied de menu, aide contextuelle par fiche (`HasKnowledgeBase`) et aperçu de l’article en modale.
+- [x] Aide contextuelle branchée sur comptes (3 carnets), devis, activités, e-mails, réalisations, utilisateurs, boîtes e-mail, étiquettes, demandes de contact et de devis, relances, calendrier et journal d’audit.
+- [x] Base documentaire en français dans `docs/knowledge-base/fr` (28 articles répartis en 6 rubriques) : démarrage, gestion commerciale, demandes entrantes, communication, mode terrain (4 articles), site vitrine, administration et FAQ.
+- [x] Accès réservé aux utilisateurs actifs (administrateurs et commerciaux), recherche intégrée et fil d’Ariane ; contenu mis en cache, vidé par `php artisan cache:clear`.
+- [x] Tests d’accès et de structure (`tests/Feature/KnowledgeBaseTest.php`) ; Pint, PHPStan et suite complète au vert.
+
+> Mise à jour du contenu : les articles sont des fichiers Markdown versionnés. Après une modification, vider le cache (`php artisan cache:clear`) pour voir le rendu actualisé.
+
 ## Proposition de développement supplémentaire
 
 - [x] **Amélioration du mode terrain** : édition hors ligne, création d'activités, actions rapides, conflits de synchronisation, photos et tournée — détail en section 7.
@@ -250,4 +262,7 @@
 - [x] Ajouter support Calendrier avec synchronisation/export pour Outlook, Google Calendar, etc. — flux WebCal privé par utilisateur, export ICS, activités et relances, événements personnels partageables (voir `plan_calendrier.md`).
 - [x] Prise en charge des Graphiques visuelle avec Apache Echart (https://filamentphp.com/plugins/elemind-echarts) — cinq graphiques sur le tableau de bord (voir section 18).
 - [x] Utiliser https://filamentphp.com/plugins/pedro-monteiro-page-header pour mettre en forme les vues des différents affichages — `mortalkiller/filament-page-header` `^2.4`, en-têtes compacts sur les fiches (voir section 19).
-- [ ] Permettre la gestion et l'organisation de l'espace 'Nos Réalisations' du frontend dans le CRM: Organisation par Département/chantier/images (Source probante: https://www.briand.fr/realisations/) 
+- [x] Permettre la gestion et l'organisation de l'espace 'Nos Réalisations' du frontend dans le CRM: Organisation par Département/chantier/images (Source probante: https://www.briand.fr/realisations/)
+- [x] Intégration du package filament: guava/filament-knowledge-base et définir une base documentaire pour l'utilisation du CRM aux utilisateurs. (voir section 22)
+- [ ] Intégration du package filament: mkwebdesign/filament-watchdog-v5 afin de suivre le service de sécurité de l'application
+- [ ] Intégration du package filament: caresome/filament-auth-designer et redéfinir les pages de connexions au couleur de l'entreprise.

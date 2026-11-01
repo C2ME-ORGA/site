@@ -145,6 +145,15 @@ Toute évolution de structure impose d'incrémenter `DB_VERSION` dans `field-mod
 - Tests : `tests/Feature/CalendarFeedTest.php` et `tests/Feature/CalendarEventTest.php`.
 - Le flux ne doit jamais être mis en cache par le service worker ni par un proxy partagé.
 
+## Base documentaire
+
+- Panneau Filament séparé `knowledge-base` sur `/aide` (`KnowledgeBasePanelProvider`), même garde d'authentification que `/admin` (utilisateurs actifs uniquement).
+- Contenu en Markdown dans `docs/knowledge-base/fr` (une arborescence par locale, trois niveaux maximum, un fichier parent par dossier).
+- Le paquet est mis en cache : après une modification d'article, exécuter `php artisan cache:clear`.
+- Aide contextuelle : `HasKnowledgeBase::getDocumentation()` sur les ressources et pages renvoie l'identifiant d'article (notation pointée, ex. `crm.devis`).
+- Le plugin compagnon est déclaré sur le panneau `admin` (`KnowledgeBaseCompanionPlugin`, bouton latéral + aide en modale).
+- Tests : `tests/Feature/KnowledgeBaseTest.php`.
+
 ## Accessibilité et RGPD
 
 - Le site public doit conserver le lien d'évitement, `<main id="main" tabindex="-1">` et l'indicateur de focus global (`:focus-visible` dans `resources/css/app.css`).

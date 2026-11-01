@@ -27,6 +27,7 @@ use Filament\PanelProvider;
 use Filament\Support\Colors\Color;
 use Filament\Support\Icons\Heroicon;
 use Filament\View\PanelsRenderHook;
+use Guava\FilamentKnowledgeBase\Plugins\KnowledgeBaseCompanionPlugin;
 use Illuminate\Contracts\View\View;
 use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
 use Illuminate\Cookie\Middleware\EncryptCookies;
@@ -115,6 +116,9 @@ class AdminPanelProvider extends PanelProvider
                 AppVersionPlugin::make(),
                 FilamentEChartsPlugin::make(),
                 PageHeaderPlugin::make()->compact(),
+                KnowledgeBaseCompanionPlugin::make()
+                    ->knowledgeBasePanelId('knowledge-base')
+                    ->modalPreviews(),
                 FilamentLogViewerPlugin::make()
                     ->navigationGroup('Système')
                     ->navigationSort(95)
