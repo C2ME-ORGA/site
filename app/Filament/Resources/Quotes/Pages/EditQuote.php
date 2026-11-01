@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\Quotes\Pages;
 
 use App\Filament\Resources\Quotes\Actions\QuoteTransitions;
+use App\Filament\Resources\Quotes\Pages\Concerns\UpdatesQuoteTotals;
 use App\Filament\Resources\Quotes\QuoteResource;
 use App\Models\Quote;
 use App\Services\QuotePdf;
@@ -16,8 +17,18 @@ use RuntimeException;
 class EditQuote extends EditRecord
 {
     use HasPageHeader;
+    use UpdatesQuoteTotals;
 
     protected static string $resource = QuoteResource::class;
+
+    /**
+     * @param  array<string, mixed>  $data
+     * @return array<string, mixed>
+     */
+    protected function mutateFormDataBeforeSave(array $data): array
+    {
+        return $this->withQuoteTotals($data);
+    }
 
     protected function getHeaderActions(): array
     {

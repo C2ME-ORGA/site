@@ -15,6 +15,7 @@ class ProjectCategoryForm
         return $schema
             ->components([
                 Section::make('Département')
+                    ->columnSpanFull()
                     ->description('Une famille d’ouvrages qui regroupe les chantiers sur la page « Nos réalisations ».')
                     ->columns(2)
                     ->schema([

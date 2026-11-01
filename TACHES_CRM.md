@@ -225,6 +225,13 @@
 - [x] Suppression de l’ancienne galerie statique (`config/site.php → projects`, composant `projects.gallery`) ; les dossiers `public/images/realisations` restent sur disque mais ne sont plus lus, tout se saisit désormais dans le CRM.
 - [x] Tests publics et admin (`tests/Feature/ProjectTest.php`, `ProjectAdminTest.php`) ; Pint, PHPStan et suite complète au vert.
 
+### 21. Totaux de devis calculés automatiquement
+
+- [x] Total HT et Total TTC en lecture seule, calculés depuis les lignes (quantité × P.U. HT, remise déduite).
+- [x] Recalcul en direct dans le formulaire à l’ajout, la modification ou la suppression d’une ligne, et au changement du taux de TVA (`UpdatesQuoteTotals`).
+- [x] Consolidation à l’enregistrement (`QuoteLineObserver`, `Quote::recalculateTotals()`, TTC recalculé par `QuoteObserver`) ; création sans ligne possible grâce aux valeurs par défaut à 0.
+- [x] Tests du calcul en direct, de l’enregistrement, de la suppression totale des lignes et de la création (`tests/Feature/QuoteTotalsTest.php`).
+
 ## Proposition de développement supplémentaire
 
 - [x] **Amélioration du mode terrain** : édition hors ligne, création d'activités, actions rapides, conflits de synchronisation, photos et tournée — détail en section 7.

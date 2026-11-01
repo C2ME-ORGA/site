@@ -2,14 +2,17 @@
 
 use App\Enums\CrmBook;
 use App\Enums\UserRole;
+use App\Filament\Resources\Activities\Pages\EditActivity;
 use App\Filament\Resources\ContactRequests\Pages\EditContactRequest;
 use App\Filament\Resources\Mailboxes\Pages\EditMailbox;
 use App\Filament\Resources\PrescriberAccounts\Pages\ViewPrescriberAccount;
 use App\Filament\Resources\Users\Pages\EditUser;
 use App\Models\ContactRequest;
 use App\Models\CrmAccount;
+use App\Models\CrmActivity;
 use App\Models\EmailMailbox;
 use App\Models\User;
+use App\Support\FilamentAccountUrl;
 use Filament\Facades\Filament;
 use Livewire\Livewire;
 use MortalKiller\FilamentPageHeader\PageHeaderPlugin;
@@ -24,6 +27,26 @@ function pageHeaderUser(): User
 
 test('le panel admin active le plugin d’en-tête de page', function (): void {
     expect(Filament::getPanel('admin')->hasPlugin(PageHeaderPlugin::ID))->toBeTrue();
+});
+
+test('l’en-tête d’une activité rend le compte cliquable', function (): void {
+    Filament::setCurrentPanel(Filament::getPanel('admin'));
+
+    $admin = pageHeaderUser();
+    $account = CrmAccount::factory()
+        ->forBook(CrmBook::Prescribers)
+        ->create(['name' => 'Atelier du Métal Nantais']);
+
+    $activity = CrmActivity::factory()->create([
+        'crm_account_id' => $account->id,
+        'crm_contact_id' => null,
+        'subject' => 'Relance — reprise d’atelier',
+    ]);
+
+    Livewire::actingAs($admin)
+        ->test(EditActivity::class, ['record' => $activity->getKey()])
+        ->assertSee('Atelier du Métal Nantais')
+        ->assertSeeHtml('href="'.FilamentAccountUrl::view($account).'"');
 });
 
 test('la fiche compte utilise l’en-tête partagé des trois carnets', function (): void {
