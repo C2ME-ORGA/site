@@ -224,6 +224,7 @@
 - [x] Sitemap : ajout des chantiers publiés ; les brouillons renvoient 404.
 - [x] Suppression de l’ancienne galerie statique (`config/site.php → projects`, composant `projects.gallery`) ; les dossiers `public/images/realisations` restent sur disque mais ne sont plus lus, tout se saisit désormais dans le CRM.
 - [x] Tests publics et admin (`tests/Feature/ProjectTest.php`, `ProjectAdminTest.php`) ; Pint, PHPStan et suite complète au vert.
+- [x] Seeder de démonstration `ProjectDemoSeeder` : 4 départements, 14 chantiers et 74 photos issus de `public/images/realisations`, idempotent, appelé par `DemoDataSeeder` et couvert par `ProjectSeederTest`.
 
 ### 21. Totaux de devis calculés automatiquement
 

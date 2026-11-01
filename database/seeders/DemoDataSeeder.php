@@ -656,6 +656,8 @@ PDF;
             'share_with_all' => true,
         ]);
 
+        $this->call(ProjectDemoSeeder::class);
+
         $this->command?->info(sprintf(
             'Démo complète : %d comptes, %d contacts, %d activités, %d devis, %d demandes, %d événements.',
             CrmAccount::query()->count(),

@@ -2,11 +2,17 @@
 
 namespace App\Filament\Resources\Quotes\Pages\Concerns;
 
+use App\Models\Quote;
+use App\Models\QuoteLine;
+
 /**
  * Recalcule les totaux du devis à partir des lignes du formulaire, en direct
  * (ajout, modification ou suppression) et juste avant l'enregistrement.
  *
- * La persistance reste garantie par QuoteLineObserver et Quote::recalculateTotals().
+ * Le calcul est partagé avec QuoteLineObserver et Quote::recalculateTotals()
+ * pour que le formulaire et la base de données appliquent exactement les mêmes
+ * règles. Les montants soumis par le client ne sont jamais conservés : ils sont
+ * toujours recalculés à partir des lignes.
  */
 trait UpdatesQuoteTotals
 {
@@ -29,38 +35,31 @@ trait UpdatesQuoteTotals
      */
     protected function withQuoteTotals(array $data): array
     {
-        $lines = $data['lines'] ?? $this->data['lines'] ?? null;
-
-        if (! is_array($lines)) {
-            return $data;
-        }
+        $lines = $data['lines'] ?? $this->data['lines'] ?? [];
+        $lines = is_array($lines) ? $lines : [];
 
         $totalHt = 0.0;
 
         foreach ($lines as $key => $line) {
-            $lineTotal = self::lineTotalHt(is_array($line) ? $line : []);
+            $line = is_array($line) ? $line : [];
+
+            $lineTotal = QuoteLine::calculateTotalHt(
+                $line['quantity'] ?? null,
+                $line['unit_price'] ?? null,
+                $line['discount_percent'] ?? null,
+            );
 
             $data['lines'][$key]['total_ht'] = $lineTotal;
             $totalHt += $lineTotal;
         }
 
         $totalHt = round($totalHt, 2);
-        $vatRate = (float) ($data['vat_rate'] ?? 0);
+        $vatRate = (float) ($data['vat_rate'] ?? $this->data['vat_rate'] ?? 0);
 
+        $data['vat_rate'] = $vatRate;
         $data['amount_ht'] = $totalHt;
-        $data['amount_ttc'] = round($totalHt * (1 + ($vatRate / 100)), 2);
+        $data['amount_ttc'] = Quote::calculateAmountTtc($totalHt, $vatRate);
 
         return $data;
-    }
-
-    /**
-     * @param  array<string, mixed>  $line
-     */
-    private static function lineTotalHt(array $line): float
-    {
-        $gross = (float) ($line['quantity'] ?? 0) * (float) ($line['unit_price'] ?? 0);
-        $discount = $gross * ((float) ($line['discount_percent'] ?? 0) / 100);
-
-        return round($gross - $discount, 2);
     }
 }

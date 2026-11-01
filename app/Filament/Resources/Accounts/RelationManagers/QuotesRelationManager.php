@@ -56,6 +56,8 @@ class QuotesRelationManager extends RelationManager
                 TextInput::make('vat_rate')
                     ->label('TVA (%)')
                     ->numeric()
+                    ->minValue(0)
+                    ->maxValue(100)
                     ->default((float) config('crm.quotes.default_vat_rate', 0)),
 
                 Select::make('owner_id')

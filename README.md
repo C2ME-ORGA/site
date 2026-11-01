@@ -242,7 +242,8 @@ La page `/realisations` et les fiches chantier sont alimentées par la base de d
 - **Site** : `/realisations` liste les chantiers publiés, filtrables par département (`?departement=slug`), avec compteurs de chantiers, photos et départements. Chaque carte mène à `/realisations/{slug}` : fil d’Ariane, maître d’ouvrage, commune, année, prestations et galerie avec visionneuse clavier.
 - **SEO** : les chantiers publiés sont ajoutés au `sitemap.xml` ; un chantier non publié renvoie une 404.
 - **Droits** : gestion réservée aux administrateurs (`ProjectPolicy`, `ProjectCategoryPolicy`).
-- **Tests** : `tests/Feature/ProjectTest.php`, `tests/Feature/ProjectAdminTest.php`.
+- **Démo** : `php artisan db:seed --class=ProjectDemoSeeder` crée 4 départements et 14 chantiers avec les 74 photos de `public/images/realisations` (copiées sur le disque public, vignettes incluses). Le seeder est idempotent et `DemoDataSeeder` l’appelle.
+- **Tests** : `tests/Feature/ProjectTest.php`, `tests/Feature/ProjectAdminTest.php`, `tests/Feature/ProjectSeederTest.php`.
 
 ### 17. Totaux de devis calculés automatiquement
 

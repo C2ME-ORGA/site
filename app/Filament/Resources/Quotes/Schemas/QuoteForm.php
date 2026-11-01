@@ -88,6 +88,8 @@ class QuoteForm
                         TextInput::make('vat_rate')
                             ->label('Taux de TVA (%)')
                             ->numeric()
+                            ->minValue(0)
+                            ->maxValue(100)
                             ->default(fn (): int => (int) config('crm.quotes.default_vat_rate', 0))
                             ->live(onBlur: true)
                             ->helperText('Le total TTC est recalculé automatiquement.'),
@@ -154,6 +156,7 @@ class QuoteForm
                                         TextInput::make('quantity')
                                             ->label('Quantité')
                                             ->numeric()
+                                            ->minValue(0)
                                             ->default(1)
                                             ->live(onBlur: true)
                                             ->columnSpan(1),
@@ -168,6 +171,7 @@ class QuoteForm
                                         TextInput::make('unit_price')
                                             ->label('P.U. HT')
                                             ->numeric()
+                                            ->minValue(0)
                                             ->prefix('€')
                                             ->live(onBlur: true)
                                             ->columnSpan(1),
@@ -175,6 +179,8 @@ class QuoteForm
                                         TextInput::make('discount_percent')
                                             ->label('% Remise')
                                             ->numeric()
+                                            ->minValue(0)
+                                            ->maxValue(100)
                                             ->default(0)
                                             ->live(onBlur: true)
                                             ->columnSpan(1),
