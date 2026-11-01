@@ -271,8 +271,19 @@
 - [x] Aucun changement de comportement : mêmes routes, mêmes identifiants, mêmes gardes d’authentification.
 - [x] Tests de rendu et d’enregistrement du plugin sur les deux panneaux (`tests/Feature/AuthDesignerTest.php`) ; Pint, PHPStan et suite complète au vert.
 
-## Proposition de développement supplémentaire
+### 25. Audit de la PR #40 (base documentaire, watchdog, connexion)
 
+- [x] Traitement des alertes : transitions `Acquitter` / `Résoudre` via `SecurityAlertWorkflow`, policy dédiée (`acknowledge`/`resolve`), `update` toujours refusé, actions serveur autorisées et testées.
+- [x] `watchdog:baseline` remplacé par une commande applicative fiable : celle du paquet n'écrit rien quand `monitoring.enabled=false` (elle appelle `watchdog:scan` sans `--force`) tout en affichant un succès.
+- [x] Scan vérifié par des tests réels : fichier nouveau, modifié, supprimé, signature suspecte, alertes, `--force`, monitoring désactivé, baseline, destinataires et limite d'envoi.
+- [x] Verrouillage d'urgence : `security:lockdown:release` planifié toutes les 10 minutes applique `auto_deactivate_hours` (le paquet ne le lisait pas ; le secret expirait après 24 h sans lever la maintenance).
+- [x] Notifications : destinataires par défaut via `ADMIN_EMAIL` (plus d'adresse codée en dur), clé `alert_levels` inutilisée retirée, limite horaire documentée.
+- [x] Journal de connexion : événements ignorés hors requête web (pas de session/IP), aucun mot de passe journalisé, alerte force brute testée.
+- [x] Base documentaire : test de rendu de tous les articles, liens et images vérifiés, article sécurité corrigé (transitions, baseline, verrouillage).
+- [x] Procédure d'exploitation : `docs/surveillance-securite.md` (baseline, scan, verrouillage, notifications, dépannage).
+- [x] Tests : `SecurityAlertTest`, `WatchdogScanTest`, `SecurityActivityLogTest`, `SecurityLockdownTest`, `KnowledgeBaseContentTest` ; Pint, PHPStan et suite complète au vert.
+
+## Proposition de développement supplémentaire
 - [x] **Amélioration du mode terrain** : édition hors ligne, création d'activités, actions rapides, conflits de synchronisation, photos et tournée — détail en section 7.
 - [x] Recherche globale Filament inter-carnets (comptes, contacts, affaires, devis). (v1.1.0)
 - [x] Relances automatiques : notifications/rappels à partir de `next_follow_up_at` — implémenté (voir section 8). (v1.1.0)

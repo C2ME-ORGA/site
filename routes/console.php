@@ -142,6 +142,22 @@ Schedule::command('watchdog:scan --force')
 
 /*
 |--------------------------------------------------------------------------
+| Levée automatique du verrouillage d'urgence
+|--------------------------------------------------------------------------
+|
+| Le paquet expire le secret d'accès au bout de 24 heures sans lever le mode
+| maintenance. Cette commande applique `auto_deactivate_hours` et évite que
+| le site reste bloqué sans URL d'urgence valide.
+|
+*/
+
+Schedule::command('security:lockdown:release')
+    ->everyTenMinutes()
+    ->withoutOverlapping()
+    ->onOneServer();
+
+/*
+|--------------------------------------------------------------------------
 | Sauvegarde de la base de données
 |--------------------------------------------------------------------------
 |

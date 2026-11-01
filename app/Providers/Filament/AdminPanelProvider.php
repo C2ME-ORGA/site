@@ -5,6 +5,7 @@ namespace App\Providers\Filament;
 use App\Filament\Pages\Dashboard;
 use App\Filament\Pages\EditProfile;
 use App\Filament\Pages\Security\SecurityDashboard;
+use App\Filament\Resources\SecurityAlerts\SecurityAlertResource;
 use App\Filament\Widgets\ActivitiesByTypeChart;
 use App\Filament\Widgets\CommercialStatsOverview;
 use App\Filament\Widgets\CrmStatsOverview;
@@ -44,7 +45,6 @@ use Illuminate\View\Middleware\ShareErrorsFromSession;
 use MKWebDesign\FilamentWatchdog\Resources\ActivityLogResource;
 use MKWebDesign\FilamentWatchdog\Resources\FileIntegrityResource;
 use MKWebDesign\FilamentWatchdog\Resources\MalwareDetectionResource;
-use MKWebDesign\FilamentWatchdog\Resources\SecurityAlertResource;
 use MortalKiller\FilamentPageHeader\PageHeaderPlugin;
 use Vaslv\FilamentAppVersion\AppVersionPlugin;
 
@@ -71,7 +71,6 @@ class AdminPanelProvider extends PanelProvider
                 SecurityDashboard::class,
             ])
             ->resources([
-                SecurityAlertResource::class,
                 FileIntegrityResource::class,
                 MalwareDetectionResource::class,
                 ActivityLogResource::class,

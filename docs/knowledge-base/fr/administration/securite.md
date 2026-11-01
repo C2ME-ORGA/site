@@ -26,9 +26,14 @@ ouvre l'URL directement.
 
 ## Fréquence des contrôles
 
-Le scan complet tourne **toutes les 15 minutes**. Il compare l'empreinte de
-chaque fichier surveillé (`app`, `config`, `routes`, `resources`, `public`,
-`database`, `bootstrap`) avec celle enregistrée lors du dernier passage.
+Sur le serveur Linux, le scan complet tourne **toutes les 15 minutes**. Il
+compare l'empreinte de chaque fichier surveillé (`app`, `config`, `routes`,
+`resources`, `public`, `database`, `bootstrap`) avec celle enregistrée lors du
+dernier passage.
+
+Le scan planifié est **désactivé sur les postes Windows** : le paquet y calcule
+des chemins absolus qui faussent la détection des suppressions. Il ne s'exécute
+donc qu'en production.
 
 Sont volontairement exclus : `vendor`, `node_modules`, `storage`, les caches,
 le build Vite, les assets publiés, les images publiques et les seeders de
@@ -37,10 +42,11 @@ démonstration.
 ## Alertes
 
 Une alerte porte une sévérité : faible, moyenne, élevée ou critique. Elle est
-visible dans le CRM et, selon la configuration, envoyée par e-mail à
-`admin@c2me.fr`.
+visible dans le CRM et, si les notifications sont activées, envoyée par e-mail
+aux destinataires configurés (`WATCHDOG_EMAIL_RECIPIENTS`, à défaut
+`ADMIN_EMAIL`). Toutes les gravités sont envoyées.
 
-Le système limite le nombre d'e-mails à **10 par heure** pour éviter une
+Le système limite l'envoi à **10 e-mails par heure** au total, pour éviter une
 avalanche en cas d'incident.
 
 ### Traiter une alerte
@@ -48,9 +54,13 @@ avalanche en cas d'incident.
 1. Ouvrir **Système › Alertes de sécurité**.
 2. Lire le détail : type, fichier ou IP concerné, date.
 3. Corriger si nécessaire (restaurer un fichier, changer un mot de passe).
-4. Passer l'alerte en **Acquittée** ou **Résolue**.
+4. Cliquer sur **Acquitter** (alerte prise en compte) puis **Résoudre** une
+   fois le problème traité.
 
-Les écrans sont en **lecture seule** : on ne crée pas d'alerte à la main.
+Les transitions sont contrôlées : une alerte résolue ne peut plus être
+acquittée ni résolue une seconde fois. Les autres champs (gravité,
+description, détails techniques) sont **en lecture seule** : aucune alerte ne
+peut être créée, modifiée ou supprimée à la main.
 
 ## Intégrité des fichiers
 
@@ -70,8 +80,18 @@ nouveaux. Sur le serveur :
 php artisan watchdog:baseline
 ```
 
-À relancer après chaque déploiement volontaire, pour éviter des centaines
+La commande affiche le nombre de fichiers enregistrés et échoue si aucun
+fichier n'est surveillé. Elle fonctionne même quand la planification
+automatique du paquet est désactivée.
+
+À relancer après chaque déploiement **volontaire**, pour éviter des centaines
 d'alertes de fichiers modifiés.
+
+> **Précaution** : ne jamais créer un baseline sur un serveur dont on suspecte
+> qu'il est compromis, ni automatiquement au démarrage. Un baseline enregistre
+> l'état courant : s'il contient un fichier malveillant, celui-ci devient la
+> référence. Après une intrusion, restaurer d'abord une version saine, puis
+> créer le baseline.
 
 > Le baseline et le scan planifié sont désactivés sur les postes Windows :
 > le paquet y calcule des chemins absolus qui faussent la détection des
@@ -101,22 +121,30 @@ Le journal conserve 30 jours de données par défaut.
 
 Le bouton **Emergency Lockdown** du tableau de bord coupe l'accès au site :
 
-- passage en maintenance ;
-- fermeture des sessions (sauf la vôtre) ;
+- passage en maintenance (nécessite la fonction PHP `exec`) ;
+- fermeture des sessions si le pilote de session est la base de données ;
 - sauvegarde d'urgence ;
 - notification des administrateurs.
 
-Un lien d'accès d'urgence est généré. Le verrouillage se lève manuellement ou
-automatiquement après **24 heures**.
+Un lien d'accès d'urgence est généré et valable **24 heures**. Passé ce délai,
+une tâche planifiée lève automatiquement le verrouillage (toutes les
+10 minutes). En cas de perte du cache ou d'échec, l'administrateur peut
+toujours rétablir le site depuis le serveur :
+
+```bash
+php artisan security:lockdown:release   # levée normale
+php artisan up                          # secours ultime
+```
 
 > À utiliser uniquement en cas d'intrusion avérée. Toutes les visites du site
 > public sont bloquées pendant l'opération.
 
 ## Bonnes pratiques
 
-- Créer le baseline après chaque déploiement.
+- Créer le baseline après chaque déploiement volontaire.
 - Vérifier les alertes **critiques** le jour même.
 - Ne pas désactiver la surveillance pour supprimer une alerte gênante.
 - Tester le verrouillage d'urgence une fois, hors production, pour connaître
   la procédure.
-- Conserver `admin@c2me.fr` comme destinataire des alertes.
+- Configurer `WATCHDOG_EMAIL_RECIPIENTS` (ou `ADMIN_EMAIL`) avec une boîte
+  réellement surveillée.

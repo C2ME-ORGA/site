@@ -21,6 +21,21 @@ class SecurityAlertPolicy
         return $user->isAdmin();
     }
 
+    /**
+     * Acquittement et résolution : deux transitions métier explicites. Le
+     * droit générique `update` reste refusé pour empêcher toute modification
+     * des champs techniques (gravité, description, métadonnées).
+     */
+    public function acknowledge(User $user, SecurityAlert $securityAlert): bool
+    {
+        return $user->isAdmin();
+    }
+
+    public function resolve(User $user, SecurityAlert $securityAlert): bool
+    {
+        return $user->isAdmin();
+    }
+
     public function create(User $user): bool
     {
         return false;

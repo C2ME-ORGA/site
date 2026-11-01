@@ -159,11 +159,14 @@ Toute évolution de structure impose d'incrémenter `DB_VERSION` dans `field-mod
 - Paquet `mkwebdesign/filament-watchdog-v5` : pages et ressources réservées aux administrateurs (politiques en lecture seule).
 - Entrées françaises dans le groupe **Système** : Sécurité, Alertes de sécurité, Intégrité des fichiers, Détections de malwares, Journal d'activité.
 - Le paquet planifie un scan chaque minute : désactivé dans `config/filament-watchdog.php` (`monitoring.enabled=false`) et remplacé par `watchdog:scan --force` toutes les 15 minutes dans `routes/console.php`.
-- Baseline d'intégrité à créer sur le serveur après déploiement : `php artisan watchdog:baseline`. Le scan planifié est désactivé sous Windows (chemins absolus du paquet).
-- Quarantaine automatique désactivée ; alertes e-mail vers `WATCHDOG_EMAIL_RECIPIENTS` (10/heure maximum).
-- Journal d'activité alimenté par les événements `Login`/`Failed` dans `AppServiceProvider`.
+- Baseline d'intégrité : `php artisan watchdog:baseline` (commande applicative qui remplace celle du paquet, inopérante sans `--force`). À créer sur le serveur après déploiement, jamais automatiquement. Procédure complète : `docs/surveillance-securite.md`.
+- Le scan planifié est désactivé sous Windows (chemins absolus du paquet).
+- Alertes : acquittement et résolution via `App\Services\SecurityAlertWorkflow` (transitions contrôlées) ; le droit `update` reste refusé.
+- Notifications : `WATCHDOG_EMAIL_RECIPIENTS` (défaut `ADMIN_EMAIL`), 10 e-mails par heure maximum.
+- Verrouillage d'urgence : levée automatique par `security:lockdown:release` (toutes les 10 minutes) ; secours `php artisan up`.
+- Journal d'activité alimenté par les événements `Login`/`Failed` dans `AppServiceProvider` (ignorés hors requête web).
 - Vue d'erreur de verrouillage : `resources/views/errors/emergency-lockdown.blade.php`.
-- Tests : `tests/Feature/WatchdogTest.php`.
+- Tests : `tests/Feature/WatchdogTest.php`, `WatchdogScanTest.php`, `SecurityAlertTest.php`, `SecurityActivityLogTest.php`, `SecurityLockdownTest.php`.
 
 ## Pages de connexion
 

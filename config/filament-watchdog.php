@@ -85,20 +85,24 @@ return [
     'alerts' => [
         'enabled' => true,
         'email_enabled' => (bool) env('WATCHDOG_EMAIL_ENABLED', true),
+
+        /*
+         * Aucune adresse n'est codée en dur : on retombe sur ADMIN_EMAIL puis
+         * sur l'expéditeur du site. Une liste vide désactive l'envoi.
+         */
         'email_recipients' => array_values(array_filter(array_map(
             'trim',
-            explode(',', (string) env('WATCHDOG_EMAIL_RECIPIENTS', 'admin@c2me.fr')),
+            explode(',', (string) env('WATCHDOG_EMAIL_RECIPIENTS', (string) env('ADMIN_EMAIL', ''))),
         ))),
         'admin_emails' => array_values(array_filter(array_map(
             'trim',
-            explode(',', (string) env('WATCHDOG_ADMIN_EMAILS', 'admin@c2me.fr')),
+            explode(',', (string) env('WATCHDOG_ADMIN_EMAILS', (string) env('ADMIN_EMAIL', ''))),
         ))),
-        'alert_levels' => [
-            'low' => 1,
-            'medium' => 2,
-            'high' => 3,
-            'critical' => 4,
-        ],
+
+        /*
+         * Le paquet envoie un e-mail pour toutes les gravités : `alert_levels`
+         * n'est pas lu et a été retiré pour ne pas laisser croire à un filtre.
+         */
         'rate_limiting' => [
             'enabled' => true,
             'max_alerts_per_hour' => 10,

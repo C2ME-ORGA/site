@@ -136,6 +136,16 @@ test('la quarantaine automatique est désactivée', function (): void {
         ->and(config('filament-watchdog.alerts.email_recipients'))->toContain('admin@c2me.fr');
 });
 
+test('un utilisateur désactivé n’accède à aucun des deux panneaux', function (): void {
+    $inactive = User::factory()->create([
+        'role' => UserRole::Admin,
+        'is_active' => false,
+    ]);
+
+    $this->actingAs($inactive)->get('/admin')->assertForbidden();
+    $this->actingAs($inactive)->get('/aide')->assertForbidden();
+});
+
 test('le listener de connexion est enregistré', function (): void {
     expect(Event::getRawListeners())->toHaveKey(Login::class)
         ->and(Event::getRawListeners())->toHaveKey(Failed::class);

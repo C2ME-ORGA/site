@@ -63,6 +63,12 @@ class AppServiceProvider extends ServiceProvider
         Gate::policy(SecurityAlert::class, SecurityAlertPolicy::class);
 
         Event::listen(Login::class, function (Login $event): void {
+            // Hors requête web (CLI, file d'attente), ni session ni IP : rien à
+            // journaliser, et la colonne `ip_address` est obligatoire.
+            if (! request()->hasSession() || request()->ip() === null) {
+                return;
+            }
+
             $email = data_get($event->user, 'email');
 
             if (is_string($email) && $email !== '') {
@@ -71,6 +77,10 @@ class AppServiceProvider extends ServiceProvider
         });
 
         Event::listen(Failed::class, function (Failed $event): void {
+            if (! request()->hasSession() || request()->ip() === null) {
+                return;
+            }
+
             $email = data_get($event->credentials, 'email');
 
             app(ActivityMonitoringService::class)->logFailedLogin(
