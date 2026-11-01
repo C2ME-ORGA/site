@@ -261,6 +261,16 @@
 
 > Le baseline et le scan planifié sont inactifs sous Windows (chemins absolus du paquet). Sur le serveur : `php artisan watchdog:baseline` après chaque déploiement volontaire.
 
+### 24. Pages de connexion aux couleurs de l’entreprise (`caresome/filament-auth-designer`)
+
+- [x] Paquet `caresome/filament-auth-designer` `^3.1` installé (Filament 4/5, Laravel 13), CSS publié dans `public/css/caresome/filament-auth-designer`.
+- [x] Mise en page en écran coupé : photo de chantier à gauche (50 %), formulaire à droite ; photo dédiée `public/images/auth/login-bg.webp` (960×1200, recadrée depuis une réalisation).
+- [x] Logo de l’entreprise sur la photo (carte blanche lisible en clair comme en sombre) et mention « Espace administration » / « Base documentaire » selon le panneau.
+- [x] Même habillage sur `/admin/login` et `/aide/login`, avec bascule de thème clair/sombre et logo de marque sur mobile (photo masquée sous 1024 px).
+- [x] Nom de l’application en teal, majuscules espacées, et titre « Connectez-vous à votre compte » hiérarchisé via `resources/css/filament/admin/theme.css`.
+- [x] Aucun changement de comportement : mêmes routes, mêmes identifiants, mêmes gardes d’authentification.
+- [x] Tests de rendu et d’enregistrement du plugin sur les deux panneaux (`tests/Feature/AuthDesignerTest.php`) ; Pint, PHPStan et suite complète au vert.
+
 ## Proposition de développement supplémentaire
 
 - [x] **Amélioration du mode terrain** : édition hors ligne, création d'activités, actions rapides, conflits de synchronisation, photos et tournée — détail en section 7.
@@ -281,4 +291,4 @@
 - [x] Permettre la gestion et l'organisation de l'espace 'Nos Réalisations' du frontend dans le CRM: Organisation par Département/chantier/images (Source probante: https://www.briand.fr/realisations/)
 - [x] Intégration du package filament: guava/filament-knowledge-base et définir une base documentaire pour l'utilisation du CRM aux utilisateurs. (voir section 22)
 - [x] Intégration du package filament: mkwebdesign/filament-watchdog-v5 afin de suivre le service de sécurité de l'application. (voir section 23)
-- [ ] Intégration du package filament: caresome/filament-auth-designer et redéfinir les pages de connexions au couleur de l'entreprise.
+- [x] Intégration du package filament: caresome/filament-auth-designer et redéfinir les pages de connexions au couleur de l'entreprise. (voir section 24)

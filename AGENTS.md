@@ -165,6 +165,15 @@ Toute évolution de structure impose d'incrémenter `DB_VERSION` dans `field-mod
 - Vue d'erreur de verrouillage : `resources/views/errors/emergency-lockdown.blade.php`.
 - Tests : `tests/Feature/WatchdogTest.php`.
 
+## Pages de connexion
+
+- Paquet `caresome/filament-auth-designer` enregistré sur les panneaux `admin` et `knowledge-base` : photo `public/images/auth/login-bg.webp` à gauche, formulaire à droite, bascule de thème.
+- Vues de marque : `resources/views/filament/auth/branding.blade.php` (logo sur la photo) et `mobile-logo.blade.php` (logo au-dessus du formulaire sous 1024 px).
+- Styles dans `resources/css/filament/admin/theme.css` (nom de marque en teal, titre du formulaire).
+- Photo à remplacer dans `public/images/auth/` (portrait 4:5, ~1000 px de large suffit).
+- CSS du paquet publié dans `public/css/caresome/filament-auth-designer`, à régénérer avec `php artisan filament:assets`.
+- Tests : `tests/Feature/AuthDesignerTest.php`.
+
 ## Accessibilité et RGPD
 
 - Le site public doit conserver le lien d'évitement, `<main id="main" tabindex="-1">` et l'indicateur de focus global (`:focus-visible` dans `resources/css/app.css`).

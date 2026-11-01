@@ -2,6 +2,10 @@
 
 namespace App\Providers\Filament;
 
+use Caresome\FilamentAuthDesigner\AuthDesignerPlugin;
+use Caresome\FilamentAuthDesigner\Data\AuthPageConfig;
+use Caresome\FilamentAuthDesigner\Enums\MediaPosition;
+use Caresome\FilamentAuthDesigner\View\AuthDesignerRenderHook;
 use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
 use Filament\Http\Middleware\DisableBladeIconComponents;
@@ -9,7 +13,9 @@ use Filament\Http\Middleware\DispatchServingFilamentEvent;
 use Filament\Panel;
 use Filament\PanelProvider;
 use Filament\Support\Colors\Color;
+use Filament\View\PanelsRenderHook;
 use Guava\FilamentKnowledgeBase\Plugins\KnowledgeBasePlugin;
+use Illuminate\Contracts\View\View;
 use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
 use Illuminate\Cookie\Middleware\EncryptCookies;
 use Illuminate\Foundation\Http\Middleware\PreventRequestForgery;
@@ -39,7 +45,21 @@ class KnowledgeBasePanelProvider extends PanelProvider
             ])
             ->plugins([
                 KnowledgeBasePlugin::make(),
+                AuthDesignerPlugin::make()
+                    ->login(fn (AuthPageConfig $config): AuthPageConfig => $config
+                        ->media(asset('images/auth/login-bg.webp'), alt: 'Charpente métallique réalisée par C2ME')
+                        ->mediaPosition(MediaPosition::Left)
+                        ->mediaSize('50%')
+                        ->renderHook(
+                            AuthDesignerRenderHook::MediaOverlay,
+                            fn () => view('filament.auth.branding', ['label' => 'Base documentaire']),
+                        ))
+                    ->themeToggle(),
             ])
+            ->renderHook(
+                PanelsRenderHook::SIMPLE_PAGE_START,
+                fn (): View => view('filament.auth.mobile-logo'),
+            )
             ->middleware([
                 EncryptCookies::class,
                 AddQueuedCookiesToResponse::class,

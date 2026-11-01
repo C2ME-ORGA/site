@@ -17,6 +17,10 @@ use App\Filament\Widgets\TopAccountsPipelineChart;
 use App\Filament\Widgets\TopOpenOpportunities;
 use App\Filament\Widgets\UpcomingActivities;
 use Boquizo\FilamentLogViewer\FilamentLogViewerPlugin;
+use Caresome\FilamentAuthDesigner\AuthDesignerPlugin;
+use Caresome\FilamentAuthDesigner\Data\AuthPageConfig;
+use Caresome\FilamentAuthDesigner\Enums\MediaPosition;
+use Caresome\FilamentAuthDesigner\View\AuthDesignerRenderHook;
 use Elemind\FilamentECharts\FilamentEChartsPlugin;
 use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
@@ -105,6 +109,10 @@ class AdminPanelProvider extends PanelProvider
                 PanelsRenderHook::BODY_END,
                 fn (): string => '<script src="/js/c2me-pwa.js" defer></script>',
             )
+            ->renderHook(
+                PanelsRenderHook::SIMPLE_PAGE_START,
+                fn (): View => view('filament.auth.mobile-logo'),
+            )
             /*
              * Changelog Olvy : la configuration doit être déclarée avant le
              * script externe (chargé en `defer`). Le widget n'est injecté que
@@ -148,8 +156,22 @@ class AdminPanelProvider extends PanelProvider
                     ->visible(fn (): bool => auth()->user()?->isAdmin() === true)
                     ->url(fn (): string => ActivityLogResource::getUrl('index', panel: 'admin')),
             ])
+            /*
+             * Page de connexion : photo de chantier à gauche, formulaire à droite,
+             * logo de l'entreprise sur la photo et bascule de thème.
+             */
             ->plugins([
                 AppVersionPlugin::make(),
+                AuthDesignerPlugin::make()
+                    ->login(fn (AuthPageConfig $config): AuthPageConfig => $config
+                        ->media(asset('images/auth/login-bg.webp'), alt: 'Charpente métallique réalisée par C2ME')
+                        ->mediaPosition(MediaPosition::Left)
+                        ->mediaSize('50%')
+                        ->renderHook(
+                            AuthDesignerRenderHook::MediaOverlay,
+                            fn () => view('filament.auth.branding', ['label' => 'Espace administration']),
+                        ))
+                    ->themeToggle(),
                 FilamentEChartsPlugin::make(),
                 PageHeaderPlugin::make()->compact(),
                 KnowledgeBaseCompanionPlugin::make()
