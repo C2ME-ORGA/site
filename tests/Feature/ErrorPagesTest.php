@@ -11,6 +11,7 @@ test('une adresse inconnue affiche la page 404 de la charte', function (): void 
 });
 
 test('les vues 500 et 503 reprennent le gabarit public', function (string $view, string $title, string $eyebrow): void {
+    /** @var view-string $view */
     $html = view($view)->render();
 
     expect($html)
