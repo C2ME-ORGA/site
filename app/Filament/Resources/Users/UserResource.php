@@ -14,10 +14,11 @@ use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
+use Guava\FilamentKnowledgeBase\Contracts\HasKnowledgeBase;
 use Illuminate\Database\Eloquent\Builder;
 use UnitEnum;
 
-class UserResource extends Resource
+class UserResource extends Resource implements HasKnowledgeBase
 {
     protected static ?string $model = User::class;
 
@@ -60,5 +61,15 @@ class UserResource extends Resource
             'create' => CreateUser::route('/create'),
             'edit' => EditUser::route('/{record}/edit'),
         ];
+    }
+
+    /**
+     * Article d'aide contextuelle ouvert depuis le menu d'aide du panneau.
+     *
+     * @return array<int, string>
+     */
+    public static function getDocumentation(): array
+    {
+        return ['administration.utilisateurs'];
     }
 }

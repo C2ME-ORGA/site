@@ -4,6 +4,8 @@ namespace App\Providers\Filament;
 
 use App\Filament\Pages\Dashboard;
 use App\Filament\Pages\EditProfile;
+use App\Filament\Pages\Security\SecurityDashboard;
+use App\Filament\Resources\SecurityAlerts\SecurityAlertResource;
 use App\Filament\Widgets\ActivitiesByTypeChart;
 use App\Filament\Widgets\CommercialStatsOverview;
 use App\Filament\Widgets\CrmStatsOverview;
@@ -16,6 +18,10 @@ use App\Filament\Widgets\TopAccountsPipelineChart;
 use App\Filament\Widgets\TopOpenOpportunities;
 use App\Filament\Widgets\UpcomingActivities;
 use Boquizo\FilamentLogViewer\FilamentLogViewerPlugin;
+use Caresome\FilamentAuthDesigner\AuthDesignerPlugin;
+use Caresome\FilamentAuthDesigner\Data\AuthPageConfig;
+use Caresome\FilamentAuthDesigner\Enums\MediaPosition;
+use Caresome\FilamentAuthDesigner\View\AuthDesignerRenderHook;
 use Elemind\FilamentECharts\FilamentEChartsPlugin;
 use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
@@ -27,6 +33,7 @@ use Filament\PanelProvider;
 use Filament\Support\Colors\Color;
 use Filament\Support\Icons\Heroicon;
 use Filament\View\PanelsRenderHook;
+use Guava\FilamentKnowledgeBase\Plugins\KnowledgeBaseCompanionPlugin;
 use Illuminate\Contracts\View\View;
 use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
 use Illuminate\Cookie\Middleware\EncryptCookies;
@@ -35,6 +42,9 @@ use Illuminate\Routing\Middleware\SubstituteBindings;
 use Illuminate\Session\Middleware\StartSession;
 use Illuminate\Support\Facades\Vite;
 use Illuminate\View\Middleware\ShareErrorsFromSession;
+use MKWebDesign\FilamentWatchdog\Resources\ActivityLogResource;
+use MKWebDesign\FilamentWatchdog\Resources\FileIntegrityResource;
+use MKWebDesign\FilamentWatchdog\Resources\MalwareDetectionResource;
 use MortalKiller\FilamentPageHeader\PageHeaderPlugin;
 use Vaslv\FilamentAppVersion\AppVersionPlugin;
 
@@ -58,6 +68,12 @@ class AdminPanelProvider extends PanelProvider
             ->discoverPages(in: app_path('Filament/Pages'), for: 'App\Filament\Pages')
             ->pages([
                 Dashboard::class,
+                SecurityDashboard::class,
+            ])
+            ->resources([
+                FileIntegrityResource::class,
+                MalwareDetectionResource::class,
+                ActivityLogResource::class,
             ])
             ->discoverWidgets(in: app_path('Filament/Widgets'), for: 'App\Filament\Widgets')
             ->widgets([
@@ -92,6 +108,10 @@ class AdminPanelProvider extends PanelProvider
                 PanelsRenderHook::BODY_END,
                 fn (): string => '<script src="/js/c2me-pwa.js" defer></script>',
             )
+            ->renderHook(
+                PanelsRenderHook::SIMPLE_PAGE_START,
+                fn (): View => view('filament.auth.mobile-logo'),
+            )
             /*
              * Changelog Olvy : la configuration doit être déclarée avant le
              * script externe (chargé en `defer`). Le widget n'est injecté que
@@ -110,11 +130,52 @@ class AdminPanelProvider extends PanelProvider
                     ->sort(90)
                     ->url('/terrain')
                     ->icon(Heroicon::OutlinedDevicePhoneMobile),
+                NavigationItem::make('Alertes de sécurité')
+                    ->group('Système')
+                    ->sort(98)
+                    ->icon(Heroicon::OutlinedExclamationTriangle)
+                    ->visible(fn (): bool => auth()->user()?->isAdmin() === true)
+                    ->url(fn (): string => SecurityAlertResource::getUrl('index', panel: 'admin')),
+                NavigationItem::make('Intégrité des fichiers')
+                    ->group('Système')
+                    ->sort(99)
+                    ->icon(Heroicon::OutlinedDocumentMagnifyingGlass)
+                    ->visible(fn (): bool => auth()->user()?->isAdmin() === true)
+                    ->url(fn (): string => FileIntegrityResource::getUrl('index', panel: 'admin')),
+                NavigationItem::make('Détections de malwares')
+                    ->group('Système')
+                    ->sort(100)
+                    ->icon(Heroicon::OutlinedBugAnt)
+                    ->visible(fn (): bool => auth()->user()?->isAdmin() === true)
+                    ->url(fn (): string => MalwareDetectionResource::getUrl('index', panel: 'admin')),
+                NavigationItem::make('Journal d’activité')
+                    ->group('Système')
+                    ->sort(101)
+                    ->icon(Heroicon::OutlinedClipboardDocumentList)
+                    ->visible(fn (): bool => auth()->user()?->isAdmin() === true)
+                    ->url(fn (): string => ActivityLogResource::getUrl('index', panel: 'admin')),
             ])
+            /*
+             * Page de connexion : photo de chantier à gauche, formulaire à droite,
+             * logo de l'entreprise sur la photo et bascule de thème.
+             */
             ->plugins([
                 AppVersionPlugin::make(),
+                AuthDesignerPlugin::make()
+                    ->login(fn (AuthPageConfig $config): AuthPageConfig => $config
+                        ->media(asset('images/auth/login-bg.webp'), alt: 'Charpente métallique réalisée par C2ME')
+                        ->mediaPosition(MediaPosition::Left)
+                        ->mediaSize('50%')
+                        ->renderHook(
+                            AuthDesignerRenderHook::MediaOverlay,
+                            fn () => view('filament.auth.branding', ['label' => 'Espace administration']),
+                        ))
+                    ->themeToggle(),
                 FilamentEChartsPlugin::make(),
                 PageHeaderPlugin::make()->compact(),
+                KnowledgeBaseCompanionPlugin::make()
+                    ->knowledgeBasePanelId('knowledge-base')
+                    ->modalPreviews(),
                 FilamentLogViewerPlugin::make()
                     ->navigationGroup('Système')
                     ->navigationSort(95)

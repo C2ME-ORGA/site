@@ -15,11 +15,12 @@ use Filament\Tables\Contracts\HasTable;
 use Filament\Tables\Filters\Filter;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
+use Guava\FilamentKnowledgeBase\Contracts\HasKnowledgeBase;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Builder;
 use UnitEnum;
 
-class AuditJournal extends Page implements HasTable
+class AuditJournal extends Page implements HasKnowledgeBase, HasTable
 {
     use InteractsWithTable;
 
@@ -128,5 +129,15 @@ class AuditJournal extends Page implements HasTable
         return collect($record->changeList())
             ->map(fn (string $change, string $field): string => $field.' : '.$change)
             ->implode(' · ');
+    }
+
+    /**
+     * Article d'aide contextuelle ouvert depuis le menu d'aide du panneau.
+     *
+     * @return array<int, string>
+     */
+    public static function getDocumentation(): array
+    {
+        return ['administration.journal-audit'];
     }
 }

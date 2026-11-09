@@ -233,8 +233,57 @@
 - [x] Consolidation à l’enregistrement (`QuoteLineObserver`, `Quote::recalculateTotals()`, TTC recalculé par `QuoteObserver`) ; création sans ligne possible grâce aux valeurs par défaut à 0.
 - [x] Tests du calcul en direct, de l’enregistrement, de la suppression totale des lignes et de la création (`tests/Feature/QuoteTotalsTest.php`).
 
-## Proposition de développement supplémentaire
+### 22. Base documentaire utilisateurs (`guava/filament-knowledge-base`)
 
+- [x] Paquet `guava/filament-knowledge-base` `^3.3` installé (compatible Filament 5), `@tailwindcss/typography` ajouté et thème `resources/css/filament/admin/theme.css` complété (`@plugin`, `@source` du paquet, correction du code inline).
+- [x] Panneau Filament dédié `knowledge-base` exposé sur `/aide` (`KnowledgeBasePanelProvider`) : même garde d’authentification que `/admin`, brand `C2ME — Aide`, palette `#0e8577`, thème Vite partagé.
+- [x] Plugin compagnon sur `/admin` : bouton « Base de connaissances » en pied de menu, aide contextuelle par fiche (`HasKnowledgeBase`) et aperçu de l’article en modale.
+- [x] Aide contextuelle branchée sur comptes (3 carnets), devis, activités, e-mails, réalisations, utilisateurs, boîtes e-mail, étiquettes, demandes de contact et de devis, relances, calendrier et journal d’audit.
+- [x] Base documentaire en français dans `docs/knowledge-base/fr` (28 articles répartis en 6 rubriques) : démarrage, gestion commerciale, demandes entrantes, communication, mode terrain (4 articles), site vitrine, administration et FAQ.
+- [x] Accès réservé aux utilisateurs actifs (administrateurs et commerciaux), recherche intégrée et fil d’Ariane ; contenu mis en cache, vidé par `php artisan cache:clear`.
+- [x] Tests d’accès et de structure (`tests/Feature/KnowledgeBaseTest.php`) ; Pint, PHPStan et suite complète au vert.
+
+> Mise à jour du contenu : les articles sont des fichiers Markdown versionnés. Après une modification, vider le cache (`php artisan cache:clear`) pour voir le rendu actualisé.
+
+### 23. Surveillance de sécurité (`mkwebdesign/filament-watchdog-v5`)
+
+- [x] Paquet `mkwebdesign/filament-watchdog-v5` installé, configuration publiée dans `config/filament-watchdog.php` et migrations exécutées.
+- [x] Tableau de bord `App\Filament\Pages\Security\SecurityDashboard` (sous-classe du paquet) : libellé français « Sécurité », groupe **Système** (tri 97), accès réservé aux administrateurs.
+- [x] Politiques en lecture seule pour les quatre modèles du paquet (`viewAny`/`view` réservés aux administrateurs, création et modification refusées) et entrées de navigation françaises pour Alertes, Intégrité, Malwares et Journal d’activité (URL `file-integrities` générée par le paquet).
+- [x] Planification : le scan automatique du paquet (chaque minute) est désactivé (`monitoring.enabled=false`) et remplacé par `watchdog:scan --force` toutes les 15 minutes dans `routes/console.php`, avec `withoutOverlapping`/`onOneServer`.
+- [x] Surveillance limitée aux chemins utiles ; exclusions des caches, du build Vite, des assets publiés, des seeders de démonstration et des images publiques.
+- [x] Alertes e-mail vers `admin@c2me.fr` (variables `WATCHDOG_EMAIL_RECIPIENTS` / `WATCHDOG_ADMIN_EMAILS`), limitation à 10 alertes par heure, quarantaine automatique désactivée.
+- [x] Journal d’activité alimenté par les événements d’authentification (`Login` / `Failed`), absent du paquet : connexions réussies, échecs et alerte force brute au-delà de 5 échecs par heure.
+- [x] Vue d’erreur de verrouillage traduite en français (`resources/views/errors/emergency-lockdown.blade.php`), publiée automatiquement par le paquet.
+- [x] Les widgets de sécurité ne polluent pas le tableau de bord CRM (ils sont rendus uniquement par la page Sécurité).
+- [x] Article d’aide utilisateur `docs/knowledge-base/fr/administration/securite.md`.
+- [x] Tests d’accès, de politiques, de journalisation et de planification (`tests/Feature/WatchdogTest.php`) ; Pint, PHPStan et suite complète au vert.
+
+> Le baseline et le scan planifié sont inactifs sous Windows (chemins absolus du paquet). Sur le serveur : `php artisan watchdog:baseline` après chaque déploiement volontaire.
+
+### 24. Pages de connexion aux couleurs de l’entreprise (`caresome/filament-auth-designer`)
+
+- [x] Paquet `caresome/filament-auth-designer` `^3.1` installé (Filament 4/5, Laravel 13), CSS publié dans `public/css/caresome/filament-auth-designer`.
+- [x] Mise en page en écran coupé : photo de chantier à gauche (50 %), formulaire à droite ; photo dédiée `public/images/auth/login-bg.webp` (960×1200, recadrée depuis une réalisation).
+- [x] Logo de l’entreprise sur la photo (carte blanche lisible en clair comme en sombre) et mention « Espace administration » / « Base documentaire » selon le panneau.
+- [x] Même habillage sur `/admin/login` et `/aide/login`, avec bascule de thème clair/sombre et logo de marque sur mobile (photo masquée sous 1024 px).
+- [x] Nom de l’application en teal, majuscules espacées, et titre « Connectez-vous à votre compte » hiérarchisé via `resources/css/filament/admin/theme.css`.
+- [x] Aucun changement de comportement : mêmes routes, mêmes identifiants, mêmes gardes d’authentification.
+- [x] Tests de rendu et d’enregistrement du plugin sur les deux panneaux (`tests/Feature/AuthDesignerTest.php`) ; Pint, PHPStan et suite complète au vert.
+
+### 25. Audit de la PR #40 (base documentaire, watchdog, connexion)
+
+- [x] Traitement des alertes : transitions `Acquitter` / `Résoudre` via `SecurityAlertWorkflow`, policy dédiée (`acknowledge`/`resolve`), `update` toujours refusé, actions serveur autorisées et testées.
+- [x] `watchdog:baseline` remplacé par une commande applicative fiable : celle du paquet n'écrit rien quand `monitoring.enabled=false` (elle appelle `watchdog:scan` sans `--force`) tout en affichant un succès.
+- [x] Scan vérifié par des tests réels : fichier nouveau, modifié, supprimé, signature suspecte, alertes, `--force`, monitoring désactivé, baseline, destinataires et limite d'envoi.
+- [x] Verrouillage d'urgence : `security:lockdown:release` planifié toutes les 10 minutes applique `auto_deactivate_hours` (le paquet ne le lisait pas ; le secret expirait après 24 h sans lever la maintenance).
+- [x] Notifications : destinataires par défaut via `ADMIN_EMAIL` (plus d'adresse codée en dur), clé `alert_levels` inutilisée retirée, limite horaire documentée.
+- [x] Journal de connexion : événements ignorés hors requête web (pas de session/IP), aucun mot de passe journalisé, alerte force brute testée.
+- [x] Base documentaire : test de rendu de tous les articles, liens et images vérifiés, article sécurité corrigé (transitions, baseline, verrouillage).
+- [x] Procédure d'exploitation : `docs/surveillance-securite.md` (baseline, scan, verrouillage, notifications, dépannage).
+- [x] Tests : `SecurityAlertTest`, `WatchdogScanTest`, `SecurityActivityLogTest`, `SecurityLockdownTest`, `KnowledgeBaseContentTest` ; Pint, PHPStan et suite complète au vert.
+
+## Proposition de développement supplémentaire
 - [x] **Amélioration du mode terrain** : édition hors ligne, création d'activités, actions rapides, conflits de synchronisation, photos et tournée — détail en section 7.
 - [x] Recherche globale Filament inter-carnets (comptes, contacts, affaires, devis). (v1.1.0)
 - [x] Relances automatiques : notifications/rappels à partir de `next_follow_up_at` — implémenté (voir section 8). (v1.1.0)
@@ -250,4 +299,7 @@
 - [x] Ajouter support Calendrier avec synchronisation/export pour Outlook, Google Calendar, etc. — flux WebCal privé par utilisateur, export ICS, activités et relances, événements personnels partageables (voir `plan_calendrier.md`).
 - [x] Prise en charge des Graphiques visuelle avec Apache Echart (https://filamentphp.com/plugins/elemind-echarts) — cinq graphiques sur le tableau de bord (voir section 18).
 - [x] Utiliser https://filamentphp.com/plugins/pedro-monteiro-page-header pour mettre en forme les vues des différents affichages — `mortalkiller/filament-page-header` `^2.4`, en-têtes compacts sur les fiches (voir section 19).
-- [ ] Permettre la gestion et l'organisation de l'espace 'Nos Réalisations' du frontend dans le CRM: Organisation par Département/chantier/images (Source probante: https://www.briand.fr/realisations/) 
+- [x] Permettre la gestion et l'organisation de l'espace 'Nos Réalisations' du frontend dans le CRM: Organisation par Département/chantier/images (Source probante: https://www.briand.fr/realisations/)
+- [x] Intégration du package filament: guava/filament-knowledge-base et définir une base documentaire pour l'utilisation du CRM aux utilisateurs. (voir section 22)
+- [x] Intégration du package filament: mkwebdesign/filament-watchdog-v5 afin de suivre le service de sécurité de l'application. (voir section 23)
+- [x] Intégration du package filament: caresome/filament-auth-designer et redéfinir les pages de connexions au couleur de l'entreprise. (voir section 24)

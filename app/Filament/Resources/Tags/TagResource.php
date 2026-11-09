@@ -13,9 +13,10 @@ use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
+use Guava\FilamentKnowledgeBase\Contracts\HasKnowledgeBase;
 use UnitEnum;
 
-class TagResource extends Resource
+class TagResource extends Resource implements HasKnowledgeBase
 {
     protected static ?string $model = CrmTag::class;
 
@@ -50,5 +51,15 @@ class TagResource extends Resource
             'create' => CreateTag::route('/create'),
             'edit' => EditTag::route('/{record}/edit'),
         ];
+    }
+
+    /**
+     * Article d'aide contextuelle ouvert depuis le menu d'aide du panneau.
+     *
+     * @return array<int, string>
+     */
+    public static function getDocumentation(): array
+    {
+        return ['crm.etiquettes'];
     }
 }

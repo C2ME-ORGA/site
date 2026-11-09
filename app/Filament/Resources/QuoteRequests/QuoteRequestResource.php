@@ -16,9 +16,10 @@ use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
+use Guava\FilamentKnowledgeBase\Contracts\HasKnowledgeBase;
 use UnitEnum;
 
-class QuoteRequestResource extends Resource
+class QuoteRequestResource extends Resource implements HasKnowledgeBase
 {
     protected static ?string $model = QuoteRequest::class;
 
@@ -77,5 +78,15 @@ class QuoteRequestResource extends Resource
             'view' => ViewQuoteRequest::route('/{record}'),
             'edit' => EditQuoteRequest::route('/{record}/edit'),
         ];
+    }
+
+    /**
+     * Article d'aide contextuelle ouvert depuis le menu d'aide du panneau.
+     *
+     * @return array<int, string>
+     */
+    public static function getDocumentation(): array
+    {
+        return ['demandes.devis'];
     }
 }

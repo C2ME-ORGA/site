@@ -119,6 +119,45 @@ Schedule::command('crm:send-follow-up-reminders --stage=due-day')
 
 /*
 |--------------------------------------------------------------------------
+| Surveillance de sécurité (intégrité des fichiers et malwares)
+|--------------------------------------------------------------------------
+|
+| `watchdog:scan` hache les fichiers surveillés et recherche des signatures
+| de malwares. La planification toutes les minutes du paquet est désactivée
+| dans config/filament-watchdog.php ; elle est remplacée ici par un passage
+| toutes les 15 minutes, avec `--force` puisque `monitoring.enabled` est à
+| false.
+|
+| Le scan est désactivé sur Windows : le paquet y calcule des chemins
+| absolus qui faussent la détection des fichiers supprimés. Le baseline doit
+| être créé sur le serveur après le déploiement (`php artisan watchdog:baseline`).
+|
+*/
+
+Schedule::command('watchdog:scan --force')
+    ->everyFifteenMinutes()
+    ->withoutOverlapping()
+    ->onOneServer()
+    ->when(fn (): bool => PHP_OS_FAMILY !== 'Windows');
+
+/*
+|--------------------------------------------------------------------------
+| Levée automatique du verrouillage d'urgence
+|--------------------------------------------------------------------------
+|
+| Le paquet expire le secret d'accès au bout de 24 heures sans lever le mode
+| maintenance. Cette commande applique `auto_deactivate_hours` et évite que
+| le site reste bloqué sans URL d'urgence valide.
+|
+*/
+
+Schedule::command('security:lockdown:release')
+    ->everyTenMinutes()
+    ->withoutOverlapping()
+    ->onOneServer();
+
+/*
+|--------------------------------------------------------------------------
 | Sauvegarde de la base de données
 |--------------------------------------------------------------------------
 |
